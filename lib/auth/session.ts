@@ -1,4 +1,4 @@
-import { ApiError, apiFetch, getAccessToken, setAccessToken } from '@/lib/api/client';
+import { ApiError, apiFetch, setAccessToken } from '@/lib/api/client';
 
 export interface AdminProfile {
   id: string;
@@ -13,9 +13,21 @@ export async function login(email: string, password: string): Promise<AdminProfi
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  const body = (await res.json()) as
+
+  let body:
     | { success: true; data: { accessToken: string } }
     | { success: false; error: { code: string; message: string; traceId: string } };
+  try {
+    body = (await res.json()) as typeof body;
+  } catch {
+    // An unreachable API or a proxy error in front of it can still slip
+    // through as a non-JSON response. Surface a typed ApiError rather than
+    // letting a raw SyntaxError from res.json() escape to the caller.
+    throw new ApiError(
+      { code: 'NETWORK', message: 'The server returned an unreadable response.', traceId: 'none' },
+      res.status || 502,
+    );
+  }
 
   if (!body.success) throw new ApiError(body.error, res.status);
 
@@ -24,28 +36,45 @@ export async function login(email: string, password: string): Promise<AdminProfi
 }
 
 export async function logout(): Promise<void> {
-  // The server's logout endpoint requires the Bearer access token (it revokes
-  // the specific session), so it must be forwarded to the route handler
-  // before the in-memory token is cleared.
-  const token = getAccessToken();
+  // The route handler rotates the refresh token itself to mint a fresh
+  // access token server-side before calling the API's logout, so this does
+  // not need to forward anything — it just clears local state and tells the
+  // route handler to do the rest.
   setAccessToken(null);
-  await fetch('/api/auth/logout', {
-    method: 'POST',
-    headers: token ? { authorization: `Bearer ${token}` } : undefined,
-  });
+  await fetch('/api/auth/logout', { method: 'POST' });
 }
 
+// The server rotates the refresh token and revokes the old one on every call
+// to /auth/refresh, and revokes the whole family if a revoked token is
+// presented again (reuse detection). Two callers 401ing at once — e.g. two
+// queries firing in parallel right after a reload, before any access token
+// exists — would otherwise each POST /api/auth/refresh with the same cookie:
+// the second call presents a token the first call already burned, trips
+// reuse detection, and gets the whole session logged out. Coalescing
+// concurrent calls into a single in-flight fetch keeps that from happening.
+let inflight: Promise<string | null> | null = null;
+
 export async function refreshAccessToken(): Promise<string | null> {
-  const res = await fetch('/api/auth/refresh', { method: 'POST' });
-  if (!res.ok) return null;
+  if (inflight) return inflight;
 
-  const body = (await res.json()) as
-    | { success: true; data: { accessToken: string } }
-    | { success: false };
+  inflight = (async () => {
+    const res = await fetch('/api/auth/refresh', { method: 'POST' });
+    if (!res.ok) return null;
 
-  if (!body.success) return null;
-  setAccessToken(body.data.accessToken);
-  return body.data.accessToken;
+    const body = (await res.json()) as
+      | { success: true; data: { accessToken: string } }
+      | { success: false };
+
+    if (!body.success) return null;
+    setAccessToken(body.data.accessToken);
+    return body.data.accessToken;
+  })();
+
+  try {
+    return await inflight;
+  } finally {
+    inflight = null;
+  }
 }
 
 /**

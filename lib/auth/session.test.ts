@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, setAccessToken } from '@/lib/api/client';
-import { withRefresh } from './session';
+import { ApiError, getAccessToken, setAccessToken } from '@/lib/api/client';
+import { login, logout, withRefresh } from './session';
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
 
 afterEach(() => {
   setAccessToken(null);
@@ -99,5 +107,76 @@ describe('withRefresh', () => {
     ).rejects.toMatchObject({ status: 409 });
 
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('makes concurrent refreshes single-flight, so two callers 401ing at once do not both burn the same cookie', async () => {
+    // The server rotates the refresh token and revokes the old one on every
+    // /auth/refresh call. If two withRefresh callers both 401 at once (e.g.
+    // two queries firing in parallel after a reload with no access token
+    // yet), each firing its own POST /api/auth/refresh presents the same
+    // cookie twice — the second call reuses an already-revoked token, which
+    // trips the server's reuse-detection and revokes the whole family,
+    // logging the user out on essentially every reload.
+    const gate = deferred<void>();
+    const fetchMock = vi.fn(async () => {
+      await gate.promise;
+      return new Response(JSON.stringify({ success: true, data: { accessToken: 'new-tok' } }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    let firstCalls = 0;
+    let secondCalls = 0;
+
+    const first = withRefresh(async () => {
+      firstCalls += 1;
+      if (firstCalls === 1) throw unauthorized();
+      return 'first-recovered';
+    });
+    const second = withRefresh(async () => {
+      secondCalls += 1;
+      if (secondCalls === 1) throw unauthorized();
+      return 'second-recovered';
+    });
+
+    // Let both withRefresh calls run far enough to hit refreshAccessToken()
+    // before releasing the single in-flight fetch.
+    await Promise.resolve();
+    await Promise.resolve();
+    gate.resolve();
+
+    await expect(first).resolves.toBe('first-recovered');
+    await expect(second).resolves.toBe('second-recovered');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('login', () => {
+  it('throws an ApiError, not a raw SyntaxError, when /api/auth/login returns an unreadable response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('<html>502 Bad Gateway</html>', { status: 502 })),
+    );
+
+    await expect(login('a@b.com', 'password123')).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe('logout', () => {
+  it('clears the in-memory access token and POSTs /api/auth/logout', async () => {
+    setAccessToken('some-token');
+
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ success: true, data: null }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await logout();
+
+    expect(getAccessToken()).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' });
   });
 });
