@@ -1,26 +1,42 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #09090B;
+  --surface: #18181B;
+  --elevated: #27272A;
+  --border: #3F3F46;
+
+  --text: #FAFAFA;
+  --muted: #A1A1AA;
+  --subtle: #71717A;
+
+  --brand-from: #9333EA;
+  --brand-to: #6B21A8;
+  --brand: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-to) 100%);
+
+  --success: #22C55E;
+  --error: #EF4444;
+  --warning: #EAB308;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* The app is dark-only by design (spec section 3). No prefers-color-scheme
+   block and no light variables: a light dashboard breaks the requirement that
+   this look like the same product as the Flutter app. */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-jakarta), system-ui, sans-serif;
 }
