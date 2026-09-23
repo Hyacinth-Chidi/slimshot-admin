@@ -10,6 +10,11 @@
 
 **Spec:** `docs/design-spec.md` - in this repo, beside this plan.
 
+**API reference:** `docs/api-reference.md` - real request/response shapes captured from the
+running server, plus the dev credentials and how to start it. **Where it disagrees with this
+plan, it wins**: it corrected four things this plan got wrong before the API could be
+exercised. Read it before Task 3.
+
 **Repo:** this one, `slimshot-admin`. The spec's prose calls it `slimshot-dashboard`; that name is stale, ignore it.
 
 **Working directory:** the git worktree at `.worktrees/dashboard`, branch `feat/dashboard`. Run everything from there.
@@ -19,6 +24,11 @@
 ---
 
 ## Global Constraints
+
+- **Use Context7 for framework docs, not memory.** Next.js 16 and Tailwind v4 are both newer than the model's training data, and guessing here produces code that runs but uses deprecated APIs. Call `resolve-library-id` then `query-docs` before writing anything framework-specific. Verified this way already:
+  - `/vercel/next.js/v16.2.9` — `middleware.ts` is deprecated; the file is **`proxy.ts`** exporting **`proxy()`**. `cookies()` is **async**: `const store = await cookies()`, in both route handlers and server components.
+  - `/websites/tailwindcss` — `@theme inline` is required (not plain `@theme`) when a theme variable references another CSS variable, which is exactly how the tokens in Task 1 are defined.
+  The installed package also ships docs at `node_modules/next/dist/docs/`; Context7 is the fresher source, so prefer it and fall back to the bundled copy if Context7 is unavailable.
 
 - **Next.js 16 is not the Next.js in your training data.** `AGENTS.md` at the repo root says to read `node_modules/next/dist/docs/` before writing code. Two differences already confirmed and load-bearing for this plan:
   - **`middleware.ts` is DEPRECATED and renamed to `proxy.ts`**, exporting `proxy()` rather than `middleware()`. Do not create `middleware.ts`.
@@ -56,7 +66,7 @@ Five things the spec implies but no screen's own tests naturally exercise, most 
 2. **The idle timer not resetting on keystroke**, locking the field mid-type. The spec calls this the trigger that matters most; a timer that resets on render instead of on input looks identical until someone types slowly.
 3. **A 401 during the refresh request itself**, causing an infinite refresh loop rather than a redirect to login.
 4. **An empty `uploadsOverTime` array** (a brand-new install with no assets) rendering as `NaN` or a crashed sparkline rather than an empty state.
-5. **A cursor-paginated endpoint whose `meta` sits beside `data`.** `apiFetch` unwraps `data` and discards `meta`, so `nextCursor` reads as `undefined` and pagination stops after page one with no error. Task 13 adds `apiFetchEnvelope` for this; any future paginated endpoint must use it rather than `apiFetch`.
+5. **A cursor-paginated endpoint whose `meta` sits beside `data`.** `apiFetch` unwraps `data` and discards `meta`, so `nextCursor` reads as `undefined` and pagination stops after page one with no error. Task 3 adds `apiFetchEnvelope` for this. BOTH `/assets` and `/audit-logs` need it - verified against the live API - and any future paginated endpoint must use it rather than `apiFetch`.
 
 ---
 
@@ -504,7 +514,81 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 Run: `npx vitest run lib/api/client.test.ts`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Add `apiFetchEnvelope` for cursor-paginated endpoints**
+
+First the failing test, appended to `lib/api/client.test.ts`:
+
+```ts
+describe('apiFetchEnvelope', () => {
+  it('returns data AND meta, which apiFetch discards', async () => {
+    vi.stubGlobal(
+      'fetch',
+      mockFetch({ success: true, data: [{ id: 'x' }], meta: { nextCursor: 'c1' } }),
+    );
+
+    const page = await apiFetchEnvelope<{ id: string }[], { nextCursor: string | null }>('/audit-logs');
+    expect(page.data).toEqual([{ id: 'x' }]);
+    expect(page.meta.nextCursor).toBe('c1');
+  });
+
+  it('still throws ApiError on a failure envelope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      mockFetch({ success: false, error: { code: 'X', message: 'no', traceId: 't' } }, 400),
+    );
+    await expect(apiFetchEnvelope('/audit-logs')).rejects.toBeInstanceOf(ApiError);
+  });
+});
+```
+
+Then the implementation, beside `apiFetch` in the same file:
+
+```ts
+/**
+ * Like apiFetch, but keeps `meta` alongside `data`. Cursor-paginated endpoints
+ * put nextCursor in meta as a sibling of data, and apiFetch's unwrapping drops
+ * it — which makes pagination stop after one page without any error.
+ */
+export async function apiFetchEnvelope<T, M = unknown>(
+  path: string,
+  init?: RequestInit,
+): Promise<{ data: T; meta: M }> {
+  const headers = new Headers(init?.headers);
+  if (!headers.has('content-type') && init?.body) {
+    headers.set('content-type', 'application/json');
+  }
+  if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
+
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+
+  let body: { success: boolean; data?: T; meta?: M; error?: ApiErrorBody };
+  try {
+    body = await res.json();
+  } catch {
+    throw new ApiError(
+      {
+        code: 'NETWORK',
+        message: `The server returned an unreadable response (${res.status}).`,
+        traceId: 'none',
+      },
+      res.status,
+    );
+  }
+
+  if (!body.success || body.data === undefined) {
+    throw new ApiError(
+      body.error ?? { code: 'UNKNOWN', message: 'Request failed.', traceId: 'none' },
+      res.status,
+    );
+  }
+  return { data: body.data, meta: body.meta as M };
+}
+```
+
+Run: `npx vitest run lib/api/client.test.ts`
+Expected: PASS, 8 tests.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add lib/api/
@@ -1423,12 +1507,21 @@ import { withRefresh } from '@/lib/auth/session';
 
 export interface StatsSummary {
   totalAssets: number;
-  publishedCount: number;
-  processingCount: number;
   failedCount: number;
   totalBytes: number;
+  /** Keyed maps, populated ONLY with statuses/kinds that have rows. */
   byStatus: Record<string, number>;
   byKind: Record<string, number>;
+}
+
+/** Verified against the live API: there is no publishedCount/processingCount. */
+export function tileCounts(s: StatsSummary) {
+  return {
+    total: s.totalAssets,
+    published: s.byStatus.published ?? 0,
+    processing: s.byStatus.processing ?? 0,
+    failed: s.failedCount,
+  };
 }
 
 export interface UploadPoint {
@@ -1441,7 +1534,7 @@ export function fetchSummary(): Promise<StatsSummary> {
 }
 
 export function fetchUploads(days: number): Promise<UploadPoint[]> {
-  return withRefresh(() => apiFetch<UploadPoint[]>(`/stats/uploads?days=${days}`));
+  return withRefresh(() => apiFetch<UploadPoint[]>(`/stats/uploads-over-time?days=${days}`));
 }
 
 /**
@@ -1656,10 +1749,13 @@ export interface Asset {
   createdAt: string;
 }
 
-export interface AssetPage {
-  items: Asset[];
-  nextCursor: string | null;
-}
+/**
+ * Verified against the live API: /assets returns `meta` as a SIBLING of `data`,
+ * exactly like /audit-logs. It must be read with apiFetchEnvelope (added in
+ * Task 13) - apiFetch unwraps `data` and silently discards nextCursor, so
+ * pagination would stop after page one with no error.
+ */
+export type AssetPage = { data: Asset[]; meta: { nextCursor: string | null } };
 
 export interface AssetFilters {
   kind?: string;
@@ -1676,7 +1772,9 @@ export function fetchAssets(filters: AssetFilters = {}): Promise<AssetPage> {
     if (v !== undefined && v !== '') qs.set(k, String(v));
   }
   const suffix = qs.toString() ? `?${qs}` : '';
-  return withRefresh(() => apiFetch<AssetPage>(`/assets${suffix}`));
+  return withRefresh(() =>
+    apiFetchEnvelope<Asset[], { nextCursor: string | null }>(`/assets${suffix}`),
+  );
 }
 
 export function publishAsset(id: string): Promise<unknown> {
@@ -2737,7 +2835,10 @@ export interface AuditEntry {
   action: string;
   entityType: string;
   entityId: string | null;
+  before: unknown;
+  after: unknown;
   ip: string | null;
+  userAgent: string | null;
   createdAt: string;
 }
 
@@ -2766,97 +2867,23 @@ export function fetchAuditLogs(filters: {
 
 **This endpoint does not fit `apiFetch`.** It returns `{ success, data, meta }` with `meta` as a SIBLING of `data`, not nested inside it (verified in `admin-audit.controller.ts`). `apiFetch` returns only `data`, so `meta.nextCursor` would be `undefined` and "Load more" would silently never advance past page one.
 
-- [ ] **Step 2: Add `apiFetchEnvelope` to `lib/api/client.ts`**
-
-First the failing test, appended to `lib/api/client.test.ts`:
-
-```ts
-describe('apiFetchEnvelope', () => {
-  it('returns data AND meta, which apiFetch discards', async () => {
-    vi.stubGlobal(
-      'fetch',
-      mockFetch({ success: true, data: [{ id: 'x' }], meta: { nextCursor: 'c1' } }),
-    );
-
-    const page = await apiFetchEnvelope<{ id: string }[], { nextCursor: string | null }>('/audit-logs');
-    expect(page.data).toEqual([{ id: 'x' }]);
-    expect(page.meta.nextCursor).toBe('c1');
-  });
-
-  it('still throws ApiError on a failure envelope', async () => {
-    vi.stubGlobal(
-      'fetch',
-      mockFetch({ success: false, error: { code: 'X', message: 'no', traceId: 't' } }, 400),
-    );
-    await expect(apiFetchEnvelope('/audit-logs')).rejects.toBeInstanceOf(ApiError);
-  });
-});
-```
-
-Then the implementation, beside `apiFetch`:
-
-```ts
-/**
- * Like apiFetch, but keeps `meta` alongside `data`. Cursor-paginated endpoints
- * put nextCursor in meta as a sibling of data, and apiFetch's unwrapping drops
- * it — which makes pagination stop after one page without any error.
- */
-export async function apiFetchEnvelope<T, M = unknown>(
-  path: string,
-  init?: RequestInit,
-): Promise<{ data: T; meta: M }> {
-  const headers = new Headers(init?.headers);
-  if (!headers.has('content-type') && init?.body) {
-    headers.set('content-type', 'application/json');
-  }
-  if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
-
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
-
-  let body: { success: boolean; data?: T; meta?: M; error?: ApiErrorBody };
-  try {
-    body = await res.json();
-  } catch {
-    throw new ApiError(
-      {
-        code: 'NETWORK',
-        message: `The server returned an unreadable response (${res.status}).`,
-        traceId: 'none',
-      },
-      res.status,
-    );
-  }
-
-  if (!body.success || body.data === undefined) {
-    throw new ApiError(
-      body.error ?? { code: 'UNKNOWN', message: 'Request failed.', traceId: 'none' },
-      res.status,
-    );
-  }
-  return { data: body.data, meta: body.meta as M };
-}
-```
-
-Run: `npx vitest run lib/api/client.test.ts`
-Expected: PASS, 8 tests.
-
-- [ ] **Step 3: Write `components/audit/audit-table.tsx`**
+- [ ] **Step 2: Write `components/audit/audit-table.tsx`**
 
 Columns: timestamp, actor, action, entity. Read-only — no delete affordance anywhere, because the API offers none. Below `md`, a stacked list rather than a table.
 
-- [ ] **Step 4: Write `app/(dashboard)/audit/page.tsx`**
+- [ ] **Step 3: Write `app/(dashboard)/audit/page.tsx`**
 
 Filters for actor, action and entity type. "Load more" using `meta.nextCursor`.
 
-- [ ] **Step 5: Link Audit from Overview**
+- [ ] **Step 4: Link Audit from Overview**
 
 A "View all" link on the recent-activity card. Audit deliberately does not get a fifth nav tab.
 
-- [ ] **Step 6: Add a README section**
+- [ ] **Step 5: Add a README section**
 
 Document `NEXT_PUBLIC_API_BASE`, how to run the server locally, and that the dashboard needs an owner account to reach Settings.
 
-- [ ] **Step 7: Full gates**
+- [ ] **Step 6: Full gates**
 
 ```bash
 npm test
@@ -2865,7 +2892,7 @@ npm run build
 ```
 All three must pass.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add lib/api/audit.ts components/audit app/\(dashboard\)/audit app/\(dashboard\)/page.tsx README.md
