@@ -37,7 +37,7 @@ export function canUnpublish(status: Asset['status']): boolean {
 
 /**
  * Presentational only — no useMutation/useQueryClient here. The list
- * components (AssetTable/AssetCard/AssetList) render outside any
+ * components (AssetTable/AssetCard) render outside any
  * QueryClientProvider in their unit tests, so the actual mutations live in
  * the page and arrive as callbacks.
  */

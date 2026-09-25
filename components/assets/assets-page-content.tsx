@@ -123,17 +123,26 @@ function AssetsPageBody({
 
       {query.isLoading ? (
         <p className="py-12 text-center text-sm text-subtle">Loading assets…</p>
+      ) : query.isLoadingError ? (
+        // The first load for these filters failed: there is no list to show,
+        // and "No assets yet." would be a lie. (A failed next-page fetch
+        // keeps its loaded pages and is not a loading error.)
+        <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
+          <p className="text-sm text-muted">Couldn’t load assets.</p>
+          <Button variant="secondary" onClick={() => query.refetch()}>
+            Retry
+          </Button>
+        </div>
       ) : allAssets.length === 0 ? (
-        <p className="py-12 text-center text-sm text-subtle">No assets yet.</p>
+        <p className="py-12 text-center text-sm text-subtle">
+          {filterKey ? 'No assets match these filters.' : 'No assets yet.'}
+        </p>
       ) : (
         <>
-          {/* md+: one page at a time, matching the explicit pager below.
-              Below md: the full accumulated list, matching infinite scroll.
-              AssetTable/AssetCard are used directly (rather than the shared
-              AssetList wrapper) because the two breakpoints need genuinely
-              different slices of data here — mounting AssetList twice would
-              also mount its internal table+cards blocks twice, leaving two
-              data-testid="asset-table" nodes in the DOM. */}
+          {/* Spec §10: two genuinely different components, both mounted, CSS
+              picking one. md+: one page at a time in a real table, matching
+              the explicit pager below. Below md: the full accumulated list as
+              cards, matching infinite scroll. */}
           <div data-testid="asset-cards" className="flex flex-col gap-2 md:hidden">
             {allAssets.map((asset) => (
               <AssetCard

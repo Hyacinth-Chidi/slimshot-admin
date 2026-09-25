@@ -81,9 +81,11 @@ export function AssetTable({
             <td className="py-2 pr-3 text-muted">{formatCreatedDate(asset.createdAt)}</td>
             <td className="py-2">
               {/* Hover actions (desktop-only extra, spec §6.2): dim until the row is
-                  hovered or the trigger itself has focus, so it doesn't fight the
-                  40+ rows a dense table can hold. */}
-              <div className="opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 focus-within:opacity-100">
+                  hovered, so they don't fight the 40+ rows a dense table can hold.
+                  Tailwind v4's hover: only applies under (hover: hover), so a touch
+                  device at md+ (an iPad) always shows them (pointer-coarse), and they
+                  stay visible while the trigger has focus or its menu is open. */}
+              <div className="opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 pointer-coarse:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100">
                 <AssetActionsMenu
                   asset={asset}
                   onPublish={onPublish}

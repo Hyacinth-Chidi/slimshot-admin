@@ -168,3 +168,93 @@ describe('AssetsPageContent search input (round-2 regression: focus loss + loadi
     await screen.findAllByText('Asset a2');
   });
 });
+
+/**
+ * Spec §10: below md the list is cards, at md+ a real table — two genuinely
+ * different components, both mounted, with CSS picking one. Pinned on the
+ * page itself, which renders its own split (I5).
+ */
+describe('AssetsPageContent responsive split (spec §10)', () => {
+  beforeEach(() => {
+    fetchAssetsMock.mockResolvedValue({ data: [makeAsset('a1')], meta: { nextCursor: null } });
+  });
+
+  it('hides the table below md and uses a real <table> in it', async () => {
+    renderPage();
+    await screen.findAllByText('Asset a1');
+    const table = screen.getByTestId('asset-table');
+    expect(table).toHaveClass('hidden', 'md:block');
+    expect(table.querySelector('table')).not.toBeNull();
+  });
+
+  it('hides the cards at md+ and builds them from no <table>', async () => {
+    // A card list built from a table inherits table layout and cannot reflow
+    // — the exact failure this split exists to avoid.
+    renderPage();
+    await screen.findAllByText('Asset a1');
+    const cards = screen.getByTestId('asset-cards');
+    expect(cards).toHaveClass('md:hidden');
+    expect(cards.querySelector('table')).toBeNull();
+  });
+
+  it('renders the title in both presentations', async () => {
+    renderPage();
+    await screen.findAllByText('Asset a1');
+    expect(within(screen.getByTestId('asset-table')).getByText('Asset a1')).toBeInTheDocument();
+    expect(within(screen.getByTestId('asset-cards')).getByText('Asset a1')).toBeInTheDocument();
+  });
+});
+
+describe('AssetsPageContent desktop row actions (I6)', () => {
+  it('stay visible on touch (coarse pointer), on focus, and while their menu is open', async () => {
+    // Tailwind v4 applies hover: only under (hover: hover), so a hover-only
+    // reveal leaves the menu undiscoverable on an iPad at md+.
+    fetchAssetsMock.mockResolvedValue({ data: [makeAsset('a1')], meta: { nextCursor: null } });
+    renderPage();
+    await screen.findAllByText('Asset a1');
+
+    const trigger = within(screen.getByTestId('asset-table')).getByRole('button', {
+      name: /actions for asset a1/i,
+    });
+    const reveal = trigger.closest('.opacity-0');
+    expect(reveal).not.toBeNull();
+    expect(reveal).toHaveClass(
+      'group-hover:opacity-100',
+      'pointer-coarse:opacity-100',
+      'focus-within:opacity-100',
+      'has-[[data-state=open]]:opacity-100',
+    );
+  });
+});
+
+describe('AssetsPageContent load states (T8a)', () => {
+  it('shows an error with Retry, not the empty state, when the first load fails', async () => {
+    fetchAssetsMock.mockRejectedValueOnce(new Error('The server could not be reached.'));
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn.t load assets/i);
+    expect(screen.queryByText(/no assets yet/i)).not.toBeInTheDocument();
+
+    fetchAssetsMock.mockResolvedValueOnce({ data: [makeAsset('a1')], meta: { nextCursor: null } });
+    await user.click(screen.getByRole('button', { name: /retry/i }));
+
+    await screen.findAllByText('Asset a1');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(fetchAssetsMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('says "No assets yet." when nothing exists and no filter is set', async () => {
+    fetchAssetsMock.mockResolvedValue({ data: [], meta: { nextCursor: null } });
+    renderPage();
+    expect(await screen.findByText('No assets yet.')).toBeInTheDocument();
+  });
+
+  it('says "No assets match these filters." when filters are active and nothing matches', async () => {
+    currentSearch = 'status=published&search=rain';
+    fetchAssetsMock.mockResolvedValue({ data: [], meta: { nextCursor: null } });
+    renderPage();
+    expect(await screen.findByText('No assets match these filters.')).toBeInTheDocument();
+    expect(screen.queryByText('No assets yet.')).not.toBeInTheDocument();
+  });
+});
