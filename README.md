@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SlimShot Admin Dashboard
 
-## Getting Started
+An admin dashboard for SlimShot: manage audio/font/template assets, categories, storage
+and auth settings, and browse the audit log. Dark theme only, responsive down to phone
+width (see `docs/design-spec.md`).
 
-First, run the development server:
+## Stack
+
+- [Next.js 16](https://nextjs.org) (App Router, Turbopack) — see `node_modules/next/dist/docs/`
+  for this version's conventions before assuming anything from older Next.js docs.
+- React 19, TypeScript (strict)
+- [Tailwind CSS v4](https://tailwindcss.com)
+- [TanStack Query v5](https://tanstack.com/query) for server state
+- [shadcn/ui](https://ui.shadcn.com) (Radix underneath) for dialogs, sheets, dropdown
+  menus and other interactive primitives, restyled to this project's tokens
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev -- -p 3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The dashboard needs the SlimShot API running locally. The API binds port 3000 (the same
+default Next.js uses), so run the dashboard on another port as above.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Running the API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+From `../slimshot_server`:
 
-## Learn More
+```bash
+npm run start:dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Environment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Set the dashboard's API base URL:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+NEXT_PUBLIC_API_BASE=http://localhost:3000/api/admin/v1
+```
 
-## Deploy on Vercel
+### Signing in
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Sign-in requires an admin account on the API. Reaching **Settings** specifically requires
+an **owner** account — `settings.write` is owner-only and a regular `admin` account does
+not inherit it. See `../slimshot_server`'s own docs (or `docs/api-reference.md` in this
+repo, for local development only) for a seeded account to sign in with.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+```bash
+npm test         # vitest — unit/component tests
+npm run lint     # eslint
+npm run build    # production build (also typechecks)
+```
+
+For a standalone type check without a full build: `npx tsc --noEmit`.

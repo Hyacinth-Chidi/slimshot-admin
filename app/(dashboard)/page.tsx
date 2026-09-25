@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAuditLogs } from '@/lib/api/audit';
 import { fetchJobsHealth, fetchSummary, fetchUploads, sparklinePoints, tileCounts, zeroFill } from '@/lib/api/stats';
@@ -64,7 +65,15 @@ export default function OverviewPage() {
       </div>
 
       <div className="rounded-lg border border-border bg-surface p-4">
-        <p className="text-sm text-muted">Recent activity</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted">Recent activity</p>
+          <Link
+            href="/audit"
+            className="flex h-11 items-center text-sm font-medium text-text underline-offset-2 hover:underline md:h-auto"
+          >
+            View all
+          </Link>
+        </div>
         <ul className="mt-3 flex flex-col divide-y divide-border">
           {activityQuery.data?.data.length === 0 ? (
             <li className="py-3 text-sm text-subtle">No activity yet.</li>
