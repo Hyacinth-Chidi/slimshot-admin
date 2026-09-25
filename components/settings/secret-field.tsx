@@ -8,7 +8,9 @@ import { Input } from '@/components/ui/input';
 import { ApiError } from '@/lib/api/client';
 import { fieldErrors } from '@/lib/api/field-errors';
 import { revealSecret, updateSetting, type MaskedSetting } from '@/lib/api/settings';
+import { fetchMe } from '@/lib/auth/profile';
 import { cn } from '@/lib/cn';
+import { handleMutationError } from '@/lib/query-errors';
 import { useIdleTimer } from '@/lib/use-idle-timer';
 import { toast } from '@/lib/use-toast';
 import { PasswordModal } from './password-modal';
@@ -99,6 +101,32 @@ export function SecretField({ setting }: { setting: MaskedSetting }) {
       const epoch = lockEpoch.current;
       setRevealing(true);
       try {
+        // R12d: make sure the session is live BEFORE the password leaves the
+        // browser. The reveal itself is never refresh-retried (a resend
+        // would spend a second lockout attempt), and the server's guard 401
+        // shares its code with "Password is incorrect.", so an expired
+        // access token would otherwise fail every unlock until a reload.
+        // A cheap withRefresh-wrapped GET /auth/me refreshes it instead;
+        // guard 401s never reach the lockout counter, so this is safe.
+        try {
+          await fetchMe();
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 401) {
+            // The refresh itself failed: the session is gone. Lock, close,
+            // and take the same §9 path as a mutation's 401.
+            lock();
+            setModalOpen(false);
+            handleMutationError(err);
+            return null;
+          }
+          return err instanceof Error && err.message ? err.message : 'Could not unlock this setting.';
+        }
+        // A re-lock during the pre-check discards the attempt before the
+        // password is sent.
+        if (epoch !== lockEpoch.current) {
+          return 'The field locked again while unlocking. Try again.';
+        }
+
         // Direct call, never useQuery: the value must not enter the cache.
         // revealSecret is not retried (a failure spends a lockout attempt).
         const result = await revealSecret(setting.key, password);
@@ -118,7 +146,7 @@ export function SecretField({ setting }: { setting: MaskedSetting }) {
         setRevealing(false);
       }
     },
-    [setting.key],
+    [setting.key, lock],
   );
 
   async function save() {
@@ -137,6 +165,15 @@ export function SecretField({ setting }: { setting: MaskedSetting }) {
         // grant is an ordinary re-prompt, not an error.
         lock();
         setModalOpen(true);
+        return;
+      }
+      if (err instanceof ApiError && err.status === 401) {
+        // withRefresh already tried and the refresh failed. This save is not
+        // a useMutation (its cache would keep the secret), so the global
+        // MutationCache redirect never sees it: drop the value first, then
+        // take the same §9 path by hand.
+        lock();
+        handleMutationError(err);
         return;
       }
       if (err instanceof ApiError && err.status === 422) {

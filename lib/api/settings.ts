@@ -31,6 +31,11 @@ export function fetchSettings(group: string): Promise<MaskedSetting[]> {
   return withRefresh(() => apiFetch<MaskedSetting[]>(`/settings?group=${encodeURIComponent(group)}`));
 }
 
+/**
+ * WARNING: withRefresh-wrapped. Never send a `{ password }` proof through it —
+ * a wrong-password 401 would trigger a refresh and a resend, spending a second
+ * lockout attempt the user never made. Secret writes use `{ grant }` only.
+ */
 export function updateSetting(
   key: string,
   value: unknown,
