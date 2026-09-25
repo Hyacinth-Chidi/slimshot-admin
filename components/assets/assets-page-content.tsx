@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Plus } from 'lucide-react';
 import { AssetTable } from './asset-table';
 import { AssetCard } from './asset-card';
 import { AssetFiltersBar } from './asset-filters';
@@ -12,6 +13,8 @@ import { InfiniteScrollSentinel } from './infinite-scroll-sentinel';
 import { filtersFromSearchParams, searchParamsFromFilters } from './filters-url';
 import { useAssetActions } from './use-asset-actions';
 import { fetchAssets, type AssetFilters } from '@/lib/api/assets';
+import { Button } from '@/components/ui/button';
+import { UploadDrawer } from '@/components/upload/upload-drawer';
 
 const PAGE_LIMIT = 25;
 
@@ -180,6 +183,7 @@ export function AssetsPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams]);
 
@@ -192,7 +196,12 @@ export function AssetsPageContent() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-text">Assets</h1>
-        {/* Upload entry point lands here in Task 9 (FAB below md, button here at md+). */}
+        {/* Upload entry point: a primary button here at md+; below md the
+            same drawer opens from the FAB rendered after this header (R9b). */}
+        <Button variant="primary" className="hidden md:inline-flex" onClick={() => setUploadOpen(true)}>
+          <Plus className="size-4" />
+          Upload
+        </Button>
       </div>
 
       {/* Not keyed on the URL — AssetsPageBody resets pageIndex/selected
@@ -205,6 +214,21 @@ export function AssetsPageContent() {
         pathname={pathname}
         onFiltersChange={setFilters}
       />
+
+      {/* Fixed FAB below md, clear of the bottom nav bar. This is a Button
+          variant="primary" itself, so the brand gradient here is the one
+          permitted "primary button" instance — not a second, separate use of
+          it (spec: gradient in exactly four places). */}
+      <Button
+        variant="primary"
+        className="fixed right-4 bottom-20 z-50 h-14 w-14 rounded-full p-0 md:hidden"
+        aria-label="Upload"
+        onClick={() => setUploadOpen(true)}
+      >
+        <Plus className="size-6" />
+      </Button>
+
+      <UploadDrawer open={uploadOpen} onOpenChange={setUploadOpen} />
     </div>
   );
 }
