@@ -1,4 +1,11 @@
 @import "tailwindcss";
+/* Enter/exit keyframes for the shadcn primitives' `animate-in`/`animate-out`
+   classes. Their timing comes from each element's own `duration-150`/
+   `duration-200 ease-out` (tw-animate reads --tw-duration / --tw-ease), so
+   open/close motion stays inside the spec's 150–200ms ease-out. State
+   variants are written as `data-[state=open]:` etc. — keyed on the
+   attribute Radix emits — so no shadcn variant mapping CSS is needed. */
+@import "tw-animate-css";
 
 :root {
   --bg: #09090B;

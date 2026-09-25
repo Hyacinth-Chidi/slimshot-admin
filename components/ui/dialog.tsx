@@ -39,7 +39,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/60 duration-150 ease-out supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/60 duration-150 ease-out supports-backdrop-filter:backdrop-blur-xs data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
         className
       )}
       {...props}
@@ -65,8 +65,8 @@ function DialogContent({
           // md+. Below md this is bottom-anchored, full-width, rounded top
           // corners only, with a top border (matches Sheet's bottom variant);
           // md+ reverts to the original centred, fully-rounded dialog.
-          "fixed inset-x-0 bottom-0 z-50 grid w-full gap-4 rounded-t-xl border-t border-border bg-surface p-4 text-sm text-text duration-150 ease-out outline-none data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-10 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-10",
-          "md:top-1/2 md:left-1/2 md:bottom-auto md:max-w-[calc(100%-2rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl md:border md:border-t-border sm:md:max-w-sm md:data-open:zoom-in-95 md:data-open:slide-in-from-bottom-0 md:data-closed:zoom-out-95 md:data-closed:slide-out-to-bottom-0",
+          "fixed inset-x-0 bottom-0 z-50 grid w-full gap-4 rounded-t-xl border-t border-border bg-surface p-4 text-sm text-text duration-150 ease-out outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-10 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-10",
+          "md:top-1/2 md:left-1/2 md:bottom-auto md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl md:border md:border-t-border md:max-w-sm md:data-[state=open]:zoom-in-95 md:data-[state=open]:slide-in-from-bottom-0 md:data-[state=closed]:zoom-out-95 md:data-[state=closed]:slide-out-to-bottom-0",
           className
         )}
         {...props}
