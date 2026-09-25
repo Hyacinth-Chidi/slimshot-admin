@@ -61,7 +61,12 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-border bg-surface p-4 text-sm text-text duration-150 ease-out outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // Spec §7: modals are a bottom sheet below md, a centred dialog at
+          // md+. Below md this is bottom-anchored, full-width, rounded top
+          // corners only, with a top border (matches Sheet's bottom variant);
+          // md+ reverts to the original centred, fully-rounded dialog.
+          "fixed inset-x-0 bottom-0 z-50 grid w-full gap-4 rounded-t-xl border-t border-border bg-surface p-4 text-sm text-text duration-150 ease-out outline-none data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-10 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-10",
+          "md:top-1/2 md:left-1/2 md:bottom-auto md:max-w-[calc(100%-2rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl md:border md:border-t-border sm:md:max-w-sm md:data-open:zoom-in-95 md:data-open:slide-in-from-bottom-0 md:data-closed:zoom-out-95 md:data-closed:slide-out-to-bottom-0",
           className
         )}
         {...props}

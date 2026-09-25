@@ -30,6 +30,22 @@ describe('Dialog', () => {
     expect(content.className).toMatch(/\bborder\b/);
     expect(content.className).not.toMatch(/shadow/);
   });
+
+  it('is a bottom sheet below md and a centred dialog at md+ (spec §7)', () => {
+    render(
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>Delete category</DialogTitle>
+        </DialogContent>
+      </Dialog>,
+    );
+
+    const content = screen.getByRole('dialog');
+    // Below md: bottom-anchored, full-width, rounded top corners only.
+    expect(content).toHaveClass('inset-x-0', 'bottom-0', 'rounded-t-xl', 'border-t');
+    // md+: back to centred, both corners rounded.
+    expect(content).toHaveClass('md:top-1/2', 'md:left-1/2', 'md:rounded-xl');
+  });
 });
 
 describe('Sheet', () => {

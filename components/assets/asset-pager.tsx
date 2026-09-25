@@ -35,9 +35,9 @@ export function AssetPager({
           variant="secondary"
           size="sm"
           onClick={onNext}
-          disabled={page === pageCount - 1 && !hasNextPage}
+          disabled={(page === pageCount - 1 && !hasNextPage) || isFetchingNextPage}
         >
-          {isFetchingNextPage && page === pageCount - 1 ? 'Loading…' : 'Next'}
+          {isFetchingNextPage ? 'Loading…' : 'Next'}
         </Button>
       </div>
     </div>

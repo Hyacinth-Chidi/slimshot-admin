@@ -19,9 +19,11 @@ import type { AssetStatus } from '@/components/ui/status-pill';
  * fields this admin UI needs for the status pill, the category filter link
  * from Task 10, and the "created" column are genuinely absent from
  * GET /assets today. fetchAssets below maps the real response onto this
- * shape and fills the unavailable fields with `null` rather than a fabricated
- * guess; see task-8-report.md for the full writeup and suggested server fix
- * (add status/categoryId/createdAt to PublicAsset).
+ * shape: `status` is filled in truthfully from an active status filter
+ * (R8e — the server already filtered on it) and left `null` otherwise;
+ * `categoryId`/`createdAt` are always `null` rather than a fabricated guess.
+ * See task-8-report.md for the full writeup and suggested server fix (add
+ * status/categoryId/createdAt to PublicAsset).
  */
 export interface Asset {
   id: string;
@@ -63,25 +65,42 @@ export type AssetPage = { data: Asset[]; meta: { nextCursor: string | null } };
 export interface AssetFilters {
   kind?: string;
   status?: AssetStatus;
+  /**
+   * Round-tripped through the URL (R8c) but never sent to the server — see
+   * R8f below. Kept on the filters type so filters-url.ts and the "view
+   * blocking assets" link (Task 10) still have somewhere to carry it.
+   */
   categoryId?: string;
   search?: string;
   cursor?: string;
   limit?: number;
 }
 
+/**
+ * The server's AssetKind enum (../slimshot_server/src/generated/prisma/enums.ts:12-16).
+ * Only `audio` has a registered kind descriptor today (kind-registry.ts throws
+ * for an unregistered kind), but all three are valid, accepted `kind` values.
+ */
+const KNOWN_KINDS = new Set(['audio', 'font', 'template']);
+
 function toDurationMs(detail: Record<string, unknown>): number | null {
   const value = detail.durationMs;
   return typeof value === 'number' ? value : null;
 }
 
-function toAsset(row: ServerAsset): Asset {
+/**
+ * R8e: when the list is filtered by status, every returned row genuinely has
+ * that status — the server already filtered on it (asset.service.ts:33-60).
+ * Unfiltered, status is unknown and must not be guessed.
+ */
+function toAsset(row: ServerAsset, activeStatus: AssetStatus | undefined): Asset {
   return {
     id: row.id,
     kind: row.kind,
     title: row.title,
     author: row.author || null,
+    status: activeStatus ?? null,
     // Not present on the server's list item — see the module comment above.
-    status: null,
     categoryId: null,
     createdAt: null,
     durationMs: toDurationMs(row.detail),
@@ -91,18 +110,32 @@ function toAsset(row: ServerAsset): Asset {
 /**
  * ListAssetsDto (../slimshot_server/src/modules/assets/dto/list-assets.dto.ts)
  * accepts kind, status, q, cursor, limit — the free-text filter is `q`, not
- * `search`, and there is no `categoryId` or sort param server-side. `search`
- * is translated to `q` here so the rest of this app can use the vocabulary
- * the spec and Task 10's link use; `categoryId` is sent anyway (harmless
- * unknown query param today) so the mapping is a one-line fix once the
- * server adds the filter — see the report for why it's not silently dropped.
+ * `search`.
+ *
+ * R8f: the server runs a global `ValidationPipe({ whitelist: true,
+ * forbidNonWhitelisted: true })` (main.ts:19-24). ListAssetsDto has no
+ * `categoryId` field, so sending it 400s the whole request rather than being
+ * silently ignored — confirmed by rereading main.ts after the first review
+ * round; the original report's "harmless unknown param" was wrong.
+ * `categoryId` is therefore dropped here, never forwarded to the API. An
+ * invalid `kind` would similarly 400 (`@IsEnum` on ListAssetsDto), so `kind`
+ * is validated against the server's known enum before being sent; an
+ * unrecognized value is dropped rather than risk the request.
  */
 export function fetchAssets(filters: AssetFilters = {}): Promise<AssetPage> {
+  const { search, kind } = filters;
+  // categoryId is deliberately never read from `filters` — see the R8f note
+  // above — so `rest` below only ever contains status/cursor/limit.
+  const rest: Omit<AssetFilters, 'search' | 'kind' | 'categoryId'> = {
+    status: filters.status,
+    cursor: filters.cursor,
+    limit: filters.limit,
+  };
   const qs = new URLSearchParams();
-  const { search, ...rest } = filters;
   for (const [k, v] of Object.entries(rest)) {
     if (v !== undefined && v !== '') qs.set(k, String(v));
   }
+  if (kind && KNOWN_KINDS.has(kind)) qs.set('kind', kind);
   if (search) qs.set('q', search);
 
   const suffix = qs.toString() ? `?${qs}` : '';
@@ -110,7 +143,7 @@ export function fetchAssets(filters: AssetFilters = {}): Promise<AssetPage> {
     const { data, meta } = await apiFetchEnvelope<ServerAsset[], { nextCursor: string | null }>(
       `/assets${suffix}`,
     );
-    return { data: data.map(toAsset), meta };
+    return { data: data.map((row) => toAsset(row, filters.status)), meta };
   });
 }
 

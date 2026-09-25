@@ -1,7 +1,7 @@
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Asset } from '@/lib/api/assets';
 import { Artwork } from './artwork';
-import { formatDuration } from './format';
+import { formatCreatedDate, formatDuration } from './format';
 import { AssetActionsMenu } from './asset-actions-menu';
 
 export function AssetCard({
@@ -26,6 +26,8 @@ export function AssetCard({
         <div className="mt-1 flex items-center gap-2 text-xs text-subtle">
           <span>{formatDuration(asset.durationMs)}</span>
           {asset.status ? <StatusPill status={asset.status} /> : null}
+          {/* Table and card show the same fields (spec ruling 10) — created was missing here. */}
+          <span>{formatCreatedDate(asset.createdAt)}</span>
         </div>
       </div>
       <AssetActionsMenu

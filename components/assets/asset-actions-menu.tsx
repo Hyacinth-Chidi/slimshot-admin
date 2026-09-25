@@ -13,20 +13,26 @@ import type { Asset } from '@/lib/api/assets';
 import { DeleteAssetDialog } from './delete-asset-dialog';
 
 /**
- * Publish is only offered from ready/archived, matching
- * asset.service.ts:19-22 (PUBLISHABLE_FROM). Unpublish always returns the
- * asset to `ready` (asset.service.ts:129-152) so it's offered whenever the
- * asset is currently published. Status is unknown for list items today (see
- * lib/api/assets.ts) — when it's null both actions are offered and the
- * server's own transition check (a 400 with a readable message) is the
- * backstop, surfaced via the caller's mutation error toast.
+ * Publish is only valid from ready/archived, matching asset.service.ts:19-22
+ * (PUBLISHABLE_FROM) — and the server enforces this itself (a 400 with a
+ * readable message otherwise, asset.service.ts:100-105), so offering it
+ * whenever status is unknown is safe: the worst case is a rejected mutation
+ * with a clear error toast.
+ *
+ * Unpublish is different: AssetService.unpublish (asset.service.ts:129-152)
+ * has NO status guard at all — it unconditionally sets status to `ready`.
+ * Offering "Unpublish" on an asset whose status is unknown (null, because
+ * the list isn't filtered by status — see lib/api/assets.ts's R8e comment)
+ * could silently move a draft/processing/failed/archived asset to `ready`,
+ * which is not what "unpublish" means for any of those. So canUnpublish only
+ * returns true when status is truthfully known to be `published`.
  */
 export function canPublish(status: Asset['status']): boolean {
   return status === null || status === 'ready' || status === 'archived';
 }
 
 export function canUnpublish(status: Asset['status']): boolean {
-  return status === null || status === 'published';
+  return status === 'published';
 }
 
 /**
@@ -54,7 +60,15 @@ export function AssetActionsMenu({
 
   return (
     <>
-      <DropdownMenu>
+      {/* modal={false}: a DropdownMenuItem's onSelect opens the delete Dialog
+          (a Radix Dialog, itself modal). Radix's menu-close and dialog-open
+          animations can overlap; when the menu is modal, its unmount can
+          leave `body { pointer-events: none }` set after the dialog it
+          triggered has also closed, because the two Radix roots each try to
+          own that lock. The dropdown doesn't need to be modal — it's a small
+          menu over an already-interactive page — so this sidesteps the
+          conflict entirely, tested in asset-actions-menu.test.tsx. */}
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
