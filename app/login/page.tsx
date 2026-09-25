@@ -20,6 +20,7 @@ export default function LoginPage() {
       await login(email, password);
       // Full navigation: the route handler already set the refresh cookie,
       // and the proxy needs to see it on the next request to let us past /login.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full navigation is intentional: no client state may carry over.
       window.location.assign('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');

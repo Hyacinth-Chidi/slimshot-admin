@@ -14,6 +14,7 @@ import { logout } from '@/lib/auth/session';
  */
 export async function performLogout(): Promise<void> {
   await logout();
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full navigation is intentional: it drops the in-memory token and query cache.
   window.location.assign('/login');
 }
 
