@@ -2,7 +2,7 @@ import type { ApiEnvelope, ApiErrorBody } from './types';
 
 export class ApiError extends Error {
   readonly code: string;
-  readonly details?: Record<string, string[]>;
+  readonly details?: unknown;
   readonly traceId: string;
   readonly status: number;
 

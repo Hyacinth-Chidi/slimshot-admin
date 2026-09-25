@@ -119,6 +119,8 @@ export function CategoryRow({
           <Input
             ref={inputRef}
             aria-label="Name"
+            // UpdateCategoryDto: @MaxLength(80) on name.
+            maxLength={80}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitRename}

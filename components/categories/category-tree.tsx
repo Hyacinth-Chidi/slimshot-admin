@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/lib/use-toast';
 import { ApiError } from '@/lib/api/client';
+import { fieldErrors, validationSummary } from '@/lib/api/field-errors';
 import {
   createCategory,
   deleteCategory,
@@ -27,18 +28,10 @@ import { CategoryRow } from './category-row';
 import { CreateCategoryDialog } from './create-category-dialog';
 import { DeleteDialog } from './delete-dialog';
 
-/**
- * Minimal inline mapping of a 422's `details` (spec §9: "map details onto the
- * offending form fields") onto the create dialog's Name field. Task 11 is
- * where a shared `lib/api/field-errors.ts` helper is planned to land for
- * every form on the dashboard; duplicating that shape here for one field
- * would either diverge from it or require guessing its exact contract ahead
- * of that task, so this stays a local one-off until Task 11 introduces the
- * shared version for every screen to adopt at once.
- */
-function fieldErrorsFrom(error: unknown): Record<string, string[]> | undefined {
-  if (error instanceof ApiError && error.status === 422) return error.details;
-  return undefined;
+/** A 422's own messages rather than its generic envelope text; else the error's message. */
+function errorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError && error.status === 422) return validationSummary(error);
+  return error instanceof Error ? error.message : fallback;
 }
 
 function findParent(tree: Category[], id: string): Category | null {
@@ -101,9 +94,11 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
       setCreateTarget(null);
     },
     onError: (error) => {
-      if (!(error instanceof ApiError) || error.status !== 422) {
-        toast(error instanceof Error ? error.message : 'Could not create category.', 'error');
-      }
+      // A 422 about `name` is shown under the dialog's Name field (read off
+      // createMutation.error below); any other failure, including a 422
+      // about a field the dialog does not show, is toasted.
+      if (fieldErrors(error).name) return;
+      toast(errorMessage(error, 'Could not create category.'), 'error');
     },
   });
 
@@ -111,7 +106,8 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
     mutationFn: ({ id, name }: { id: string; name: string }) => updateCategory(id, { name }),
     onSuccess: invalidateTree,
     onError: (error) => {
-      toast(error instanceof Error ? error.message : 'Could not rename category.', 'error');
+      // The inline rename has no error slot, so the field message is toasted.
+      toast(fieldErrors(error).name ?? errorMessage(error, 'Could not rename category.'), 'error');
     },
   });
 
@@ -120,7 +116,7 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
       updateCategory(id, { isActive }),
     onSuccess: invalidateTree,
     onError: (error) => {
-      toast(error instanceof Error ? error.message : 'Could not update category.', 'error');
+      toast(errorMessage(error, 'Could not update category.'), 'error');
     },
   });
 
@@ -128,7 +124,7 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
     mutationFn: reorderCategories,
     onSuccess: invalidateTree,
     onError: (error) => {
-      toast(error instanceof Error ? error.message : 'Could not reorder categories.', 'error');
+      toast(errorMessage(error, 'Could not reorder categories.'), 'error');
       invalidateTree();
     },
   });
@@ -144,7 +140,7 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
       if (error instanceof ApiError && error.status === 409) {
         setDeleteError(error);
       } else {
-        toast(error instanceof Error ? error.message : 'Could not delete category.', 'error');
+        toast(errorMessage(error, 'Could not delete category.'), 'error');
         setDeleteTarget(null);
       }
     },
@@ -243,10 +239,15 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
 
       <CreateCategoryDialog
         open={createTarget !== null}
-        onOpenChange={(open) => !open && setCreateTarget(null)}
+        onOpenChange={(open) => {
+          if (open) return;
+          setCreateTarget(null);
+          // Drop the last attempt's error so it is not shown on the next open.
+          createMutation.reset();
+        }}
         parentName={createTarget?.parentName}
         pending={createMutation.isPending}
-        fieldErrors={fieldErrorsFrom(createMutation.error)}
+        nameError={fieldErrors(createMutation.error).name}
         onSubmit={(name) =>
           activeKind && createMutation.mutate({ kind: activeKind, name, parentId: createTarget?.parentId })
         }

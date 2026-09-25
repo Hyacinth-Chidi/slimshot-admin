@@ -23,14 +23,15 @@ export function CreateCategoryDialog({
   open,
   onOpenChange,
   parentName,
-  fieldErrors,
+  nameError,
   pending,
   onSubmit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   parentName?: string;
-  fieldErrors?: Record<string, string[]>;
+  /** A 422 message about `name` (lib/api/field-errors.ts), shown under the field. */
+  nameError?: string;
   pending?: boolean;
   onSubmit: (name: string) => void;
 }) {
@@ -46,8 +47,6 @@ export function CreateCategoryDialog({
     setWasOpen(open);
     if (open) setName('');
   }
-
-  const nameError = fieldErrors?.name?.[0];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,6 +68,8 @@ export function CreateCategoryDialog({
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-invalid={Boolean(nameError)}
+            // CreateCategoryDto: @MaxLength(80) on name.
+            maxLength={80}
             autoFocus
           />
           {nameError && <p className="text-sm text-error">{nameError}</p>}

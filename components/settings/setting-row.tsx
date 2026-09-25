@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/cn';
 import { ApiError } from '@/lib/api/client';
-import { fieldErrors } from '@/lib/api/field-errors';
+import { fieldErrors, validationSummary } from '@/lib/api/field-errors';
 import { toast } from '@/lib/use-toast';
 import { updateSetting, type MaskedSetting } from '@/lib/api/settings';
 
@@ -72,12 +72,12 @@ export function SettingRow({ setting }: { setting: MaskedSetting }) {
         // The server keys a setting-value 422 as `value` (see
         // ../slimshot_server/src/modules/admin/dto/update-setting.dto.ts:5),
         // not the setting's own key; either name resolves to this row's
-        // field. When the server sends no `details` at all (the common case
-        // today — see settings-admin.service.ts's plain
-        // UnprocessableEntityException), fall back to the error's own
-        // message so the row still shows something actionable instead of
-        // silently losing the failure.
-        setSaveError(errors[setting.key] ?? errors.value ?? err.message);
+        // field. When no message names either (a plain
+        // UnprocessableEntityException from settings-admin.service.ts sends
+        // no `details` at all), validationSummary falls back to the joined
+        // messages or the error's own message, so the row still shows
+        // something actionable instead of silently losing the failure.
+        setSaveError(errors[setting.key] ?? errors.value ?? validationSummary(err));
         return;
       }
       setSaveError(null);

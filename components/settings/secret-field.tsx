@@ -6,7 +6,7 @@ import { Eye, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ApiError } from '@/lib/api/client';
-import { fieldErrors } from '@/lib/api/field-errors';
+import { fieldErrors, validationSummary } from '@/lib/api/field-errors';
 import { revealSecret, updateSetting, type MaskedSetting } from '@/lib/api/settings';
 import { fetchMe } from '@/lib/auth/profile';
 import { cn } from '@/lib/cn';
@@ -180,7 +180,7 @@ export function SecretField({ setting }: { setting: MaskedSetting }) {
         // Validated before the grant is spent server-side, so the field stays
         // unlocked for a corrected retry.
         const errors = fieldErrors(err);
-        setError(errors[setting.key] ?? errors.value ?? err.message);
+        setError(errors[setting.key] ?? errors.value ?? validationSummary(err));
         return;
       }
       toast(err instanceof Error ? err.message : 'Failed to save setting.', 'error');

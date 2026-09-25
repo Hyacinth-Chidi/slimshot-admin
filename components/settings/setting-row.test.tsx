@@ -93,6 +93,32 @@ describe('SettingRow string field', () => {
     expect(toastModule.toast).not.toHaveBeenCalled();
   });
 
+  it("maps the server's real string[] 422 details (class-validator messages) onto this row", async () => {
+    // http-exception.filter.ts:75-80 sends details as a flat string[]; the
+    // UpdateSettingDto property is `value`.
+    const user = userEvent.setup();
+    vi.mocked(settingsApi.updateSetting).mockRejectedValue(
+      new ApiError(
+        {
+          code: 'VALIDATION_FAILED',
+          message: 'Request validation failed.',
+          details: ['value should not be null or undefined'],
+          traceId: 't',
+        },
+        422,
+      ),
+    );
+    renderRow(setting({ key: 'upload.ticketPrefix', value: 'old' }));
+
+    const input = screen.getByRole('textbox', { name: /upload.ticketPrefix/i });
+    await user.clear(input);
+    await user.type(input, 'new-value');
+    input.blur();
+
+    expect(await screen.findByText('value should not be null or undefined')).toBeInTheDocument();
+    expect(toastModule.toast).not.toHaveBeenCalled();
+  });
+
   it('R11d: shows a 422 with no `details` under the input via its message, and raises no toast', async () => {
     const user = userEvent.setup();
     vi.mocked(settingsApi.updateSetting).mockRejectedValue(

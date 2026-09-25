@@ -53,7 +53,7 @@ Failure, every endpoint:
 { "success": false, "error": { "code": "NOT_FOUND", "message": "...", "traceId": "..." } }
 ```
 
-`details` appears on 422 only, shaped `{ "field": ["message", ...] }`.
+`details` appears on a class-validator 422 as a flat `string[]` of messages, each starting with the property it is about — e.g. `["name must be shorter than or equal to 80 characters"]` (verified against `slimshot_server/src/core/errors/http-exception.filter.ts:75-80`). A plain `UnprocessableEntityException` sends no `details`. A Prisma unique-violation 409 sends the target columns. The dashboard parses it in one place: `lib/api/field-errors.ts`.
 
 ## Endpoints, with real responses
 

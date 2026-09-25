@@ -1,11 +1,13 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { Category } from '@/lib/api/categories';
 import * as categoriesApi from '@/lib/api/categories';
 import * as kindsApi from '@/lib/api/kinds';
+import { ApiError } from '@/lib/api/client';
+import * as toastModule from '@/lib/use-toast';
 import { CategoryTree } from './category-tree';
 
 vi.mock('@/lib/api/categories', async () => {
@@ -23,6 +25,11 @@ vi.mock('@/lib/api/categories', async () => {
 vi.mock('@/lib/api/kinds', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api/kinds')>('@/lib/api/kinds');
   return { ...actual, fetchKinds: vi.fn() };
+});
+
+vi.mock('@/lib/use-toast', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/use-toast')>('@/lib/use-toast');
+  return { ...actual, toast: vi.fn() };
 });
 
 const AUDIO_KIND = { kind: 'audio', label: 'Audio', extensions: [], fileRoles: [] };
@@ -229,5 +236,91 @@ describe('CategoryTree kind gating (kinds come from GET /kinds, never hardcoded)
 
     await screen.findByText(/no kinds/i);
     expect(categoriesApi.fetchTree).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * I2: the server sends a class-validator 422's `details` as a flat string[]
+ * (http-exception.filter.ts:75-80), e.g. CreateCategoryDto's @MaxLength(80).
+ * The earlier inline parser expected `{ field: string[] }`, skipped the toast
+ * for every 422 and found no field, so a rejected create showed nothing.
+ */
+function validation422(details: string[]) {
+  return new ApiError(
+    { code: 'VALIDATION_FAILED', message: 'Request validation failed.', details, traceId: 't' },
+    422,
+  );
+}
+
+describe('CategoryTree 422 handling', () => {
+  beforeEach(() => {
+    vi.mocked(toastModule.toast).mockClear();
+    vi.mocked(categoriesApi.createCategory).mockReset();
+    vi.mocked(categoriesApi.updateCategory).mockReset();
+  });
+
+  async function openCreate(user: ReturnType<typeof userEvent.setup>) {
+    renderTree([cat({ id: 'p1', name: 'Nature' })]);
+    await screen.findByTestId('category-row-p1');
+    await user.click(screen.getByRole('button', { name: /new category/i }));
+    return screen.getByLabelText(/name/i);
+  }
+
+  it("shows a create 422's name message under the Name field", async () => {
+    const user = userEvent.setup();
+    vi.mocked(categoriesApi.createCategory).mockRejectedValue(
+      validation422(['name must be shorter than or equal to 80 characters']),
+    );
+    const input = await openCreate(user);
+    await user.type(input, 'Thunder');
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    expect(
+      await screen.findByText('name must be shorter than or equal to 80 characters'),
+    ).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(toastModule.toast).not.toHaveBeenCalled();
+  });
+
+  it('toasts a create 422 that names no field the dialog shows', async () => {
+    const user = userEvent.setup();
+    vi.mocked(categoriesApi.createCategory).mockRejectedValue(
+      validation422(['parentId must be a string']),
+    );
+    const input = await openCreate(user);
+    await user.type(input, 'Thunder');
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    await waitFor(() =>
+      expect(toastModule.toast).toHaveBeenCalledWith('parentId must be a string', 'error'),
+    );
+  });
+
+  it('caps the create Name input at the DTO limit of 80 characters', async () => {
+    const user = userEvent.setup();
+    const input = await openCreate(user);
+    expect(input).toHaveAttribute('maxLength', '80');
+  });
+
+  it("toasts a rename 422's own message rather than the generic envelope message", async () => {
+    const user = userEvent.setup();
+    vi.mocked(categoriesApi.updateCategory).mockRejectedValue(
+      validation422(['name must be shorter than or equal to 80 characters']),
+    );
+    renderTree([cat({ id: 'p1', name: 'Nature' })]);
+
+    const row = await screen.findByTestId('category-row-p1');
+    await user.dblClick(within(row).getByText('Nature'));
+    const input = within(row).getByRole('textbox', { name: /name/i });
+    expect(input).toHaveAttribute('maxLength', '80');
+    await user.clear(input);
+    await user.type(input, 'Renamed{Enter}');
+
+    await waitFor(() =>
+      expect(toastModule.toast).toHaveBeenCalledWith(
+        'name must be shorter than or equal to 80 characters',
+        'error',
+      ),
+    );
   });
 });
