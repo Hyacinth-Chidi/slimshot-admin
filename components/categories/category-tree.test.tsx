@@ -1,10 +1,11 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { Category } from '@/lib/api/categories';
 import * as categoriesApi from '@/lib/api/categories';
+import * as kindsApi from '@/lib/api/kinds';
 import { CategoryTree } from './category-tree';
 
 vi.mock('@/lib/api/categories', async () => {
@@ -18,6 +19,13 @@ vi.mock('@/lib/api/categories', async () => {
     deleteCategory: vi.fn(),
   };
 });
+
+vi.mock('@/lib/api/kinds', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/api/kinds')>('@/lib/api/kinds');
+  return { ...actual, fetchKinds: vi.fn() };
+});
+
+const AUDIO_KIND = { kind: 'audio', label: 'Audio', extensions: [], fileRoles: [] };
 
 function cat(overrides: Partial<Category> & { id: string; name: string }): Category {
   return {
@@ -34,6 +42,7 @@ function cat(overrides: Partial<Category> & { id: string; name: string }): Categ
 
 function renderTree(tree: Category[], kind = 'audio') {
   vi.mocked(categoriesApi.fetchTree).mockResolvedValue(tree);
+  vi.mocked(kindsApi.fetchKinds).mockResolvedValue([AUDIO_KIND]);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -146,5 +155,79 @@ describe('CategoryTree rename', () => {
 
     expect(categoriesApi.updateCategory).not.toHaveBeenCalled();
     expect(within(row).getByText('Nature')).toBeInTheDocument();
+  });
+});
+
+describe('CategoryTree kind gating (kinds come from GET /kinds, never hardcoded)', () => {
+  function renderUngated(props: { kind?: string } = {}) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    function Wrapper({ children }: { children: ReactNode }) {
+      return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    }
+    return render(<CategoryTree {...props} />, { wrapper: Wrapper });
+  }
+
+  it('does not fetch the tree while /kinds is still pending', async () => {
+    vi.mocked(categoriesApi.fetchTree).mockResolvedValue([]);
+    let resolveKinds!: (v: typeof AUDIO_KIND[]) => void;
+    vi.mocked(kindsApi.fetchKinds).mockReturnValue(
+      new Promise((resolve) => {
+        resolveKinds = resolve;
+      }),
+    );
+
+    renderUngated();
+
+    // Give any stray microtask a chance to fire before asserting the negative.
+    await new Promise((r) => setTimeout(r, 10));
+    expect(categoriesApi.fetchTree).not.toHaveBeenCalled();
+
+    resolveKinds([AUDIO_KIND]);
+    await waitFor(() => expect(categoriesApi.fetchTree).toHaveBeenCalledWith('audio'));
+  });
+
+  it('fetches the tree for the first loaded kind once /kinds resolves, with no initial kind given', async () => {
+    vi.mocked(categoriesApi.fetchTree).mockResolvedValue([]);
+    vi.mocked(kindsApi.fetchKinds).mockResolvedValue([
+      { kind: 'font', label: 'Font', extensions: [], fileRoles: [] },
+    ]);
+
+    renderUngated();
+
+    await waitFor(() => expect(categoriesApi.fetchTree).toHaveBeenCalledWith('font'));
+  });
+
+  it('falls back to the first loaded kind when the given initialKind is not among the loaded kinds', async () => {
+    vi.mocked(categoriesApi.fetchTree).mockResolvedValue([]);
+    vi.mocked(kindsApi.fetchKinds).mockResolvedValue([
+      { kind: 'font', label: 'Font', extensions: [], fileRoles: [] },
+    ]);
+
+    renderUngated({ kind: 'template' });
+
+    await waitFor(() => expect(categoriesApi.fetchTree).toHaveBeenCalledWith('font'));
+    expect(categoriesApi.fetchTree).not.toHaveBeenCalledWith('template');
+  });
+
+  it('uses initialKind once it is among the loaded kinds', async () => {
+    vi.mocked(categoriesApi.fetchTree).mockResolvedValue([]);
+    vi.mocked(kindsApi.fetchKinds).mockResolvedValue([
+      { kind: 'font', label: 'Font', extensions: [], fileRoles: [] },
+      { kind: 'audio', label: 'Audio', extensions: [], fileRoles: [] },
+    ]);
+
+    renderUngated({ kind: 'audio' });
+
+    await waitFor(() => expect(categoriesApi.fetchTree).toHaveBeenCalledWith('audio'));
+  });
+
+  it('shows an empty state instead of fetching when kinds load empty', async () => {
+    vi.mocked(categoriesApi.fetchTree).mockResolvedValue([]);
+    vi.mocked(kindsApi.fetchKinds).mockResolvedValue([]);
+
+    renderUngated();
+
+    await screen.findByText(/no kinds/i);
+    expect(categoriesApi.fetchTree).not.toHaveBeenCalled();
   });
 });

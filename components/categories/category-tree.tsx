@@ -57,7 +57,10 @@ function siblingsOf(tree: Category[], id: string): Category[] {
 
 export function CategoryTree({ kind: initialKind }: { kind?: string }) {
   const queryClient = useQueryClient();
-  const [kind, setKind] = useState(initialKind ?? 'audio');
+  // The user's explicit choice from the Select, if any. Starts undefined —
+  // until kinds load, there is nothing valid to select, and nothing to
+  // derive a fetch from.
+  const [selectedKind, setSelectedKind] = useState<string | undefined>(undefined);
   const [createTarget, setCreateTarget] = useState<{ parentId?: string; parentName?: string } | null>(
     null,
   );
@@ -66,13 +69,29 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
   const [dragId, setDragId] = useState<string | null>(null);
 
   const kindsQuery = useQuery({ queryKey: ['kinds'], queryFn: fetchKinds });
+  const loadedKinds = kindsQuery.data ?? [];
+
+  // Derived, not synced via an effect (the repo's react-hooks lint rules
+  // reject setState-in-effect — see create-category-dialog.tsx for the same
+  // pattern). The active kind is: the user's own selection if it's still
+  // among the loaded kinds; else the caller's initialKind if IT is among the
+  // loaded kinds; else the first loaded kind; else undefined while kinds
+  // haven't resolved yet (or resolved empty). Kinds always come from GET
+  // /kinds — never hardcoded — so an invalid/empty kind, which the server
+  // 422s on, is never sent.
+  const activeKind =
+    (selectedKind && loadedKinds.some((k) => k.kind === selectedKind) ? selectedKind : undefined) ??
+    (initialKind && loadedKinds.some((k) => k.kind === initialKind) ? initialKind : undefined) ??
+    loadedKinds[0]?.kind;
+
   const treeQuery = useQuery({
-    queryKey: ['categories', kind],
-    queryFn: () => fetchTree(kind),
+    queryKey: ['categories', activeKind],
+    queryFn: () => fetchTree(activeKind as string),
+    enabled: Boolean(activeKind),
   });
 
   function invalidateTree() {
-    queryClient.invalidateQueries({ queryKey: ['categories', kind] });
+    queryClient.invalidateQueries({ queryKey: ['categories', activeKind] });
   }
 
   const createMutation = useMutation({
@@ -189,12 +208,12 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <Select value={kind} onValueChange={setKind}>
+        <Select value={activeKind} onValueChange={setSelectedKind} disabled={loadedKinds.length === 0}>
           <SelectTrigger className="w-40" aria-label="Kind">
             <SelectValue placeholder="Kind" />
           </SelectTrigger>
           <SelectContent>
-            {(kindsQuery.data ?? []).map((k) => (
+            {loadedKinds.map((k) => (
               <SelectItem key={k.kind} value={k.kind}>
                 {k.label}
               </SelectItem>
@@ -202,13 +221,19 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
           </SelectContent>
         </Select>
 
-        <Button variant="primary" onClick={() => setCreateTarget({})}>
+        <Button variant="primary" onClick={() => setCreateTarget({})} disabled={!activeKind}>
           <Plus className="size-4" />
           New category
         </Button>
       </div>
 
-      {treeQuery.isLoading ? (
+      {kindsQuery.isLoading ? (
+        <p className="py-12 text-center text-sm text-subtle">Loading…</p>
+      ) : loadedKinds.length === 0 ? (
+        <p className="py-12 text-center text-sm text-subtle">
+          No kinds are registered yet — categories need a kind to belong to.
+        </p>
+      ) : treeQuery.isLoading ? (
         <p className="py-12 text-center text-sm text-subtle">Loading categories…</p>
       ) : tree.length === 0 ? (
         <p className="py-12 text-center text-sm text-subtle">No categories yet.</p>
@@ -223,7 +248,7 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
         pending={createMutation.isPending}
         fieldErrors={fieldErrorsFrom(createMutation.error)}
         onSubmit={(name) =>
-          createMutation.mutate({ kind, name, parentId: createTarget?.parentId })
+          activeKind && createMutation.mutate({ kind: activeKind, name, parentId: createTarget?.parentId })
         }
       />
 
