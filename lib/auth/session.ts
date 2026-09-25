@@ -52,23 +52,42 @@ export async function logout(): Promise<void> {
 // the second call presents a token the first call already burned, trips
 // reuse detection, and gets the whole session logged out. Coalescing
 // concurrent calls into a single in-flight fetch keeps that from happening.
+//
+// That coalescing is per tab, but the cookie is shared by every tab: two
+// tabs refreshing at once would present the same cookie twice and trip
+// reuse detection the same way. So the refresh also runs under a Web Lock
+// (RF3), which the browser holds exclusively across tabs of this origin; a
+// waiting tab refreshes after the first finished, sending the cookie that
+// refresh just rotated. Without navigator.locks it falls back to the
+// in-tab coalescing alone.
 let inflight: Promise<string | null> | null = null;
+
+const REFRESH_LOCK = 'slimshot-refresh';
+
+async function postRefresh(): Promise<string | null> {
+  const res = await fetch('/api/auth/refresh', { method: 'POST' });
+  if (!res.ok) return null;
+
+  const body = (await res.json()) as
+    | { success: true; data: { accessToken: string } }
+    | { success: false };
+
+  if (!body.success) return null;
+  setAccessToken(body.data.accessToken);
+  return body.data.accessToken;
+}
+
+async function refreshAcrossTabs(): Promise<string | null> {
+  if (typeof navigator !== 'undefined' && 'locks' in navigator) {
+    return await navigator.locks.request(REFRESH_LOCK, postRefresh);
+  }
+  return postRefresh();
+}
 
 export async function refreshAccessToken(): Promise<string | null> {
   if (inflight) return inflight;
 
-  inflight = (async () => {
-    const res = await fetch('/api/auth/refresh', { method: 'POST' });
-    if (!res.ok) return null;
-
-    const body = (await res.json()) as
-      | { success: true; data: { accessToken: string } }
-      | { success: false };
-
-    if (!body.success) return null;
-    setAccessToken(body.data.accessToken);
-    return body.data.accessToken;
-  })();
+  inflight = refreshAcrossTabs();
 
   try {
     return await inflight;

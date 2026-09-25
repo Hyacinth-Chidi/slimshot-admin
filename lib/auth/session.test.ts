@@ -154,6 +154,117 @@ describe('withRefresh', () => {
   });
 });
 
+/**
+ * RF3: single-flight is per tab, but the refresh cookie is shared by every
+ * tab. Two tabs refreshing at once present the same cookie twice; the
+ * server revokes the whole family on reuse (token.service.ts:80-84) and
+ * logs the user out. navigator.locks serializes the refresh across tabs, so
+ * the waiting tab sends the cookie the first tab's refresh just rotated.
+ */
+describe('refreshAccessToken across tabs (navigator.locks)', () => {
+  /** A FIFO exclusive-lock double shared by every "tab" in the test. */
+  function fakeLockManager() {
+    let tail: Promise<unknown> = Promise.resolve();
+    const held = { value: false };
+    const request = vi.fn((_name: string, callback: () => Promise<unknown>) => {
+      const run = tail.then(async () => {
+        held.value = true;
+        try {
+          return await callback();
+        } finally {
+          held.value = false;
+        }
+      });
+      tail = run.catch(() => undefined);
+      return run;
+    });
+    return { request, held };
+  }
+
+  function okRefresh(token: string) {
+    return new Response(JSON.stringify({ success: true, data: { accessToken: token } }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, 'locks');
+    vi.resetModules();
+  });
+
+  it("runs the refresh fetch inside the 'slimshot-refresh' lock", async () => {
+    const locks = fakeLockManager();
+    Object.defineProperty(navigator, 'locks', { value: locks, configurable: true });
+    const heldDuringFetch: boolean[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        heldDuringFetch.push(locks.held.value);
+        return okRefresh('tok');
+      }),
+    );
+
+    const { refreshAccessToken } = await import('./session');
+    await expect(refreshAccessToken()).resolves.toBe('tok');
+
+    expect(locks.request).toHaveBeenCalledTimes(1);
+    expect(locks.request.mock.calls[0][0]).toBe('slimshot-refresh');
+    expect(heldDuringFetch).toEqual([true]);
+  });
+
+  it('serializes two tabs, so the second refresh starts only after the first finished', async () => {
+    const locks = fakeLockManager();
+    Object.defineProperty(navigator, 'locks', { value: locks, configurable: true });
+
+    // Each tab is its own module instance (its own in-tab single-flight);
+    // only the lock and the cookie (here: fetch) are shared.
+    const tabA = await import('./session');
+    vi.resetModules();
+    const tabB = await import('./session');
+    expect(tabB.refreshAccessToken).not.toBe(tabA.refreshAccessToken);
+
+    const gateA = deferred<void>();
+    let active = 0;
+    let maxActive = 0;
+    const order: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        const n = order.length === 0 ? 'A' : 'B';
+        order.push(`${n}:start`);
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        if (n === 'A') await gateA.promise;
+        active -= 1;
+        order.push(`${n}:end`);
+        return okRefresh(`tok-${n}`);
+      }),
+    );
+
+    const a = tabA.refreshAccessToken();
+    const b = tabB.refreshAccessToken();
+    await Promise.resolve();
+    await Promise.resolve();
+    gateA.resolve();
+
+    await expect(a).resolves.toBe('tok-A');
+    await expect(b).resolves.toBe('tok-B');
+    expect(maxActive).toBe(1);
+    expect(order).toEqual(['A:start', 'A:end', 'B:start', 'B:end']);
+  });
+
+  it('still refreshes when navigator.locks is unavailable', async () => {
+    expect('locks' in navigator).toBe(false);
+    const fetchMock = vi.fn(async () => okRefresh('tok'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { refreshAccessToken } = await import('./session');
+    await expect(refreshAccessToken()).resolves.toBe('tok');
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/refresh', { method: 'POST' });
+  });
+});
+
 describe('login', () => {
   it('throws an ApiError, not a raw SyntaxError, when /api/auth/login returns an unreadable response', async () => {
     vi.stubGlobal(
