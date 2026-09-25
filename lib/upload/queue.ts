@@ -42,6 +42,48 @@ interface FinalizeResponse {
 }
 
 /**
+ * Canonical MIME per extension, matching the server's accepted list exactly
+ * (upload.audio.mimeTypes default — ../slimshot_server/src/core/settings/
+ * setting-definitions.ts:15-20 — for the audio descriptor's extensions
+ * .mp3/.wav/.aac/.ogg/.flac). The server compares the declared type with
+ * `includes` (kind-registry.ts:57) and rejects before creating a draft, so
+ * the browser's File.type cannot be sent as-is: it is "" for some types on
+ * Windows, `audio/vnd.dlna.adts` for .aac there, and `audio/x-wav` /
+ * `audio/x-flac` on Firefox. Declaring by extension is safe because
+ * finalize re-validates the provider-detected type server-side
+ * (ingest.service.ts:181-192).
+ */
+const CANONICAL_MIME: Record<string, string> = {
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.aac': 'audio/aac',
+  '.ogg': 'audio/ogg',
+  '.flac': 'audio/flac',
+};
+
+export function declaredMimeType(file: File): string {
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : '';
+  return CANONICAL_MIME[ext] ?? file.type;
+}
+
+/**
+ * Cloudinary reports a failed upload as JSON `{ error: { message } }`
+ * (spec §6.3: a failed file keeps the server's message). Anything else — a
+ * proxy's HTML page, an empty body — falls back to the status.
+ */
+async function directUploadError(res: Response): Promise<Error> {
+  try {
+    const body = (await res.json()) as { error?: { message?: unknown } } | null;
+    const message = body?.error?.message;
+    if (typeof message === 'string' && message.trim()) return new Error(message);
+  } catch {
+    // Not JSON: use the status below.
+  }
+  return new Error(`Upload failed (${res.status}).`);
+}
+
+/**
  * Each file runs its own ticket -> direct-upload -> finalize sequence so one
  * failure does not fail the batch. finalize is reached ONLY after the direct
  * upload succeeds: finalizing an upload that never landed would create an
@@ -62,6 +104,10 @@ export async function uploadFile(
   meta: UploadMeta,
   hooks: Hooks,
 ): Promise<{ assetId: string; status: string }> {
+  const mimeType = declaredMimeType(file);
+  // The multipart part carries the same canonical type as the ticket.
+  const upload = file.type === mimeType ? file : new File([file], file.name, { type: mimeType });
+
   try {
     hooks.onState?.('ticketing');
     const ticket = await withRefresh(() =>
@@ -70,7 +116,7 @@ export async function uploadFile(
         body: JSON.stringify({
           kind: meta.kind,
           filename: file.name,
-          mimeType: file.type,
+          mimeType,
           byteSize: file.size,
           title: meta.title,
           ...(meta.author ? { author: meta.author } : {}),
@@ -83,10 +129,10 @@ export async function uploadFile(
     for (const [key, value] of Object.entries(ticket.fields)) {
       form.set(key, value);
     }
-    form.set('file', file);
+    form.set('file', upload);
 
     const put = await fetch(ticket.uploadUrl, { method: 'POST', body: form });
-    if (!put.ok) throw new Error(`Upload failed (${put.status}).`);
+    if (!put.ok) throw await directUploadError(put);
     hooks.onProgress?.(1);
 
     hooks.onState?.('finalizing');
