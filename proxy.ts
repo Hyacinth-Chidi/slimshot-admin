@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-
-const REFRESH_COOKIE = 'slimshot_refresh';
+import { REFRESH_COOKIE } from '@/lib/auth/cookie';
 
 /**
  * Next.js 16 renamed `middleware` to `proxy`. This is a convenience guard

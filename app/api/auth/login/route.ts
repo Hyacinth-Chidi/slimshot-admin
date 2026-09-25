@@ -2,8 +2,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 import { API_BASE } from '@/lib/api/client';
-
-const REFRESH_COOKIE = 'slimshot_refresh';
+import { REFRESH_COOKIE, refreshCookieOptions } from '@/lib/auth/cookie';
 
 interface LoginPayload {
   success: boolean;
@@ -55,13 +54,7 @@ export async function POST(request: Request) {
   // the browser's JavaScript. Only the access token crosses back, and it is
   // held in memory.
   const store = await cookies();
-  store.set(REFRESH_COOKIE, payload.data.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  store.set(REFRESH_COOKIE, payload.data.refreshToken, refreshCookieOptions());
 
   return NextResponse.json(
     { success: true, data: { accessToken: payload.data.accessToken, expiresIn: payload.data.expiresIn } },

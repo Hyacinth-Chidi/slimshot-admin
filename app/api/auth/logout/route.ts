@@ -3,8 +3,7 @@ import { NextResponse } from 'next/server';
 
 import { API_BASE } from '@/lib/api/client';
 import { upstreamRefresh } from '@/lib/auth/upstream-refresh';
-
-const REFRESH_COOKIE = 'slimshot_refresh';
+import { REFRESH_COOKIE } from '@/lib/auth/cookie';
 
 export async function POST() {
   const store = await cookies();

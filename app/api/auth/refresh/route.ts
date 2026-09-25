@@ -2,8 +2,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 import { upstreamRefresh } from '@/lib/auth/upstream-refresh';
-
-const REFRESH_COOKIE = 'slimshot_refresh';
+import { REFRESH_COOKIE, refreshCookieOptions } from '@/lib/auth/cookie';
 
 export async function POST() {
   const store = await cookies();
@@ -29,13 +28,7 @@ export async function POST() {
     );
   }
 
-  store.set(REFRESH_COOKIE, result.data.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  store.set(REFRESH_COOKIE, result.data.refreshToken, refreshCookieOptions());
 
   return NextResponse.json(
     { success: true, data: { accessToken: result.data.accessToken, expiresIn: result.data.expiresIn } },
