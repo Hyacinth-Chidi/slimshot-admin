@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { UploadCloud } from 'lucide-react';
 import {
@@ -19,39 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { fetchKinds, type Kind } from '@/lib/api/kinds';
-import { flattenTree, fetchTree } from '@/lib/api/categories';
-import { uploadFile } from '@/lib/upload/queue';
-import { addFiles, queueReducer, type QueueAction, type QueueItem } from '@/lib/upload/reducer';
+import { startItems } from '@/lib/upload/orchestrator';
+import { addFiles, queueReducer, type QueueItem } from '@/lib/upload/reducer';
 import { UploadRow } from './upload-row';
-
-/**
- * Runs one item's full ticket -> direct-upload -> finalize sequence and
- * dispatches its state transitions. A rejected item is never passed here —
- * it never reaches uploadFile at all (R9a).
- */
-async function runItem(
-  item: QueueItem,
-  dispatch: React.Dispatch<QueueAction>,
-  onDone: () => void,
-) {
-  try {
-    const result = await uploadFile(
-      item.file,
-      {
-        kind: item.kind,
-        title: item.title,
-        author: item.author || undefined,
-        categoryId: item.categoryId,
-      },
-      { onState: (state) => dispatch({ type: 'STATE', id: item.id, state }) },
-    );
-    dispatch({ type: 'DONE', id: item.id, assetId: result.assetId, assetStatus: result.status });
-    onDone();
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Upload failed.';
-    dispatch({ type: 'FAILED', id: item.id, error: message });
-  }
-}
 
 function DropZone({
   onFiles,
@@ -106,21 +76,20 @@ function DropZone({
 export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(queueReducer, { items: [] });
+  // A ref mirror of `state`, so orchestrator code started from an event
+  // handler can always read the CURRENT queue (including edits made after
+  // the handler fired) rather than closing over the state a stale render
+  // saw. Written in an effect, not during render: react-hooks/refs forbids
+  // a ref write in the render body itself.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const kindsQuery = useQuery({ queryKey: ['kinds'], queryFn: fetchKinds, enabled: open });
   const kinds: Kind[] = useMemo(() => kindsQuery.data ?? [], [kindsQuery.data]);
   const [selectedKind, setSelectedKind] = useState<string | undefined>(undefined);
   const activeKind = selectedKind ?? kinds[0]?.kind;
-
-  const categoriesQuery = useQuery({
-    queryKey: ['categories', activeKind],
-    queryFn: () => fetchTree(activeKind!),
-    enabled: open && !!activeKind,
-  });
-  const flatCategories = useMemo(
-    () => flattenTree(categoriesQuery.data ?? []),
-    [categoriesQuery.data],
-  );
 
   const acceptedExtensions = useMemo(
     () => kinds.find((k) => k.kind === activeKind)?.extensions ?? [],
@@ -135,27 +104,37 @@ export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChan
   const handleFiles = useCallback(
     (files: File[]) => {
       if (!activeKind || files.length === 0) return;
-      const action = addFiles(files, activeKind, acceptedExtensions);
-      dispatch(action);
-
-      // Each accepted file starts its own ticket/upload/finalize sequence
-      // immediately and independently — a failure in one never blocks or
-      // aborts the others (spec §6.3).
-      for (const item of action.items) {
-        if (item.status !== 'queued') continue;
-        void runItem(item, dispatch, invalidateOnSuccess);
-      }
+      // R9f: newly added files stay `queued` — nothing starts automatically.
+      // Each row gets its own "Upload" action, and the drawer offers
+      // "Upload all" below, so title/author can be edited first.
+      dispatch(addFiles(files, activeKind, acceptedExtensions));
     },
-    [activeKind, acceptedExtensions, invalidateOnSuccess],
+    [activeKind, acceptedExtensions],
+  );
+
+  const runOne = useCallback(
+    (item: QueueItem) => {
+      void startItems([item], dispatch, () => stateRef.current, invalidateOnSuccess);
+    },
+    [invalidateOnSuccess],
   );
 
   const handleRetry = useCallback(
     (item: QueueItem) => {
       dispatch({ type: 'RETRY', id: item.id });
-      void runItem({ ...item, status: 'queued', error: undefined }, dispatch, invalidateOnSuccess);
+      // startItems re-reads the item from the store once it's actually
+      // `queued` again, so it picks up the just-dispatched RETRY rather than
+      // racing it.
+      void startItems([item], dispatch, () => stateRef.current, invalidateOnSuccess);
     },
     [invalidateOnSuccess],
   );
+
+  const queuedItems = state.items.filter((item) => item.status === 'queued');
+
+  const handleUploadAll = useCallback(() => {
+    void startItems(queuedItems, dispatch, () => stateRef.current, invalidateOnSuccess);
+  }, [queuedItems, invalidateOnSuccess]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,13 +168,19 @@ export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChan
             <p className="text-sm text-subtle">Loading upload kinds…</p>
           )}
 
+          {queuedItems.length > 1 && (
+            <Button variant="secondary" onClick={handleUploadAll} className="self-end">
+              Upload all ({queuedItems.length})
+            </Button>
+          )}
+
           <div className="flex flex-col gap-2">
             {state.items.map((item) => (
               <UploadRow
                 key={item.id}
                 item={item}
-                categories={flatCategories}
                 onEdit={(fields) => dispatch({ type: 'EDIT', id: item.id, fields })}
+                onStart={() => runOne(item)}
                 onRetry={() => handleRetry(item)}
                 onRemove={() => dispatch({ type: 'REMOVE', id: item.id })}
               />

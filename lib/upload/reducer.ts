@@ -16,7 +16,6 @@ export interface QueueItem {
   kind: string;
   title: string;
   author: string;
-  categoryId?: string;
   status: QueueItemStatus;
   error?: string;
   assetId?: string;
@@ -33,7 +32,7 @@ export type QueueAction =
   | { type: 'DONE'; id: string; assetId: string; assetStatus: string }
   | { type: 'FAILED'; id: string; error: string }
   | { type: 'RETRY'; id: string }
-  | { type: 'EDIT'; id: string; fields: Partial<Pick<QueueItem, 'title' | 'author' | 'categoryId'>> }
+  | { type: 'EDIT'; id: string; fields: Partial<Pick<QueueItem, 'title' | 'author'>> }
   | { type: 'REMOVE'; id: string };
 
 let nextId = 1;
@@ -72,7 +71,6 @@ export function addFiles(
       kind,
       title: titleFromFilename(file.name),
       author: '',
-      categoryId: undefined,
       status: accepted ? 'queued' : 'rejected',
       error: accepted
         ? undefined

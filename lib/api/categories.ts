@@ -9,9 +9,12 @@ import { withRefresh } from '@/lib/auth/session';
  * `tree()` returns nested `CategoryNode[]` (children inline, not a flat list
  * with parentId to reassemble), reorder's body is `{ items: [{ id,
  * sortOrder }] }` (ReorderCategoriesDto), and delete returns
- * `{ deleted: true }`. Brought in early (Task 9, R9d) so the upload row's
- * category picker can call fetchTree(kind); Task 10 builds the rest of the
- * screen against the same file.
+ * `{ deleted: true }`.
+ *
+ * Originally brought in early (Task 9) for an upload-row category picker;
+ * that picker was removed (Task 9 review, R9e) because no ingest DTO accepts
+ * a categoryId — see lib/upload/queue.ts. This file now exists solely as
+ * Task 10's Step 1 groundwork for the categories screen.
  */
 export interface Category {
   id: string;
@@ -56,16 +59,4 @@ export function reorderCategories(items: { id: string; sortOrder: number }[]): P
 
 export function deleteCategory(id: string): Promise<unknown> {
   return withRefresh(() => apiFetch(`/categories/${id}`, { method: 'DELETE' }));
-}
-
-/**
- * The upload row's category picker (R9d) needs a flat, kind-scoped list, not
- * the nested tree — flattened depth-first so a child still reads near its
- * parent when rendered as a simple list.
- */
-export function flattenTree(nodes: Category[], depth = 0): { category: Category; depth: number }[] {
-  return nodes.flatMap((node) => [
-    { category: node, depth },
-    ...flattenTree(node.children ?? [], depth + 1),
-  ]);
 }

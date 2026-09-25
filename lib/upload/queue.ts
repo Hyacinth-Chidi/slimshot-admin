@@ -13,16 +13,6 @@ export interface UploadMeta {
   kind: string;
   title: string;
   author?: string;
-  /**
-   * Kept on the type because the row UI collects it (R9d), but uploadFile
-   * never sends it: neither CreateUploadTicketDto nor FinalizeUploadDto
-   * declares a categoryId field (verified against
-   * ../slimshot_server/src/modules/ingest/dto/*.ts), and the server's global
-   * ValidationPipe({ forbidNonWhitelisted: true }) 400s any field a DTO
-   * doesn't declare. There is currently no API call that assigns a category
-   * to an asset at all (UpdateAssetDto only has title/description/authorName).
-   */
-  categoryId?: string;
 }
 
 interface Hooks {

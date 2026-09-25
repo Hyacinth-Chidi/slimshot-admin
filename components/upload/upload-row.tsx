@@ -1,18 +1,10 @@
 'use client';
 
-import { RotateCw, X } from 'lucide-react';
+import { RotateCw, Upload, X } from 'lucide-react';
 import { Artwork } from '@/components/assets/artwork';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { StatusPill, type AssetStatus } from '@/components/ui/status-pill';
-import type { Category } from '@/lib/api/categories';
 import type { QueueItem } from '@/lib/upload/reducer';
 
 const BUSY_STATES = new Set(['ticketing', 'uploading', 'finalizing']);
@@ -35,6 +27,10 @@ const STATE_LABEL: Record<QueueItem['status'], string> = {
  * No byte-level progress is available (R9c: the brief's tests mock `fetch`,
  * which reports no upload progress events) — the bar is indeterminate while
  * a state in BUSY_STATES is active, and full once `done`.
+ *
+ * The brand gradient is reserved for exactly four places (primary button,
+ * active nav indicator, focus rings, logo mark) — this bar is none of those,
+ * so its fill is a flat token, not the gradient.
  */
 function ProgressBar({ status }: { status: QueueItem['status'] }) {
   if (status === 'done') {
@@ -49,24 +45,28 @@ function ProgressBar({ status }: { status: QueueItem['status'] }) {
 
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-elevated" role="progressbar" aria-label="Uploading">
-      <div className="h-full w-1/3 animate-pulse bg-[linear-gradient(135deg,var(--brand-from)_0%,var(--brand-to)_100%)]" />
+      <div className="h-full w-1/3 animate-pulse bg-[var(--brand-from)]" />
     </div>
   );
 }
 
 export function UploadRow({
   item,
-  categories,
   onEdit,
+  onStart,
   onRetry,
   onRemove,
 }: {
   item: QueueItem;
-  categories: { category: Category; depth: number }[];
-  onEdit: (fields: Partial<Pick<QueueItem, 'title' | 'author' | 'categoryId'>>) => void;
+  onEdit: (fields: Partial<Pick<QueueItem, 'title' | 'author'>>) => void;
+  onStart: () => void;
   onRetry: () => void;
   onRemove: () => void;
 }) {
+  // R9f: rows stay `queued` after being added — title/author are editable
+  // right up until the sequence actually starts, and a failed row's fields
+  // stay editable too, so a Retry re-sends whatever was last typed rather
+  // than the values that failed.
   const editable = item.status === 'queued' || item.status === 'failed';
   const busy = BUSY_STATES.has(item.status);
 
@@ -82,33 +82,13 @@ export function UploadRow({
             aria-label="Title"
             placeholder="Title"
           />
-          <div className="flex flex-col gap-2 md:flex-row">
-            <Input
-              value={item.author}
-              onChange={(e) => onEdit({ author: e.target.value })}
-              disabled={!editable}
-              aria-label="Author"
-              placeholder="Author (optional)"
-              className="md:flex-1"
-            />
-            <Select
-              value={item.categoryId ?? 'none'}
-              onValueChange={(v) => onEdit({ categoryId: v === 'none' ? undefined : v })}
-              disabled={!editable}
-            >
-              <SelectTrigger className="md:flex-1" aria-label="Category">
-                <SelectValue placeholder="No category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No category</SelectItem>
-                {categories.map(({ category, depth }) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {`${'— '.repeat(depth)}${category.name}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Input
+            value={item.author}
+            onChange={(e) => onEdit({ author: e.target.value })}
+            disabled={!editable}
+            aria-label="Author"
+            placeholder="Author (optional)"
+          />
         </div>
 
         {item.status === 'done' && item.assetStatus ? (
@@ -133,6 +113,12 @@ export function UploadRow({
         <span className={isErrorState(item.status) ? 'text-error' : item.status === 'done' ? 'text-success' : 'text-subtle'}>
           {isErrorState(item.status) ? item.error : STATE_LABEL[item.status]}
         </span>
+        {item.status === 'queued' && (
+          <Button variant="secondary" size="sm" onClick={onStart}>
+            <Upload className="size-4" />
+            Upload
+          </Button>
+        )}
         {/* Only `failed` gets Retry: it ran uploadFile's ticket/upload/finalize
             sequence and a server/network step rejected it, so re-running that
             sequence can succeed. `rejected` never reached uploadFile — the

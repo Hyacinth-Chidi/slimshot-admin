@@ -11,13 +11,7 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 const FILE = new File(['x'], 'loop.mp3', { type: 'audio/mpeg' });
-// categoryId is deliberately NOT sent to the server: neither
-// CreateUploadTicketDto nor FinalizeUploadDto declares it (verified against
-// ../slimshot_server/src/modules/ingest/dto/*.ts), and the global
-// ValidationPipe({ forbidNonWhitelisted: true }) 400s any field a DTO doesn't
-// declare. META carries categoryId only because the row keeps it as local
-// state for a future PATCH-based assignment; uploadFile must never forward it.
-const META = { kind: 'audio', title: 'Loop', author: 'DJ Test', categoryId: 'c1' };
+const META = { kind: 'audio', title: 'Loop', author: 'DJ Test' };
 
 describe('uploadFile', () => {
   it('runs ticket, upload, finalize in order and reports ready', async () => {
@@ -76,6 +70,12 @@ describe('uploadFile', () => {
     expect(form.get('signature')).toBe('sig');
     expect(form.get('api_key')).toBe('key');
     expect(form.get('file')).toBe(FILE);
+    // Cloudinary is a third party, not our API: this POST must carry no
+    // Authorization header and no cookies/credentials — the signed `fields`
+    // are the only auth Cloudinary needs, and leaking our bearer token to a
+    // third-party host would be a real credential leak.
+    expect(new Headers(calls[1].init?.headers).has('authorization')).toBe(false);
+    expect(calls[1].init?.credentials).not.toBe('include');
 
     expect(calls[2].url).toContain('finalize');
     const finalizeBody = JSON.parse(calls[2].init!.body as string);

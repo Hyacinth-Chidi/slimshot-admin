@@ -16,7 +16,6 @@ describe('queueReducer', () => {
       title: 'My Loop',
       kind: 'audio',
       author: '',
-      categoryId: undefined,
     });
     expect(state.items[0].id).toBeTruthy();
   });
@@ -84,15 +83,14 @@ describe('queueReducer', () => {
     expect(state.items[0]).toMatchObject({ status: 'queued', error: undefined });
   });
 
-  it('updates editable fields (title, author, categoryId) without touching status', () => {
+  it('updates editable fields (title, author) without touching status', () => {
     let state = queueReducer(EMPTY, addFiles([file('a.mp3')], 'audio'));
     const id = state.items[0].id;
     state = queueReducer(state, { type: 'STATE', id, state: 'uploading' });
-    state = queueReducer(state, { type: 'EDIT', id, fields: { title: 'New title', author: 'DJ X', categoryId: 'c9' } });
+    state = queueReducer(state, { type: 'EDIT', id, fields: { title: 'New title', author: 'DJ X' } });
     expect(state.items[0]).toMatchObject({
       title: 'New title',
       author: 'DJ X',
-      categoryId: 'c9',
       status: 'uploading',
     });
   });
