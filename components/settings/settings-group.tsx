@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { fetchSettings } from '@/lib/api/settings';
+import { SecretField } from './secret-field';
 import { SettingRow } from './setting-row';
 
 const GROUP_LABELS: Record<string, string> = {
@@ -12,9 +13,10 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 /**
- * R11b: this is the seam Task 12 plugs SecretField into. Every setting in
- * the group maps to a row; a secret one is skipped here rather than getting
- * placeholder UI, so Task 12 only has to change this one filter.
+ * One card per group. Every setting maps to a row: a secret one to the
+ * locked SecretField (R12a), anything else to the inline-editing SettingRow.
+ * The masked value the API returns for a secret is passed along but never
+ * rendered — SecretField shows a constant placeholder instead.
  */
 export function SettingsGroup({ group, enabled }: { group: string; enabled: boolean }) {
   const query = useQuery({
@@ -32,19 +34,22 @@ export function SettingsGroup({ group, enabled }: { group: string; enabled: bool
     );
   }
   if (query.isError || !query.data) return null;
-
-  const visible = query.data.filter((s) => !s.isSecret);
-  // A group with no non-secret settings is omitted for now — Task 12 fills
-  // secrets in, at which point this group may become non-empty.
-  if (visible.length === 0) return null;
+  // Only a group with no settings at all is omitted; a secrets-only group
+  // (e.g. infrastructure's redis.url) still renders.
+  if (query.data.length === 0) return null;
 
   return (
     <section className="rounded-lg border border-border bg-surface p-4">
       <h2 className="mb-2 text-sm font-semibold text-text">{GROUP_LABELS[group] ?? group}</h2>
       <div className="flex flex-col">
-        {visible.map((setting) => (
-          <SettingRow key={setting.key} setting={setting} />
-        ))}
+        {query.data.map((setting) =>
+          // SecretField invalidates ['settings', group] itself after a save.
+          setting.isSecret ? (
+            <SecretField key={setting.key} setting={setting} />
+          ) : (
+            <SettingRow key={setting.key} setting={setting} />
+          ),
+        )}
       </div>
     </section>
   );
