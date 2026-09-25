@@ -16,12 +16,25 @@ import { fetchAssets, type AssetFilters } from '@/lib/api/assets';
 const PAGE_LIMIT = 25;
 
 /**
- * The stateful part — pageIndex and selected rows — is keyed on the filter
- * string (searchParams.toString(), passed down as `filterKey`) by the parent
- * below. Remounting on any URL change (a filter edit, but also Back/Forward,
- * which setFilters alone never caught) resets both for free, instead of
- * leaving a stale pageIndex pointing past the new filtered set's page count,
- * or a stale selection full of rows that are no longer even rendered.
+ * pageIndex and selected rows reset whenever the filter set changes (a
+ * filter edit, or Back/Forward, or anything else that changes the URL's
+ * filter params) — but NOT on every render, and NOT by remounting this
+ * component. An earlier version keyed this whole component on
+ * `searchParams.toString()`, which reset both for free on any URL change,
+ * but also remounted it on the search input's OWN debounced commit —
+ * dropping focus and any keystrokes typed during the remount window, and
+ * giving useInfiniteQuery a fresh observer with no previous data for
+ * `keepPreviousData` to keep, so every committed search flashed "Loading…"
+ * too.
+ *
+ * Instead, `filterKey` is compared against the previous render's value
+ * during render (React's "adjust state during render" pattern —
+ * https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+ * — not a `[filterKey]` effect, which `react-hooks/set-state-in-effect`
+ * forbids, and not a ref read/write during render, which `react-hooks/refs`
+ * forbids). This component never remounts on a filter change; only
+ * pageIndex/selected reset, and the DOM nodes underneath (including the
+ * search input) stay mounted throughout.
  */
 function AssetsPageBody({
   filters,
@@ -32,8 +45,17 @@ function AssetsPageBody({
   pathname: string;
   onFiltersChange: (next: AssetFilters) => void;
 }) {
+  const filterKey = searchParamsFromFilters(filters).toString();
   const [pageIndex, setPageIndex] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setPageIndex(0);
+    setSelected(new Set());
+  }
+
   const { pendingId, runAction, bulkPending, runBulk } = useAssetActions();
 
   const query = useInfiniteQuery({
@@ -173,11 +195,12 @@ export function AssetsPageContent() {
         {/* Upload entry point lands here in Task 9 (FAB below md, button here at md+). */}
       </div>
 
-      {/* Keyed on the filter string: any URL change — a filter edit here,
-          but also Back/Forward navigation, which setFilters alone never
-          caught — remounts this and resets pageIndex/selected together. */}
+      {/* Not keyed on the URL — AssetsPageBody resets pageIndex/selected
+          itself (via the "adjust state during render" pattern) whenever the
+          filter set changes, without remounting, so the search input inside
+          it (and its in-flight debounce/focus) survives a filter change,
+          including its own committed search. */}
       <AssetsPageBody
-        key={searchParams.toString()}
         filters={filters}
         pathname={pathname}
         onFiltersChange={setFilters}

@@ -48,29 +48,65 @@ describe('DebouncedSearchInput', () => {
     expect(screen.getByRole('textbox', { name: /search/i })).toHaveValue('rain');
   });
 
-  it('does NOT resync on its own when `value` changes via rerender without remounting — the caller must key it (e.g. assets-page-content.tsx keys its whole filtered view on searchParams.toString(), so this component remounts, rather than rerenders, whenever the committed value changes externally)', () => {
-    const { rerender } = render(
-      <DebouncedSearchInput value="rain" buildUrl={(s) => `/assets?search=${s}`} />,
-    );
-    rerender(<DebouncedSearchInput value="" buildUrl={(s) => `/assets?search=${s}`} />);
-    // Same component instance, no key change: local draft state is untouched.
-    expect(screen.getByRole('textbox', { name: /search/i })).toHaveValue('rain');
-  });
-
-  it('resyncs when the caller remounts it with a new key, e.g. after an external URL change', () => {
-    function Wrapper({ committed }: { committed: string }) {
+  it('keeps focus and accepts further typing across its own debounce commit — the fix for the round-2 regression: typing "rain", pausing past the debounce, then typing " loop" must land in the same input as "rain loop", not lose focus mid-word', async () => {
+    // The parent passes the new `value` back in once the URL updates, exactly
+    // as assets-page-content.tsx would after its own history.replaceState —
+    // simulated here by feeding the committed URL back through `value` on
+    // rerender, the same shape the real parent uses.
+    let committedUrl = '/assets';
+    function Wrapper() {
+      const params = new URLSearchParams(committedUrl.split('?')[1] ?? '');
       return (
         <DebouncedSearchInput
-          key={committed}
-          value={committed}
-          buildUrl={(s) => `/assets?search=${s}`}
+          value={params.get('search') ?? ''}
+          buildUrl={(s) => {
+            committedUrl = s ? `/assets?search=${s}` : '/assets';
+            return committedUrl;
+          }}
         />
       );
     }
-    const { rerender } = render(<Wrapper committed="rain" />);
+
+    const user = userEvent.setup({ delay: null, advanceTimers: vi.advanceTimersByTime });
+    const { rerender } = render(<Wrapper />);
+
+    const input = screen.getByRole('textbox', { name: /search/i });
+    await user.click(input);
+    await user.type(input, 'rain');
+    act(() => vi.advanceTimersByTime(300));
+    // The debounce committed — rerender with the value the parent would now
+    // pass back in (mirroring searchParams reflecting the replaceState call).
+    rerender(<Wrapper />);
+
+    // The SAME element must still have focus — a remount would swap in a new
+    // DOM node and drop it.
+    expect(document.activeElement).toBe(input);
+
+    await user.type(input, ' loop');
+    expect(input).toHaveValue('rain loop');
+  });
+
+  it('does NOT resync the draft on a rerender caused by its own commit round-tripping back through `value` — only a genuinely different external value resyncs it', () => {
+    const { rerender } = render(
+      <DebouncedSearchInput value="rain" buildUrl={(s) => `/assets?search=${s}`} />,
+    );
+    const input = screen.getByRole('textbox', { name: /search/i });
+
+    // Same `value` as before (as if this were the round-trip after this
+    // component's own commit) — draft must be untouched.
+    rerender(<DebouncedSearchInput value="rain" buildUrl={(s) => `/assets?search=${s}`} />);
+    expect(input).toHaveValue('rain');
+  });
+
+  it('resyncs the draft on a plain rerender (no remount, no key) when the committed value changes for an external reason — Back/Forward, the category notice\'s Clear button, or another filter control', () => {
+    const { rerender } = render(
+      <DebouncedSearchInput value="rain" buildUrl={(s) => `/assets?search=${s}`} />,
+    );
     expect(screen.getByRole('textbox', { name: /search/i })).toHaveValue('rain');
 
-    rerender(<Wrapper committed="" />);
+    // A DIFFERENT value than what this input itself would have committed —
+    // e.g. Back navigation landed on a URL with no search term at all.
+    rerender(<DebouncedSearchInput value="" buildUrl={(s) => `/assets?search=${s}`} />);
     expect(screen.getByRole('textbox', { name: /search/i })).toHaveValue('');
   });
 });
