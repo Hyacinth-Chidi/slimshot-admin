@@ -7,7 +7,7 @@ import { SettingRow } from './setting-row';
 const GROUP_LABELS: Record<string, string> = {
   upload: 'Upload',
   auth: 'Auth',
-  storage: 'Storage',
+  security: 'Security',
   infrastructure: 'Infrastructure',
 };
 
@@ -50,4 +50,12 @@ export function SettingsGroup({ group, enabled }: { group: string; enabled: bool
   );
 }
 
-export const SETTINGS_GROUPS = ['upload', 'auth', 'storage', 'infrastructure'] as const;
+/**
+ * R11c: the server's real groups (verified against
+ * ../slimshot_server/src/core/settings/setting-definitions.ts — cors.allowedOrigins is
+ * `group: 'security'`, and no `storage` group exists there or in
+ * admin-settings.controller.ts:43). docs/api-reference.md's `storage` was not a
+ * captured response and is wrong; following it as shipped would leave
+ * cors.allowedOrigins permanently unreachable from this screen.
+ */
+export const SETTINGS_GROUPS = ['upload', 'auth', 'security', 'infrastructure'] as const;

@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/cn';
+import { ApiError } from '@/lib/api/client';
 import { fieldErrors } from '@/lib/api/field-errors';
 import { toast } from '@/lib/use-toast';
 import { updateSetting, type MaskedSetting } from '@/lib/api/settings';
@@ -21,7 +22,12 @@ function describeKey(key: string): string {
 }
 
 function parseDraft(type: MaskedSetting['type'], raw: string): unknown {
-  if (type === 'int') return raw === '' ? null : Number(raw);
+  if (type === 'int') {
+    if (raw === '') return null;
+    const parsed = Number(raw);
+    if (Number.isNaN(parsed)) throw new Error('Enter a valid number.');
+    return parsed;
+  }
   if (type === 'string[]') {
     return raw
       .split(',')
@@ -43,56 +49,75 @@ export function SettingRow({ setting }: { setting: MaskedSetting }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState(() => draftToText(setting.type, setting.value));
   const [jsonError, setJsonError] = useState<string | null>(null);
+  // R11d: a 422 on this row's own save is shown inline on this row rather
+  // than toasted, whether or not the server sends a per-field `details`
+  // breakdown — the server's setting-value 422 today carries no `details` at
+  // all (a plain UnprocessableEntityException string), so falling back to
+  // `fieldErrors` alone would silently drop the error into a toast for every
+  // real validation failure. This is local state, not read off
+  // mutation.error, so it survives past the mutation settling and is
+  // cleared explicitly (on the next edit, or a subsequent successful save).
+  const [saveError, setSaveError] = useState<string | null>(null);
   const initial = draftToText(setting.type, setting.value);
 
   const mutation = useMutation({
     mutationFn: (value: unknown) => updateSetting(setting.key, value),
     onSuccess: () => {
+      setSaveError(null);
       queryClient.invalidateQueries({ queryKey: ['settings', setting.group] });
+    },
+    onError: (err) => {
+      if (err instanceof ApiError && err.status === 422) {
+        const errors = fieldErrors(err);
+        // The server keys a setting-value 422 as `value` (see
+        // ../slimshot_server/src/modules/admin/dto/update-setting.dto.ts:5),
+        // not the setting's own key; either name resolves to this row's
+        // field. When the server sends no `details` at all (the common case
+        // today — see settings-admin.service.ts's plain
+        // UnprocessableEntityException), fall back to the error's own
+        // message so the row still shows something actionable instead of
+        // silently losing the failure.
+        setSaveError(errors[setting.key] ?? errors.value ?? err.message);
+        return;
+      }
+      setSaveError(null);
+      toast(err instanceof Error ? err.message : 'Failed to save setting.', 'error');
     },
   });
 
-  const errors = fieldErrors(mutation.error);
-  // The server keys a setting-value 422 as `value` (see
-  // ../slimshot_server/src/modules/admin/dto/update-setting.dto.ts:5), not
-  // the setting's own key — this row's field is that value, so either name
-  // resolves to the same message here.
-  const fieldError = errors[setting.key] ?? errors.value;
+  function clearErrors() {
+    setJsonError(null);
+    setSaveError(null);
+  }
 
   function saveIfChanged(nextDraft: string) {
-    setJsonError(null);
     if (nextDraft === initial) return;
 
     let value: unknown;
     try {
       value = parseDraft(setting.type, nextDraft);
-    } catch {
-      setJsonError('Enter valid JSON.');
+    } catch (err) {
+      setJsonError(
+        setting.type === 'int'
+          ? 'Enter a valid number.'
+          : err instanceof Error && err.message
+            ? err.message
+            : 'Enter valid JSON.',
+      );
       return;
     }
 
-    mutation.mutate(value, {
-      onError: (err) => {
-        if (Object.keys(fieldErrors(err)).length === 0) {
-          toast(err instanceof Error ? err.message : 'Failed to save setting.', 'error');
-        }
-      },
-    });
+    mutation.mutate(value);
   }
 
   function saveBoolean(next: boolean) {
     setJsonError(null);
-    mutation.mutate(next, {
-      onError: (err) => {
-        if (Object.keys(fieldErrors(err)).length === 0) {
-          toast(err instanceof Error ? err.message : 'Failed to save setting.', 'error');
-        }
-      },
-    });
+    setSaveError(null);
+    mutation.mutate(next);
   }
 
   const label = describeKey(setting.key);
-  const errorMessage = jsonError ?? fieldError;
+  const errorMessage = jsonError ?? saveError;
 
   return (
     <div className="flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0 md:flex-row md:items-start md:justify-between md:gap-4">
@@ -119,7 +144,10 @@ export function SettingRow({ setting }: { setting: MaskedSetting }) {
           <textarea
             aria-label={setting.key}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              clearErrors();
+            }}
             onBlur={(e) => saveIfChanged(e.target.value)}
             rows={3}
             className={cn(
@@ -135,7 +163,10 @@ export function SettingRow({ setting }: { setting: MaskedSetting }) {
             aria-label={setting.key}
             type={setting.type === 'int' ? 'number' : 'text'}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              clearErrors();
+            }}
             onBlur={(e) => saveIfChanged(e.target.value)}
             placeholder={setting.configured ? undefined : 'Not set'}
             className={errorMessage ? 'border-error' : undefined}

@@ -1,16 +1,26 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { ApiError } from '@/lib/api/client';
 import type { MaskedSetting } from '@/lib/api/settings';
 import * as settingsApi from '@/lib/api/settings';
+import * as toastModule from '@/lib/use-toast';
 import { SettingRow } from './setting-row';
 
 vi.mock('@/lib/api/settings', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api/settings')>('@/lib/api/settings');
   return { ...actual, updateSetting: vi.fn() };
+});
+
+vi.mock('@/lib/use-toast', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/use-toast')>('@/lib/use-toast');
+  return { ...actual, toast: vi.fn() };
+});
+
+afterEach(() => {
+  vi.resetAllMocks();
 });
 
 function setting(overrides: Partial<MaskedSetting> & { key: string }): MaskedSetting {
@@ -59,7 +69,7 @@ describe('SettingRow string field', () => {
     expect(settingsApi.updateSetting).not.toHaveBeenCalled();
   });
 
-  it('maps a 422 field error onto this row beneath the input', async () => {
+  it('maps a 422 field error onto this row beneath the input and raises no toast', async () => {
     const user = userEvent.setup();
     vi.mocked(settingsApi.updateSetting).mockRejectedValue(
       new ApiError(
@@ -80,6 +90,58 @@ describe('SettingRow string field', () => {
     input.blur();
 
     expect(await screen.findByText(/must be at least 32 characters/i)).toBeInTheDocument();
+    expect(toastModule.toast).not.toHaveBeenCalled();
+  });
+
+  it('R11d: shows a 422 with no `details` under the input via its message, and raises no toast', async () => {
+    const user = userEvent.setup();
+    vi.mocked(settingsApi.updateSetting).mockRejectedValue(
+      new ApiError({ code: 'UNPROCESSABLE', message: 'Value is invalid.', traceId: 't' }, 422),
+    );
+    renderRow(setting({ key: 'upload.ticketTtlSeconds', value: 'old' }));
+
+    const input = screen.getByRole('textbox', { name: /upload.ticketTtlSeconds/i });
+    await user.clear(input);
+    await user.type(input, 'new-value');
+    input.blur();
+
+    expect(await screen.findByText(/value is invalid/i)).toBeInTheDocument();
+    expect(toastModule.toast).not.toHaveBeenCalled();
+  });
+
+  it('still toasts a non-422 failure rather than showing it inline', async () => {
+    const user = userEvent.setup();
+    vi.mocked(settingsApi.updateSetting).mockRejectedValue(
+      new ApiError({ code: 'CONFLICT', message: 'Someone else changed this.', traceId: 't' }, 409),
+    );
+    renderRow(setting({ key: 'upload.ticketPrefix', value: 'old' }));
+
+    const input = screen.getByRole('textbox', { name: /upload.ticketPrefix/i });
+    await user.clear(input);
+    await user.type(input, 'new-value');
+    input.blur();
+
+    await waitFor(() =>
+      expect(toastModule.toast).toHaveBeenCalledWith('Someone else changed this.', 'error'),
+    );
+    expect(screen.queryByText(/someone else changed this/i)).not.toBeInTheDocument();
+  });
+
+  it('clears the inline 422 error once the user edits the field again', async () => {
+    const user = userEvent.setup();
+    vi.mocked(settingsApi.updateSetting).mockRejectedValue(
+      new ApiError({ code: 'UNPROCESSABLE', message: 'Value is invalid.', traceId: 't' }, 422),
+    );
+    renderRow(setting({ key: 'upload.ticketPrefix', value: 'old' }));
+
+    const input = screen.getByRole('textbox', { name: /upload.ticketPrefix/i });
+    await user.clear(input);
+    await user.type(input, 'new-value');
+    input.blur();
+    expect(await screen.findByText(/value is invalid/i)).toBeInTheDocument();
+
+    await user.type(input, '-edited');
+    expect(screen.queryByText(/value is invalid/i)).not.toBeInTheDocument();
   });
 
   it('renders an empty input with a "Not set" hint when unconfigured', () => {

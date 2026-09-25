@@ -84,4 +84,16 @@ describe('SettingsPage owner gate', () => {
     await screen.findByText(/do not have access/i);
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
   });
+
+  it('requests exactly the server\'s four groups — upload, auth, security, infrastructure (R11c)', async () => {
+    vi.mocked(apiClient.apiFetch).mockResolvedValue(profile({ role: 'owner' }));
+    vi.mocked(settingsApi.fetchSettings).mockResolvedValue([]);
+
+    renderPage();
+
+    await waitFor(() => expect(settingsApi.fetchSettings).toHaveBeenCalledTimes(4));
+    const requested = vi.mocked(settingsApi.fetchSettings).mock.calls.map(([group]) => group).sort();
+    expect(requested).toEqual(['auth', 'infrastructure', 'security', 'upload']);
+    expect(settingsApi.fetchSettings).not.toHaveBeenCalledWith('storage');
+  });
 });
