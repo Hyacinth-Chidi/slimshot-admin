@@ -2,21 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { Button } from '@/components/ui/button';
-import { logout } from '@/lib/auth/session';
+import { LogoutButton } from './logout-button';
 import { NAV_ITEMS } from './nav-items';
 
 export function Sidebar() {
   const pathname = usePathname();
-
-  async function handleLogout() {
-    await logout();
-    // Full navigation so no in-memory state (access token, query cache)
-    // survives into the next session.
-    window.location.assign('/login');
-  }
 
   return (
     <aside
@@ -52,10 +43,7 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto pt-4">
-        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={handleLogout}>
-          <LogOut size={18} />
-          Log out
-        </Button>
+        <LogoutButton className="w-full" />
       </div>
     </aside>
   );
