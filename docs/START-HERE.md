@@ -52,8 +52,7 @@ npm run dev -- -p 3001
 
 **Log in as:** `owner@slimshot.dev` / `DevOwner!2026-dashboard`
 
-Owner role is required for Settings — `settings.write` is owner-only and `admin` does not
-inherit it.
+There is no Settings page: server configuration lives in the server's `.env`.
 
 ## Ground rules
 

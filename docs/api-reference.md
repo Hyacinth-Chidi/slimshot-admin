@@ -30,8 +30,7 @@ email:    owner@slimshot.dev
 password: DevOwner!2026-dashboard
 ```
 
-Role is `owner`, which is required for Settings — `settings.write` is owner-only and
-`admin` does NOT inherit it.
+Role is `owner`.
 
 ## Envelopes
 
@@ -195,47 +194,11 @@ this array rather than hardcoding kinds, so fonts and templates appear when regi
 The only jobs route that exists. `GET /jobs/failed` and `POST /jobs/:id/retry` are **not
 implemented** — do not call them.
 
-### `GET /settings?group=infrastructure` → 200
+### Settings (removed)
 
-```json
-{ "success": true, "data": [{
-  "key": "redis.url",
-  "group": "infrastructure",
-  "type": "string",
-  "isSecret": true,
-  "description": "Connection URL for Redis (cache, queue, rate limiting).",
-  "value": "redis://••••7474",
-  "configured": true
-}]}
-```
-
-Groups: `upload`, `auth`, `storage`, `infrastructure`.
-
-**`value` for a secret is the API's mask, and it leaks.** `redis://••••7474` shows the
-scheme and the last four characters of a real credential. The dashboard renders a constant
-`••••••••••` instead — never this string. That is why spec §6.5 is written the way it is.
-
-`configured: false` means the setting has never been set: render an empty field, not a mask.
-
-- `PUT /settings/:key` — body `{ value, password? , grant? }`. Non-secret needs neither.
-- `POST /settings/:key/reveal` — body `{ password }`, returns
-  `{ value, grant, expiresIn: 120 }` with `Cache-Control: no-store`.
-
-An unknown key is **404** on both (not 403), and no audit row is written for it.
-
-## Reveal flow, as the server actually enforces it
-
-1. `POST /settings/:key/reveal` with the owner's password.
-2. Server checks: owner permission → not locked out → password correct. A failed attempt
-   **spends the same lockout budget as a failed login**, so do not retry automatically.
-3. Returns the plaintext value plus a **single-use, key-scoped grant, valid 120 seconds**.
-4. `PUT /settings/:key` with `{ value, grant }` — one unlock authorises both read and write.
-5. The grant is consumed on use. A second write needs a new one.
-6. Grants are revoked on logout and on deactivation, not merely expired.
-
-**The 120s server grant and the 2-minute UI idle lock are independent clocks.** They drift.
-A `403` on save means the grant expired — re-open the password modal rather than showing an
-error the user cannot act on.
+The `/settings` endpoints and the secret-reveal flow were removed on 2026-09-26. All server
+configuration now lives in the server's `.env` (see `slimshot_server/.env.example`), read
+and validated once at startup.
 
 ## Corrections this file makes to the implementation plan
 

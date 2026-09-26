@@ -1,8 +1,9 @@
 # SlimShot Admin Dashboard
 
-An admin dashboard for SlimShot: manage audio/font/template assets, categories, system
-settings, and browse the audit log. Dark theme only, responsive down to phone
-width (see `docs/design-spec.md`).
+An admin dashboard for SlimShot: manage audio/font/template assets and categories, and
+browse the audit log. Dark theme only, responsive down to phone width (see
+`docs/design-spec.md`). Server configuration is not edited here: it lives in the
+server's `.env` (see `slimshot_server/.env.example`).
 
 ## Stack
 
@@ -46,10 +47,9 @@ side, set `ADMIN_BASE_URL` in `slimshot_server/.env` to this dashboard's origin
 
 ### Signing in
 
-Sign-in requires an admin account on the API. Reaching **Settings** specifically requires
-an **owner** account — `settings.write` is owner-only and a regular `admin` account does
-not inherit it. See `../slimshot_server`'s own docs (or `docs/api-reference.md` in this
-repo, for local development only) for a seeded account to sign in with.
+Sign-in requires an admin account on the API. See `../slimshot_server`'s own docs (or
+`docs/api-reference.md` in this repo, for local development only) for a seeded account to
+sign in with.
 
 ## Scripts
 

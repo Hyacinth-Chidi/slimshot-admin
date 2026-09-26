@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/cn';
 import { useSidebarCollapsed } from '@/lib/use-sidebar-collapsed';
 import { performLogout } from './logout-button';
-import { SIDEBAR_ITEMS } from './nav-items';
+import { NAV_ITEMS } from './nav-items';
 
 const GRADIENT = 'bg-[linear-gradient(135deg,var(--brand-from)_0%,var(--brand-to)_100%)]';
 
@@ -79,7 +79,7 @@ export function Sidebar() {
         </div>
 
         <nav className="flex flex-col gap-1">
-          {SIDEBAR_ITEMS.map((item) => {
+          {NAV_ITEMS.map((item) => {
             const active = pathname === item.href;
             return (
               <RailTooltip key={item.href} label={item.label} show={collapsed}>

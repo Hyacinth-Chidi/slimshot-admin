@@ -43,9 +43,8 @@ interface FinalizeResponse {
 
 /**
  * Canonical MIME per extension, matching the server's accepted list exactly
- * (upload.audio.mimeTypes default — ../slimshot_server/src/core/settings/
- * setting-definitions.ts:15-20 — for the audio descriptor's extensions
- * .mp3/.wav/.aac/.ogg/.flac). The server compares the declared type with
+ * (the default of its UPLOAD_AUDIO_MIME_TYPES env variable, for the audio
+ * descriptor's extensions .mp3/.wav/.aac/.ogg/.flac). The server compares the declared type with
  * `includes` (kind-registry.ts:57) and rejects before creating a draft, so
  * the browser's File.type cannot be sent as-is: it is "" for some types on
  * Windows, `audio/vnd.dlna.adts` for .aac there, and `audio/x-wav` /

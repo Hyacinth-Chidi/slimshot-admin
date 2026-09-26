@@ -1,11 +1,4 @@
-import {
-  FolderTree,
-  LayoutDashboard,
-  Music,
-  ScrollText,
-  Settings,
-  type LucideIcon,
-} from 'lucide-react';
+import { FolderTree, LayoutDashboard, Music, ScrollText, type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -13,18 +6,11 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-// The phone bottom bar has exactly four peers. Audit is reachable there from
-// Overview rather than taking a fifth slot — five tabs on a phone makes every
-// target smaller.
+// Four peers on both the phone bottom bar and the desktop sidebar. There is
+// no Settings page: server configuration lives in the server's .env.
 export const NAV_ITEMS: NavItem[] = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
   { href: '/assets', label: 'Assets', icon: Music },
   { href: '/categories', label: 'Categories', icon: FolderTree },
-  { href: '/settings', label: 'Settings', icon: Settings },
-];
-
-// The desktop sidebar has room, so Audit gets its own entry there.
-export const SIDEBAR_ITEMS: NavItem[] = [
-  ...NAV_ITEMS,
   { href: '/audit', label: 'Audit log', icon: ScrollText },
 ];
