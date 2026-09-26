@@ -29,6 +29,14 @@ describe('AppShell', () => {
     expect(screen.getAllByTestId('nav-active')).toHaveLength(2); // one per nav
   });
 
+  it('links the audit log from the desktop sidebar but not the phone bottom bar', () => {
+    render(<AppShell><p>content</p></AppShell>);
+    const sidebar = screen.getByTestId('sidebar');
+    const bottomNav = screen.getByTestId('bottom-nav');
+    expect(sidebar.querySelector('a[href="/audit"]')).toHaveTextContent('Audit log');
+    expect(bottomNav.querySelector('a[href="/audit"]')).toBeNull();
+  });
+
   it('renders its children', () => {
     render(<AppShell><p>content</p></AppShell>);
     expect(screen.getByText('content')).toBeInTheDocument();
