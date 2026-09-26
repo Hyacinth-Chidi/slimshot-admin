@@ -1,23 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { sparklinePoints, type UploadPoint } from './stats';
+import { zeroFill } from './stats';
 
-function filled(counts: number[]): UploadPoint[] {
-  return counts.map((count, i) => ({ date: `2026-09-${String(i + 1).padStart(2, '0')}`, count }));
-}
-
-describe('sparklinePoints', () => {
-  it('returns an empty array when every zero-filled point is zero', () => {
-    // A new install or a quiet month zero-fills to an all-zero series. Feeding
-    // that straight to the Sparkline draws a flat line at 0, which reads as a
-    // broken chart rather than "nothing happened yet."
-    expect(sparklinePoints(filled([0, 0, 0, 0]))).toEqual([]);
+describe('zeroFill', () => {
+  it('pads missing days with zero', () => {
+    const today = new Date('2026-09-23T00:00:00Z');
+    const filled = zeroFill([{ date: '2026-09-23', count: 5 }], 3, today);
+    expect(filled).toEqual([
+      { date: '2026-09-21', count: 0 },
+      { date: '2026-09-22', count: 0 },
+      { date: '2026-09-23', count: 5 },
+    ]);
   });
 
-  it('returns the counts when at least one day has uploads', () => {
-    expect(sparklinePoints(filled([0, 2, 0, 5]))).toEqual([0, 2, 0, 5]);
+  it('returns all zeroes for an empty series', () => {
+    // A new install has no uploads; the chart draws a month of silence.
+    const filled = zeroFill([], 7, new Date('2026-09-23T00:00:00Z'));
+    expect(filled).toHaveLength(7);
+    expect(filled.every((p) => p.count === 0)).toBe(true);
   });
 
-  it('returns the counts when every day has uploads', () => {
-    expect(sparklinePoints(filled([1, 1, 1]))).toEqual([1, 1, 1]);
+  it('ends on today and keeps the days in order', () => {
+    const filled = zeroFill([], 30, new Date('2026-09-26T12:00:00Z'));
+    expect(filled[0].date).toBe('2026-08-28');
+    expect(filled[29].date).toBe('2026-09-26');
   });
 });

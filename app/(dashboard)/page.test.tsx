@@ -10,7 +10,6 @@ vi.mock('@/lib/api/stats', () => ({
   fetchJobsHealth: vi.fn().mockResolvedValue({ waiting: 0, active: 0, failed: 0, delayed: 0 }),
   tileCounts: () => ({ total: 0, published: 0, processing: 0, failed: 0 }),
   zeroFill: (d: unknown) => d,
-  sparklinePoints: () => [],
 }));
 
 vi.mock('@/lib/api/audit', () => ({
@@ -34,5 +33,18 @@ describe('OverviewPage recent activity', () => {
     renderPage();
     const link = await screen.findByRole('link', { name: /view all/i });
     expect(link).toHaveAttribute('href', '/audit');
+  });
+});
+
+describe('OverviewPage layout', () => {
+  it('leads with the uploads chart, then the library and activity sections', async () => {
+    renderPage();
+    const headings = (await screen.findAllByRole('heading')).map((h) => h.textContent);
+    expect(headings).toEqual([
+      'Overview',
+      expect.stringMatching(/uploads/i),
+      'Library',
+      'Activity',
+    ]);
   });
 });

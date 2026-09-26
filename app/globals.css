@@ -24,6 +24,12 @@
   --success: #22C55E;
   --error: #EF4444;
   --warning: #EAB308;
+
+  /* Data marks. One series, one hue: purple-500 clears 3:1 on --surface
+     (4.48:1); the active step is the hover/playhead lift of the same hue.
+     Never the brand gradient — that stays in its four places. */
+  --chart-bar: #A855F7;
+  --chart-bar-active: #C084FC;
 }
 
 @theme inline {
@@ -37,6 +43,8 @@
   --color-success: var(--success);
   --color-error: var(--error);
   --color-warning: var(--warning);
+  --color-chart-bar: var(--chart-bar);
+  --color-chart-bar-active: var(--chart-bar-active);
 }
 
 /* The app is dark-only by design (spec section 3). No prefers-color-scheme

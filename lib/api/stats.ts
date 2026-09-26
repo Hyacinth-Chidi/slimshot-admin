@@ -52,17 +52,6 @@ export function zeroFill(points: UploadPoint[], days: number, today = new Date()
   return out;
 }
 
-/**
- * Decides what to feed the Sparkline. A zero-filled series where every count
- * is 0 (new install, or a genuinely quiet month) should render the "No
- * uploads yet" empty state rather than a flat line at zero, which reads as a
- * chart that failed to load rather than a chart with nothing to show.
- */
-export function sparklinePoints(filled: UploadPoint[]): number[] {
-  if (filled.every((p) => p.count === 0)) return [];
-  return filled.map((p) => p.count);
-}
-
 export interface JobsHealth {
   waiting: number;
   active: number;
