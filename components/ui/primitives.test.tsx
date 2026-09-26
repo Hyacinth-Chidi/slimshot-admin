@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -82,6 +84,34 @@ describe('DropdownMenu', () => {
     await user.click(screen.getByText('Open menu'));
 
     expect(await screen.findByRole('menuitem')).toBeInTheDocument();
+  });
+
+  it('does not force the arrow cursor on its items', async () => {
+    // globals.css gives clickable roles a pointer in @layer base; a
+    // `cursor-default` utility on the item would override it.
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu>
+        <DropdownMenuTrigger>Open menu</DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem>Rename</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    );
+    await user.click(screen.getByText('Open menu'));
+    expect(await screen.findByRole('menuitem')).not.toHaveClass('cursor-default');
+  });
+});
+
+describe('cursor', () => {
+  it('no UI primitive forces the arrow cursor', () => {
+    // Tailwind utilities beat the @layer base pointer rule in globals.css, so
+    // `cursor-default` anywhere in a clickable primitive brings the arrow back.
+    const dir = join(process.cwd(), 'components', 'ui');
+    const offenders = readdirSync(dir)
+      .filter((f) => f.endsWith('.tsx') && !f.endsWith('.test.tsx'))
+      .filter((f) => readFileSync(join(dir, f), 'utf8').includes('cursor-default'));
+    expect(offenders).toEqual([]);
   });
 });
 

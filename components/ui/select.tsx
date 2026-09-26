@@ -120,7 +120,7 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         // 44px minimum below md, matching DropdownMenuItem.
-        "relative flex min-h-11 w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-elevated focus:text-text data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 md:min-h-8 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "relative flex min-h-11 w-full items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-elevated focus:text-text data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 md:min-h-8 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className
       )}
       {...props}
@@ -156,7 +156,7 @@ function SelectScrollUpButton({
     <SelectPrimitive.ScrollUpButton
       data-slot="select-scroll-up-button"
       className={cn(
-        "z-10 flex cursor-default items-center justify-center bg-surface py-1 text-muted [&_svg:not([class*='size-'])]:size-4",
+        "z-10 flex items-center justify-center bg-surface py-1 text-muted [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -174,7 +174,7 @@ function SelectScrollDownButton({
     <SelectPrimitive.ScrollDownButton
       data-slot="select-scroll-down-button"
       className={cn(
-        "z-10 flex cursor-default items-center justify-center bg-surface py-1 text-muted [&_svg:not([class*='size-'])]:size-4",
+        "z-10 flex items-center justify-center bg-surface py-1 text-muted [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

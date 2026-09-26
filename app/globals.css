@@ -57,7 +57,9 @@ body {
 
   /* Tailwind v4 reset buttons to `cursor: default` (upgrade guide). Restore the
      pointer on everything clickable, including the Radix menu/select items,
-     which are role-bearing divs rather than <button>s. */
+     which are role-bearing divs rather than <button>s. This is a base-layer
+     rule, so any `cursor-*` utility on an element overrides it — the UI
+     primitives must not set `cursor-default` (pinned in primitives.test.tsx). */
   button:not(:disabled),
   [role="button"]:not(:disabled),
   [role="menuitem"]:not([data-disabled]),
