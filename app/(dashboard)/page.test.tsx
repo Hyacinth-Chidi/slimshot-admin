@@ -37,14 +37,13 @@ describe('OverviewPage recent activity', () => {
 });
 
 describe('OverviewPage layout', () => {
-  it('leads with the uploads chart, then the library and activity sections', async () => {
+  it('puts the stat cards above the uploads chart, then activity', async () => {
     renderPage();
+    const cards = await screen.findByTestId('stat-total');
+    const chart = await screen.findByRole('heading', { name: /uploads/i });
+    // DOCUMENT_POSITION_FOLLOWING: the chart comes after the cards.
+    expect(cards.compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const headings = (await screen.findAllByRole('heading')).map((h) => h.textContent);
-    expect(headings).toEqual([
-      'Overview',
-      expect.stringMatching(/uploads/i),
-      'Library',
-      'Activity',
-    ]);
+    expect(headings).toEqual(['Overview', expect.stringMatching(/uploads/i), 'Activity']);
   });
 });

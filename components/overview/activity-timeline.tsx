@@ -55,7 +55,7 @@ export function ActivityTimeline({ entries }: { entries: AuditEntry[] | undefine
                 <span
                   aria-hidden
                   className={cn(
-                    'absolute left-0 top-[1.05rem] size-2 rounded-full ring-4 ring-bg',
+                    'absolute left-0 top-[1.05rem] size-2 rounded-full ring-4 ring-surface',
                     copy.tone === 'error' ? 'bg-error' : 'bg-muted',
                   )}
                 />

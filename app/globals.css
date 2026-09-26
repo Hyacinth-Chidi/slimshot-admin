@@ -30,6 +30,14 @@
      Never the brand gradient — that stays in its four places. */
   --chart-bar: #A855F7;
   --chart-bar-active: #C084FC;
+
+  /* Stat-card accents: the 400 steps read clearly on --surface and sit next
+     to the purple brand without fighting it. Icons and meters only — text
+     stays in the text tokens. */
+  --accent-violet: #A78BFA;
+  --accent-emerald: #34D399;
+  --accent-amber: #FBBF24;
+  --accent-rose: #FB7185;
 }
 
 @theme inline {
@@ -45,6 +53,10 @@
   --color-warning: var(--warning);
   --color-chart-bar: var(--chart-bar);
   --color-chart-bar-active: var(--chart-bar-active);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-emerald: var(--accent-emerald);
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-rose: var(--accent-rose);
 }
 
 /* The app is dark-only by design (spec section 3). No prefers-color-scheme
