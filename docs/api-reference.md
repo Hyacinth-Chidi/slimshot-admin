@@ -5,7 +5,7 @@ source or inferred. Where this file and the implementation plan disagree, **this
 wins** — the plan was written before the API could be exercised and got four things wrong
 (all corrected here, and noted at the bottom).
 
-Base URL: `http://localhost:3000/api/admin/v1`
+Base URL: `http://localhost:2700/api/admin/v1` (the server moved from 3000 to 2700 on 2026-09-25)
 Set `NEXT_PUBLIC_API_BASE` to exactly that.
 
 ## Running the API
@@ -16,8 +16,8 @@ From `../slimshot_server` (or its worktree at `.worktrees/admin-api`):
 npm run start:dev
 ```
 
-It binds **port 3000**, which is also Next.js's default — run the dashboard on another
-port: `next dev -p 3001`.
+It binds **port 2700** (`PORT` in its `.env`). Run the dashboard with `next dev -p 3001`
+and set the server's `ADMIN_BASE_URL=http://localhost:3001` so CORS allows it.
 
 `.env` there already holds `DATABASE_URL` (Neon dev database), `REDIS_URL`, and the owner
 bootstrap credentials. Redis connects on boot; if you see `ECONNREFUSED` from ioredis, the

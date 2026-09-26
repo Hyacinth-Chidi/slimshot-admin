@@ -30,7 +30,7 @@ export function getAccessToken(): string | null {
 }
 
 export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3000/api/admin/v1';
+  process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:2700/api/admin/v1';
 
 /**
  * Private helper that builds headers, performs the fetch, and parses JSON.

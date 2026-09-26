@@ -1,7 +1,7 @@
 # SlimShot Admin Dashboard
 
-An admin dashboard for SlimShot: manage audio/font/template assets, categories, storage
-and auth settings, and browse the audit log. Dark theme only, responsive down to phone
+An admin dashboard for SlimShot: manage audio/font/template assets, categories, system
+settings, and browse the audit log. Dark theme only, responsive down to phone
 width (see `docs/design-spec.md`).
 
 ## Stack
@@ -21,8 +21,8 @@ npm install
 npm run dev -- -p 3001
 ```
 
-The dashboard needs the SlimShot API running locally. The API binds port 3000 (the same
-default Next.js uses), so run the dashboard on another port as above.
+The dashboard needs the SlimShot API running locally on port 2700. Run the dashboard on
+port 3001 as above — that is the origin the API's `ADMIN_BASE_URL` allows through CORS.
 
 ### Running the API
 
@@ -34,11 +34,15 @@ npm run start:dev
 
 ### Environment
 
-Set the dashboard's API base URL:
+Copy `.env.example` to `.env` (or `.env.local`) and set the API base URL:
 
 ```
-NEXT_PUBLIC_API_BASE=http://localhost:3000/api/admin/v1
+NEXT_PUBLIC_API_BASE=http://localhost:2700/api/admin/v1
 ```
+
+It is inlined at build time, so restart the dev server after changing it. On the API
+side, set `ADMIN_BASE_URL` in `slimshot_server/.env` to this dashboard's origin
+(`http://localhost:3001` locally).
 
 ### Signing in
 

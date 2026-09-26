@@ -37,16 +37,18 @@ were first found. Context7 is fresher; prefer it.
 **API** — from `../slimshot_server`:
 
 ```bash
-npm run start:dev      # binds port 3000
+npm run start:dev      # binds port 2700 (PORT in its .env)
 ```
+
+Set `ADMIN_BASE_URL=http://localhost:3001` in the server's `.env` (CORS).
 
 **Dashboard** — from here:
 
 ```bash
-npm run dev -- -p 3001   # 3000 is taken by the API
+npm run dev -- -p 3001
 ```
 
-Set `NEXT_PUBLIC_API_BASE=http://localhost:3000/api/admin/v1`.
+`.env` holds `NEXT_PUBLIC_API_BASE=http://localhost:2700/api/admin/v1` (see `.env.example`).
 
 **Log in as:** `owner@slimshot.dev` / `DevOwner!2026-dashboard`
 
