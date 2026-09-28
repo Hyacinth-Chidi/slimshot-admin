@@ -38,6 +38,15 @@ describe('Sidebar collapse', () => {
     expect(screen.getByText('Assets')).toBeVisible();
   });
 
+  it('keeps Settings reachable, with its name, when collapsed', async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />);
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+
+    await user.click(screen.getByRole('button', { name: /collapse sidebar/i }));
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+  });
+
   it('remembers the choice across reloads', async () => {
     const user = userEvent.setup();
     const { unmount } = render(<Sidebar />);

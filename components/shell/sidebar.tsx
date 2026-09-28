@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/cn';
 import { useSidebarCollapsed } from '@/lib/use-sidebar-collapsed';
 import { performLogout } from './logout-button';
-import { NAV_ITEMS } from './nav-items';
+import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from './nav-items';
 
 const GRADIENT = 'bg-[linear-gradient(135deg,var(--brand-from)_0%,var(--brand-to)_100%)]';
 
@@ -26,6 +26,30 @@ function RailTooltip({ label, show, children }: { label: string; show: boolean; 
 function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+}
+
+function SidebarLink({ item, active, collapsed }: { item: NavItem; active: boolean; collapsed: boolean }) {
+  return (
+    <RailTooltip label={item.label} show={collapsed}>
+      <Link
+        href={item.href}
+        aria-label={collapsed ? item.label : undefined}
+        data-testid={active ? 'nav-active' : undefined}
+        className={cn(
+          'relative flex items-center gap-3 rounded-lg py-2 text-sm transition-colors duration-150 ease-out',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-from)]',
+          collapsed ? 'justify-center px-0' : 'px-3',
+          active ? 'bg-elevated text-text' : 'text-muted hover:bg-elevated hover:text-text',
+        )}
+      >
+        {active && (
+          <span className={cn('absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full', GRADIENT)} />
+        )}
+        <item.icon size={18} className="shrink-0" />
+        {!collapsed && item.label}
+      </Link>
+    </RailTooltip>
+  );
 }
 
 export function Sidebar() {
@@ -79,33 +103,13 @@ export function Sidebar() {
         </div>
 
         <nav className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <RailTooltip key={item.href} label={item.label} show={collapsed}>
-                <Link
-                  href={item.href}
-                  aria-label={collapsed ? item.label : undefined}
-                  data-testid={active ? 'nav-active' : undefined}
-                  className={cn(
-                    'relative flex items-center gap-3 rounded-lg py-2 text-sm transition-colors duration-150 ease-out',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-from)]',
-                    collapsed ? 'justify-center px-0' : 'px-3',
-                    active ? 'bg-elevated text-text' : 'text-muted hover:bg-elevated hover:text-text',
-                  )}
-                >
-                  {active && (
-                    <span className={cn('absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full', GRADIENT)} />
-                  )}
-                  <item.icon size={18} className="shrink-0" />
-                  {!collapsed && item.label}
-                </Link>
-              </RailTooltip>
-            );
-          })}
+          {NAV_ITEMS.map((item) => (
+            <SidebarLink key={item.href} item={item} active={pathname === item.href} collapsed={collapsed} />
+          ))}
         </nav>
 
-        <div className="mt-auto pt-4">
+        <div className="mt-auto flex flex-col gap-1 pt-4">
+          <SidebarLink item={SETTINGS_ITEM} active={pathname === SETTINGS_ITEM.href} collapsed={collapsed} />
           <RailTooltip label="Log out" show={collapsed}>
             <button
               type="button"

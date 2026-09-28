@@ -52,7 +52,8 @@ npm run dev -- -p 3001
 
 **Log in as:** `owner@slimshot.dev` / `DevOwner!2026-dashboard`
 
-There is no Settings page: server configuration lives in the server's `.env`.
+Settings (owner only) has one tab, Providers, where the Auto caption API keys are managed.
+All other server configuration lives in the server's `.env`.
 
 ## Ground rules
 

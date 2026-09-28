@@ -194,11 +194,22 @@ this array rather than hardcoding kinds, so fonts and templates appear when regi
 The only jobs route that exists. `GET /jobs/failed` and `POST /jobs/:id/retry` are **not
 implemented** — do not call them.
 
-### Settings (removed)
+### Providers (owner only, permission `providers.manage`)
 
-The `/settings` endpoints and the secret-reveal flow were removed on 2026-09-26. All server
-configuration now lives in the server's `.env` (see `slimshot_server/.env.example`), read
-and validated once at startup.
+Provider API keys for Auto caption live in the database, encrypted; everything else stays in
+the server's `.env`. No endpoint ever returns a key.
+
+| Method | Path | Body | `data` |
+|---|---|---|---|
+| GET | `/providers?capability=speech_to_text` | — | `[{ provider, capability, configured, active, updatedAt }]` |
+| PUT | `/providers/:provider/key` | `{ capability, apiKey }` | `{ configured: true }` |
+| DELETE | `/providers/:provider/key?capability=speech_to_text` | — | `{ configured: false }` |
+| POST | `/providers/:provider/activate` | `{ capability }` | the list |
+| POST | `/providers/:provider/deactivate` | `{ capability }` | the list |
+| POST | `/providers/:provider/test` | `{ capability }` | `{ ok, message }` |
+
+`:provider` is `deepgram` or `elevenlabs` (anything else is 422). Activating without a saved
+key is 409. Only one provider per capability is active; activating one turns the other off.
 
 ## Corrections this file makes to the implementation plan
 
