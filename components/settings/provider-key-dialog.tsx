@@ -60,7 +60,11 @@ function KeyForm({
         <span className="text-muted">API key</span>
         <Input
           type="password"
-          autoComplete="off"
+          // Browsers ignore "off" on password fields; "new-password" (plus the
+          // password-manager opt-outs) keeps the saved login password out.
+          autoComplete="new-password"
+          data-1p-ignore
+          data-lpignore="true"
           spellCheck={false}
           value={value}
           onChange={(e) => setValue(e.target.value)}

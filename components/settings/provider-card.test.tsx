@@ -109,6 +109,19 @@ describe('ProviderCard', () => {
     await waitFor(() => expect(screen.queryByLabelText('API key')).toBeNull());
   });
 
+  it('keeps the browser from filling in or saving the dashboard password as a key', async () => {
+    // Browsers ignore autocomplete="off" on password fields; "new-password"
+    // stops them offering the saved login password here.
+    const user = userEvent.setup();
+    renderCard(status());
+    await user.click(screen.getByRole('button', { name: 'Add key' }));
+
+    const input = screen.getByLabelText('API key');
+    expect(input).toHaveAttribute('autocomplete', 'new-password');
+    expect(input).toHaveAttribute('data-1p-ignore');
+    expect(input).toHaveAttribute('data-lpignore', 'true');
+  });
+
   it('shows a save error inside the dialog and keeps it open', async () => {
     vi.mocked(providersApi.saveProviderKey).mockRejectedValue(new Error('apiKey must be 8–512 characters.'));
     const user = userEvent.setup();
