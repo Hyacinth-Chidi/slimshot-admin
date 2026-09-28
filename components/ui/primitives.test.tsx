@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu';
 import { Switch } from './switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 
 describe('Dialog', () => {
   it('renders its title and content when open, styled with border and no shadow', () => {
@@ -247,5 +248,36 @@ describe('DialogContent width (T8b)', () => {
       </Dialog>,
     );
     expect(screen.getByRole('dialog')).toHaveClass('md:max-w-sm');
+  });
+});
+
+describe('Tabs', () => {
+  function renderTabs() {
+    return render(
+      <Tabs defaultValue="a">
+        <TabsList aria-label="Sections">
+          <TabsTrigger value="a">Alpha</TabsTrigger>
+          <TabsTrigger value="b">Beta</TabsTrigger>
+        </TabsList>
+        <TabsContent value="a">Alpha panel</TabsContent>
+        <TabsContent value="b">Beta panel</TabsContent>
+      </Tabs>,
+    );
+  }
+
+  it('marks the selected tab, shows its panel, and has phone-size targets without shadows', () => {
+    renderTabs();
+    const alpha = screen.getByRole('tab', { name: 'Alpha' });
+    expect(alpha).toHaveAttribute('data-state', 'active');
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Alpha panel');
+    expect(alpha).toHaveClass('h-11', 'md:h-8');
+    expect(screen.getByRole('tablist').className).not.toMatch(/shadow/);
+  });
+
+  it('switches panels on click', async () => {
+    const user = userEvent.setup();
+    renderTabs();
+    await user.click(screen.getByRole('tab', { name: 'Beta' }));
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Beta panel');
   });
 });
