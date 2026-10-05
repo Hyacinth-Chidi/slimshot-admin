@@ -138,7 +138,7 @@ check daily and never corrects a mismatch by itself.
 
 Feature: `auto_captions`, the only one today.
 
-- **Current price card.** The active version as one line: *v3 · up to 60 s → 2 credits ·
+- **Current price card.** The active version as one line: *v3 · up to 1 min → 2 credits ·
   up to 5 min → 5 · longer → 10*, or *v2 · 3 credits per job*. With no active version, a
   warning: *No price is active, so Auto caption is switched off in the app.*
 - **Version history**, newest first: version, the same one-line summary, the note, created
