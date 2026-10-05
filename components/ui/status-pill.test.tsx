@@ -15,6 +15,15 @@ describe('StatusPill', () => {
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 
+  it.each([
+    ['active', 'Active'],
+    ['suspended', 'Suspended'],
+    ['deleted', 'Deleted'],
+  ] as const)('renders the user status %s as %s', (status, label) => {
+    render(<StatusPill status={status} />);
+    expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
   it('gives failed and published visually distinct classes', () => {
     const { container: failed } = render(<StatusPill status="failed" />);
     const { container: published } = render(<StatusPill status="published" />);

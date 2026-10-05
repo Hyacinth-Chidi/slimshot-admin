@@ -1,3 +1,4 @@
+import type { UserStatus } from '@/lib/api/users';
 import { cn } from '@/lib/cn';
 
 export type AssetStatus =
@@ -8,16 +9,20 @@ export type AssetStatus =
   | 'archived'
   | 'failed';
 
-const STYLES: Record<AssetStatus, { label: string; className: string }> = {
+const STYLES: Record<AssetStatus | UserStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-elevated text-muted border-border' },
   processing: { label: 'Processing', className: 'bg-warning/10 text-warning border-warning/30' },
   ready: { label: 'Ready', className: 'bg-elevated text-text border-border' },
   published: { label: 'Published', className: 'bg-success/10 text-success border-success/30' },
   archived: { label: 'Archived', className: 'bg-elevated text-subtle border-border' },
   failed: { label: 'Failed', className: 'bg-error/10 text-error border-error/30' },
+  // App users (the Users screens).
+  active: { label: 'Active', className: 'bg-success/10 text-success border-success/30' },
+  suspended: { label: 'Suspended', className: 'bg-warning/10 text-warning border-warning/30' },
+  deleted: { label: 'Deleted', className: 'bg-elevated text-subtle border-border' },
 };
 
-export function StatusPill({ status }: { status: AssetStatus }) {
+export function StatusPill({ status }: { status: AssetStatus | UserStatus }) {
   // Falls back to the raw value rather than crashing: the API's enum may gain
   // a status this build has never heard of.
   const style = STYLES[status] ?? {
