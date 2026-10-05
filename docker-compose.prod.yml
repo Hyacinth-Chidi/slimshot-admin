@@ -1,0 +1,26 @@
+# Production: the admin dashboard as one container on the VPS.
+# nginx (on the VPS itself) terminates HTTPS for slimshot-admin.techfamz.com and
+# forwards to 127.0.0.1:3001. Day to day, use deploy/scripts/deploy.sh.
+
+name: slimshot-admin
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:?Set NEXT_PUBLIC_API_BASE in .env (see .env.production.example)}
+    image: slimshot-admin
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    # Reachable from the VPS itself only; nginx is the public entrance.
+    ports:
+      - '127.0.0.1:3001:3001'
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'

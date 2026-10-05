@@ -1,0 +1,19 @@
+# Never bake local secrets or build output into the image: the build gets
+# NEXT_PUBLIC_API_BASE as a build argument from the server's .env.
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+node_modules
+.next
+coverage
+.git
+.github
+.superpowers
+*.log
+*.tsbuildinfo
+Dockerfile
+docker-compose*.yml
+deploy
+docs
