@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { UserDetail } from '@/lib/api/users';
 import { canManageUsers, type AdminRole } from '@/lib/auth/permissions';
+import { AdjustCreditsDialog } from './adjust-credits-dialog';
+import { DeleteUserDialog } from './delete-user-dialog';
+import { SuspendDialog } from './suspend-dialog';
+import { UnsuspendDialog } from './unsuspend-dialog';
 
 export type UserActionDialog = 'adjust' | 'suspend' | 'unsuspend' | 'delete';
 
@@ -12,7 +16,7 @@ export type UserActionDialog = 'adjust' | 'suspend' | 'unsuspend' | 'delete';
  * a button the server would refuse. The server enforces it regardless.
  */
 export function UserActions({ user, role }: { user: UserDetail; role: AdminRole | undefined }) {
-  const [, setOpen] = useState<UserActionDialog | null>(null);
+  const [open, setOpen] = useState<UserActionDialog | null>(null);
 
   if (!canManageUsers(role) || user.accountStatus === 'deleted') return null;
 
@@ -33,6 +37,15 @@ export function UserActions({ user, role }: { user: UserDetail; role: AdminRole 
       <Button variant="danger" size="sm" onClick={() => setOpen('delete')}>
         Delete user
       </Button>
+
+      <AdjustCreditsDialog user={user} open={open === 'adjust'} onOpenChange={(o) => setOpen(o ? 'adjust' : null)} />
+      <SuspendDialog user={user} open={open === 'suspend'} onOpenChange={(o) => setOpen(o ? 'suspend' : null)} />
+      <UnsuspendDialog
+        user={user}
+        open={open === 'unsuspend'}
+        onOpenChange={(o) => setOpen(o ? 'unsuspend' : null)}
+      />
+      <DeleteUserDialog user={user} open={open === 'delete'} onOpenChange={(o) => setOpen(o ? 'delete' : null)} />
     </div>
   );
 }
