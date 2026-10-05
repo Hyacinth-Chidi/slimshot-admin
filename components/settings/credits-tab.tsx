@@ -27,6 +27,10 @@ import {
 
 const SETTINGS_KEY = ['credits', 'settings'] as const;
 const NUMBER = new Intl.NumberFormat('en-GB');
+const FORM_KEYS = new Set<string>([
+  ...CREDIT_FIELD_GROUPS.flatMap((group) => group.fields.map((field) => field.key)),
+  'disposableEmailDomains',
+]);
 
 /**
  * Keyed on updatedAt by its parent, so a save (which returns the new row)
@@ -51,11 +55,18 @@ function CreditsForm({ settings }: { settings: CreditSettings }) {
   const patch = changedFields(settings, form);
   const invalid = CREDIT_FIELD_GROUPS.some((g) => g.fields.some((f) => parseField(f, form[f.key]) === null));
   const serverErrors = fieldErrors(mutation.error);
+  // Anything the server refused that has no field here still has to be said:
+  // a refusal shown nowhere reads as a save that silently did nothing.
+  const unplaced = Object.entries(serverErrors)
+    .filter(([key]) => !FORM_KEYS.has(key))
+    .map(([, message]) => message);
   const unmapped =
-    mutation.error instanceof ApiError &&
-    mutation.error.status === 422 &&
-    Object.keys(serverErrors).length === 0
-      ? validationSummary(mutation.error)
+    mutation.error instanceof ApiError && mutation.error.status === 422
+      ? unplaced.length > 0
+        ? unplaced.join(', ')
+        : Object.keys(serverErrors).length === 0
+          ? validationSummary(mutation.error)
+          : null
       : null;
   const domainCount = normalizeDomains(form.domains).length;
   const canSave = Object.keys(patch).length > 0 && !invalid && !mutation.isPending;

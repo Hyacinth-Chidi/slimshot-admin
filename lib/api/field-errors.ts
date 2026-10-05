@@ -59,9 +59,13 @@ export function validationSummary(err: ApiError): string {
 // whitelist rejection, which reads "property <name> should not exist".
 const WHITELIST = /^property (\S+) should not exist$/;
 const LEADING_PROPERTY = /^([A-Za-z_$][\w$.]*)\s/;
+// An `each: true` check names its property after this prefix: "each value in
+// disposableEmailDomains must be a valid domain name".
+const EACH_VALUE = /^each value in /;
 
 function fieldOf(message: string): string | undefined {
-  return WHITELIST.exec(message)?.[1] ?? LEADING_PROPERTY.exec(message)?.[1];
+  const text = message.replace(EACH_VALUE, '');
+  return WHITELIST.exec(text)?.[1] ?? LEADING_PROPERTY.exec(text)?.[1];
 }
 
 function isStringArray(value: unknown): value is string[] {

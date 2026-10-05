@@ -32,6 +32,11 @@ describe('fieldErrors', () => {
     });
   });
 
+  it('attributes an array check ("each value in X …") to X', () => {
+    const message = 'each value in disposableEmailDomains must be a valid domain name';
+    expect(fieldErrors(unprocessable([message]))).toEqual({ disposableEmailDomains: message });
+  });
+
   it('attributes a whitelist rejection ("property X should not exist") to X', () => {
     const err = unprocessable(['property colour should not exist']);
     expect(fieldErrors(err)).toEqual({ colour: 'property colour should not exist' });

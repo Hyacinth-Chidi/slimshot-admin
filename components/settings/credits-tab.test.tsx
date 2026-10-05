@@ -93,6 +93,47 @@ describe('CreditsTab', () => {
     expect(save()).toBeDisabled();
   });
 
+  it('shows a refused domain list under the domains, never failing silently', async () => {
+    vi.mocked(creditsApi.fetchCreditSettings).mockResolvedValue(settings);
+    vi.mocked(creditsApi.updateCreditSettings).mockRejectedValue(
+      new ApiError(
+        {
+          code: 'VALIDATION_FAILED',
+          message: 'Validation failed.',
+          details: ['each value in disposableEmailDomains must be a valid domain name'],
+          traceId: 't1',
+        },
+        422,
+      ),
+    );
+    renderTab();
+
+    const domains = await screen.findByRole('textbox');
+    await userEvent.type(domains, '{Enter}*.bad');
+    await userEvent.click(save());
+
+    expect(
+      await screen.findByText('each value in disposableEmailDomains must be a valid domain name'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a refusal it cannot place on a field as a summary', async () => {
+    vi.mocked(creditsApi.fetchCreditSettings).mockResolvedValue(settings);
+    vi.mocked(creditsApi.updateCreditSettings).mockRejectedValue(
+      new ApiError(
+        { code: 'VALIDATION_FAILED', message: 'Validation failed.', details: ['property foo should not exist'], traceId: 't1' },
+        422,
+      ),
+    );
+    renderTab();
+
+    await screen.findByLabelText('Signup bonus');
+    await setField('Rewarded ads per day', '7');
+    await userEvent.click(save());
+
+    expect(await screen.findByText('property foo should not exist')).toBeInTheDocument();
+  });
+
   it("puts the server's field error under that field", async () => {
     vi.mocked(creditsApi.fetchCreditSettings).mockResolvedValue(settings);
     vi.mocked(creditsApi.updateCreditSettings).mockRejectedValue(
