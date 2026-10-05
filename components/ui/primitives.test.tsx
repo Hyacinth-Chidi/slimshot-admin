@@ -34,6 +34,18 @@ describe('Dialog', () => {
     expect(content.className).not.toMatch(/shadow/);
   });
 
+  it('scrolls inside the viewport when its content is taller than the screen', () => {
+    render(
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>New caption price</DialogTitle>
+        </DialogContent>
+      </Dialog>,
+    );
+    const content = screen.getByRole('dialog');
+    expect(content).toHaveClass('overflow-y-auto', 'max-h-[calc(100dvh-2rem)]');
+  });
+
   it('is a bottom sheet below md and a centred dialog at md+ (spec §7)', () => {
     render(
       <Dialog open>
