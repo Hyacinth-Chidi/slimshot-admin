@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { ReactNode } from 'react';
+import * as creditsApi from '@/lib/api/credits';
 import OverviewPage from './page';
 
 vi.mock('@/lib/api/stats', () => ({
@@ -11,6 +12,11 @@ vi.mock('@/lib/api/stats', () => ({
   tileCounts: () => ({ total: 0, published: 0, processing: 0, failed: 0 }),
   zeroFill: (d: unknown) => d,
 }));
+
+vi.mock('@/lib/api/credits', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/api/credits')>('@/lib/api/credits');
+  return { ...actual, fetchCreditStats: vi.fn().mockResolvedValue([]) };
+});
 
 vi.mock('@/lib/api/audit', () => ({
   fetchAuditLogs: vi.fn().mockResolvedValue({ data: [], meta: { nextCursor: null } }),
@@ -37,13 +43,24 @@ describe('OverviewPage recent activity', () => {
 });
 
 describe('OverviewPage layout', () => {
-  it('puts the stat cards above the uploads chart, then activity', async () => {
+  it('shows credits granted and spent over the last 30 days', async () => {
+    renderPage();
+    expect(await screen.findByRole('heading', { name: /credits/i })).toBeInTheDocument();
+    expect(creditsApi.fetchCreditStats).toHaveBeenCalledWith(30);
+  });
+
+  it('puts the stat cards above the uploads chart, then activity, then credits', async () => {
     renderPage();
     const cards = await screen.findByTestId('stat-total');
     const chart = await screen.findByRole('heading', { name: /uploads/i });
     // DOCUMENT_POSITION_FOLLOWING: the chart comes after the cards.
     expect(cards.compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const headings = (await screen.findAllByRole('heading')).map((h) => h.textContent);
-    expect(headings).toEqual(['Overview', expect.stringMatching(/uploads/i), 'Activity']);
+    expect(headings).toEqual([
+      'Overview',
+      expect.stringMatching(/uploads/i),
+      'Activity',
+      expect.stringMatching(/credits/i),
+    ]);
   });
 });

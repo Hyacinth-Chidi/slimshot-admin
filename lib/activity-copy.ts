@@ -17,6 +17,14 @@ const COPY: Record<string, ActivityCopy> = {
   'category.update': { text: 'Updated a category', tone: 'default' },
   'category.delete': { text: 'Deleted a category', tone: 'default' },
   'category.reorder': { text: 'Reordered categories', tone: 'default' },
+  'credits.adjusted': { text: "Adjusted a user's credits", tone: 'default' },
+  'user.suspended': { text: 'Suspended a user', tone: 'default' },
+  'user.unsuspended': { text: "Lifted a user's suspension", tone: 'default' },
+  'user.deleted': { text: 'Deleted a user', tone: 'default' },
+  'pricing.rule.created': { text: 'Created a caption price', tone: 'default' },
+  'pricing.rule.activated': { text: 'Activated a caption price', tone: 'default' },
+  'credits.settings.updated': { text: 'Changed the credit settings', tone: 'default' },
+  'credits.reconcile.mismatch': { text: "Found a balance that doesn't match its history", tone: 'error' },
 };
 
 /**

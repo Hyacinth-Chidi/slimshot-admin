@@ -30,6 +30,11 @@
      Never the brand gradient — that stays in its four places. */
   --chart-bar: #A855F7;
   --chart-bar-active: #C084FC;
+  /* Second series (credits spent, beside purple's granted): orange, checked
+     with the dataviz validator against --surface — CVD ΔE 31, normal-vision
+     ΔE 30, >= 3:1. Not a status colour, so it never reads as an error. */
+  --chart-spent: #D95926;
+  --chart-spent-active: #EA7A4C;
 
   /* Stat-card accents: the 400 steps read clearly on --surface and sit next
      to the purple brand without fighting it. Icons and meters only — text
@@ -53,6 +58,8 @@
   --color-warning: var(--warning);
   --color-chart-bar: var(--chart-bar);
   --color-chart-bar-active: var(--chart-bar-active);
+  --color-chart-spent: var(--chart-spent);
+  --color-chart-spent-active: var(--chart-spent-active);
   --color-accent-violet: var(--accent-violet);
   --color-accent-emerald: var(--accent-emerald);
   --color-accent-amber: var(--accent-amber);

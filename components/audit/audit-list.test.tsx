@@ -33,6 +33,19 @@ describe('AuditList', () => {
     expect(screen.getByTestId('audit-cards')).toHaveClass('md:hidden');
   });
 
+  it('links an app-user entry to that user, on both layouts', () => {
+    const entry: AuditEntry = { ...ENTRIES[0], id: 'log2', action: 'user.suspended', entityType: 'User', entityId: 'u1' };
+    render(<AuditList entries={[entry]} />);
+    for (const id of ['audit-table', 'audit-cards']) {
+      expect(within(screen.getByTestId(id)).getByRole('link', { name: /User/ })).toHaveAttribute('href', '/users/u1');
+    }
+  });
+
+  it('leaves other entity types as plain text', () => {
+    render(<AuditList entries={ENTRIES} />);
+    expect(screen.queryByRole('link', { name: /AdminUser/ })).toBeNull();
+  });
+
   it('uses a real table element on desktop', () => {
     render(<AuditList entries={ENTRIES} />);
     expect(screen.getByTestId('audit-table').querySelector('table')).not.toBeNull();

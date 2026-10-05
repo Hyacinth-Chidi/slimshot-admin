@@ -18,6 +18,25 @@ describe('describeActivity', () => {
     expect(describeActivity(action)).toEqual({ text, tone: 'default' });
   });
 
+  it.each([
+    ['credits.adjusted', "Adjusted a user's credits"],
+    ['user.suspended', 'Suspended a user'],
+    ['user.unsuspended', "Lifted a user's suspension"],
+    ['user.deleted', 'Deleted a user'],
+    ['pricing.rule.created', 'Created a caption price'],
+    ['pricing.rule.activated', 'Activated a caption price'],
+    ['credits.settings.updated', 'Changed the credit settings'],
+  ])('describes the credits action %s as "%s"', (action, text) => {
+    expect(describeActivity(action)).toEqual({ text, tone: 'default' });
+  });
+
+  it('marks a balance mismatch as an error, since the books no longer balance', () => {
+    expect(describeActivity('credits.reconcile.mismatch')).toEqual({
+      text: "Found a balance that doesn't match its history",
+      tone: 'error',
+    });
+  });
+
   it('marks a failed sign-in as an error, since it is a security signal', () => {
     expect(describeActivity('auth.login.failed')).toEqual({
       text: 'Failed sign-in attempt',

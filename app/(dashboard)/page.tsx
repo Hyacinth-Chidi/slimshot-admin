@@ -2,14 +2,17 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { ActivityTimeline } from '@/components/overview/activity-timeline';
+import { CreditsWaveform } from '@/components/overview/credits-waveform';
 import { HealthStrip } from '@/components/overview/health-strip';
 import { StatCards } from '@/components/overview/stat-cards';
 import { UploadWaveform } from '@/components/overview/upload-waveform';
 import { fetchAuditLogs } from '@/lib/api/audit';
+import { creditDays, fetchCreditStats } from '@/lib/api/credits';
 import { fetchJobsHealth, fetchSummary, fetchUploads, tileCounts, zeroFill } from '@/lib/api/stats';
 
 const UPLOADS_WINDOW_DAYS = 30;
 const RECENT_ACTIVITY_LIMIT = 6;
+const CREDITS_WINDOW_DAYS = 30;
 
 export default function OverviewPage() {
   const summaryQuery = useQuery({ queryKey: ['stats', 'summary'], queryFn: fetchSummary });
@@ -18,6 +21,10 @@ export default function OverviewPage() {
     queryFn: () => fetchUploads(UPLOADS_WINDOW_DAYS),
   });
   const healthQuery = useQuery({ queryKey: ['jobs', 'health'], queryFn: fetchJobsHealth });
+  const creditsQuery = useQuery({
+    queryKey: ['stats', 'credits', CREDITS_WINDOW_DAYS],
+    queryFn: () => fetchCreditStats(CREDITS_WINDOW_DAYS),
+  });
   const activityQuery = useQuery({
     queryKey: ['audit', 'recent'],
     queryFn: () => fetchAuditLogs({ limit: RECENT_ACTIVITY_LIMIT }),
@@ -47,6 +54,11 @@ export default function OverviewPage() {
           <ActivityTimeline entries={activityQuery.data?.data} />
         </div>
       </div>
+
+      <CreditsWaveform
+        days={creditsQuery.data ? creditDays(creditsQuery.data, CREDITS_WINDOW_DAYS) : undefined}
+        refreshing={creditsQuery.isFetching && creditsQuery.data !== undefined}
+      />
     </div>
   );
 }

@@ -2,8 +2,14 @@
 
 import { Fragment, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import Link from 'next/link';
 import type { AuditEntry } from '@/lib/api/audit';
 import { formatAuditTimestamp, shortId } from './format';
+
+/** An app user's page, when the entry is about one; other entities have no page to open. */
+function userHrefOf(entry: AuditEntry): string | null {
+  return entry.entityType === 'User' && entry.entityId ? `/users/${encodeURIComponent(entry.entityId)}` : null;
+}
 
 /**
  * Pretty-printed before/after JSON, in a <pre> on --elevated. `null` renders
@@ -77,11 +83,13 @@ function AuditTable({ entries }: { entries: AuditEntry[] }) {
                 </td>
                 <td className="py-2 pr-3 font-medium text-text">{entry.action}</td>
                 <td className="py-2 pr-3">
-                  <span className="text-text">{entry.entityType}</span>
-                  <span className="text-subtle" title={entry.entityId ?? undefined}>
-                    {' '}
-                    · {shortId(entry.entityId)}
-                  </span>
+                  <EntityLink entry={entry}>
+                    <span className="text-text">{entry.entityType}</span>
+                    <span className="text-subtle" title={entry.entityId ?? undefined}>
+                      {' '}
+                      · {shortId(entry.entityId)}
+                    </span>
+                  </EntityLink>
                 </td>
                 <td className="py-2">
                   <ExpandToggle open={open} onToggle={() => setExpandedId(open ? null : entry.id)} />
@@ -102,6 +110,16 @@ function AuditTable({ entries }: { entries: AuditEntry[] }) {
   );
 }
 
+function EntityLink({ entry, children }: { entry: AuditEntry; children: React.ReactNode }) {
+  const href = userHrefOf(entry);
+  if (!href) return <>{children}</>;
+  return (
+    <Link href={href} className="underline decoration-border underline-offset-4 hover:decoration-text">
+      {children}
+    </Link>
+  );
+}
+
 function AuditCard({ entry }: { entry: AuditEntry }) {
   const [open, setOpen] = useState(false);
 
@@ -111,7 +129,9 @@ function AuditCard({ entry }: { entry: AuditEntry }) {
         <div className="min-w-0 flex-1">
           <p className="wrap-break-word font-medium text-text">{entry.action}</p>
           <p className="wrap-break-word text-sm text-muted">
-            {entry.entityType} · {shortId(entry.entityId)}
+            <EntityLink entry={entry}>
+              {entry.entityType} · {shortId(entry.entityId)}
+            </EntityLink>
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-subtle">
             <span>{entry.actorType} · {shortId(entry.actorId)}</span>
