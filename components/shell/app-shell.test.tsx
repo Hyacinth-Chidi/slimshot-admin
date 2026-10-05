@@ -6,8 +6,8 @@ import { AppShell } from './app-shell';
 vi.mock('next/navigation', () => ({ usePathname: () => '/assets' }));
 
 describe('AppShell', () => {
-  it('renders exactly four navigation peers', () => {
-    expect(NAV_ITEMS).toHaveLength(4);
+  it('renders five navigation peers, Users between Assets and Categories', () => {
+    expect(NAV_ITEMS.map((item) => item.label)).toEqual(['Overview', 'Assets', 'Users', 'Categories', 'Audit log']);
   });
 
   it('renders both the sidebar and the bottom nav, each responsibility-scoped', () => {
@@ -29,12 +29,12 @@ describe('AppShell', () => {
     expect(screen.getAllByTestId('nav-active')).toHaveLength(2); // one per nav
   });
 
-  it('offers the four peers on both navs, and Settings apart from them', () => {
+  it('offers the five peers on both navs, and Settings apart from them', () => {
     render(<AppShell><p>content</p></AppShell>);
     const hrefs = (el: HTMLElement) => [...el.querySelectorAll('a')].map((a) => a.getAttribute('href'));
 
-    expect(hrefs(screen.getByTestId('bottom-nav'))).toEqual(['/', '/assets', '/categories', '/audit']);
-    expect(hrefs(screen.getByTestId('sidebar'))).toEqual(['/', '/assets', '/categories', '/audit', '/settings']);
+    expect(hrefs(screen.getByTestId('bottom-nav'))).toEqual(['/', '/assets', '/users', '/categories', '/audit']);
+    expect(hrefs(screen.getByTestId('sidebar'))).toEqual(['/', '/assets', '/users', '/categories', '/audit', '/settings']);
     const bar = screen.getByTestId('mobile-top-bar');
     expect(within(bar).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
   });

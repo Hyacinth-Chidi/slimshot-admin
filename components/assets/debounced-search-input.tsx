@@ -40,12 +40,14 @@ export function DebouncedSearchInput({
   value,
   buildUrl,
   delayMs = 300,
+  placeholder = 'Search title…',
 }: {
   /** The committed value, from the URL. */
   value: string;
   /** Given the new search text, returns the full URL (path + query) to replace history with. */
   buildUrl: (search: string) => string;
   delayMs?: number;
+  placeholder?: string;
 }) {
   const [draft, setDraft] = useState(value);
   // The last `value` prop this component has already accounted for — either
@@ -89,7 +91,7 @@ export function DebouncedSearchInput({
 
   return (
     <Input
-      placeholder="Search title…"
+      placeholder={placeholder}
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
       className="md:w-56"
