@@ -1,6 +1,7 @@
 'use client';
 
 import { CreditsTab } from '@/components/settings/credits-tab';
+import { PricingTab } from '@/components/settings/pricing-tab';
 import { ProvidersTab } from '@/components/settings/providers-tab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProfile } from '@/lib/auth/profile';
@@ -22,12 +23,16 @@ export default function SettingsPage() {
           <TabsList aria-label="Settings sections">
             <TabsTrigger value="providers">Providers</TabsTrigger>
             <TabsTrigger value="credits">Credits</TabsTrigger>
+            <TabsTrigger value="pricing">Pricing</TabsTrigger>
           </TabsList>
           <TabsContent value="providers">
             <ProvidersTab />
           </TabsContent>
           <TabsContent value="credits">
             <CreditsTab />
+          </TabsContent>
+          <TabsContent value="pricing">
+            <PricingTab />
           </TabsContent>
         </Tabs>
       ) : (

@@ -61,5 +61,6 @@ describe('SettingsPage', () => {
     expect(await screen.findByRole('tab', { name: 'Providers' })).toHaveAttribute('data-state', 'active');
     expect(screen.getByRole('heading', { name: 'Auto caption' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Credits' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Pricing' })).toBeInTheDocument();
   });
 });
