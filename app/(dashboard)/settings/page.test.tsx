@@ -64,3 +64,12 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('tab', { name: 'Pricing' })).toBeInTheDocument();
   });
 });
+
+describe('SettingsPage loading', () => {
+  it('shows a skeleton of the tabs while the profile loads, not loading text', async () => {
+    vi.mocked(apiClient.apiFetch).mockReturnValue(new Promise(() => {}));
+    renderPage();
+    expect(await screen.findByRole('status', { name: 'Loading settings' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading…')).toBeNull();
+  });
+});

@@ -51,3 +51,12 @@ describe('ProvidersTab', () => {
     expect(await screen.findByText(/Auto caption is off in the app/)).toBeInTheDocument();
   });
 });
+
+describe('ProvidersTab loading', () => {
+  it('shows skeleton provider cards while the providers load', async () => {
+    vi.mocked(providersApi.fetchProviders).mockReturnValue(new Promise(() => {}));
+    renderTab();
+    expect(await screen.findByRole('status', { name: 'Loading providers' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading…')).toBeNull();
+  });
+});

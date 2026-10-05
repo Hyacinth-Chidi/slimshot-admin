@@ -74,3 +74,12 @@ describe('CreditHistory', () => {
     expect(usersApi.fetchUserLedger).toHaveBeenLastCalledWith('u1', { cursor: 't2', limit: 20 });
   });
 });
+
+describe('CreditHistory loading', () => {
+  it('shows skeleton rows while the history loads', async () => {
+    vi.mocked(usersApi.fetchUserLedger).mockReturnValue(new Promise(() => {}));
+    renderHistory();
+    expect(await screen.findByRole('status', { name: 'Loading credit history' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading history…')).toBeNull();
+  });
+});

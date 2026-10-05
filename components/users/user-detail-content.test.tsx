@@ -101,3 +101,12 @@ describe('UserDetailContent', () => {
     expect(screen.getByRole('link', { name: /Back to users/ })).toHaveAttribute('href', '/users');
   });
 });
+
+describe('UserDetailContent loading', () => {
+  it('shows a skeleton of the header and history while the user loads', async () => {
+    vi.mocked(usersApi.fetchUser).mockReturnValue(new Promise(() => {}));
+    renderDetail();
+    expect(await screen.findByRole('status', { name: 'Loading user' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading user…')).toBeNull();
+  });
+});

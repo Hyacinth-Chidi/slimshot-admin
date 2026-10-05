@@ -258,3 +258,14 @@ describe('AssetsPageContent load states (T8a)', () => {
     expect(screen.queryByText('No assets yet.')).not.toBeInTheDocument();
   });
 });
+
+describe('AssetsPageContent loading', () => {
+  it('shows skeleton cards and rows while the first page loads, not loading text', async () => {
+    fetchAssetsMock.mockReturnValue(new Promise(() => {}));
+    renderPage();
+    const region = await screen.findByRole('status', { name: 'Loading assets' });
+    expect(within(region).getByTestId('assets-skeleton-cards')).toHaveClass('md:hidden');
+    expect(within(region).getByTestId('assets-skeleton-table')).toHaveClass('hidden', 'md:block');
+    expect(screen.queryByText('Loading assets…')).toBeNull();
+  });
+});

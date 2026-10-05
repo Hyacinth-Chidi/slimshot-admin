@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { searchUsers } from '@/lib/api/users';
 import { UserCard } from './user-card';
 import { UserTable } from './user-table';
+import { UsersListSkeleton } from './users-skeleton';
 
 const PAGE_LIMIT = 20;
 
@@ -37,7 +38,7 @@ export function UsersPageContent() {
       <DebouncedSearchInput value={q} buildUrl={usersUrl} placeholder="Search email or username…" />
 
       {query.isLoading ? (
-        <p className="py-12 text-center text-sm text-subtle">Loading users…</p>
+        <UsersListSkeleton />
       ) : query.isLoadingError ? (
         // The first load failed: "No app users yet" would be a lie.
         <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">

@@ -1,5 +1,6 @@
 'use client';
 
+import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -87,7 +88,9 @@ export function PricingTab() {
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-text">Auto caption price</h3>
           {query.isLoading ? (
-            <p className="mt-1 text-sm text-subtle">Loading…</p>
+            <LoadingRegion label="Loading prices" className="mt-2">
+              <Skeleton className="h-4 w-72 max-w-full" />
+            </LoadingRegion>
           ) : query.isLoadingError ? (
             // No list to judge from: "no price is active" would be a false alarm.
             <div role="alert" className="mt-1 flex items-center gap-3">
@@ -112,7 +115,9 @@ export function PricingTab() {
 
       <section className="rounded-xl border border-border bg-surface">
         <h3 className="border-b border-border px-4 py-3 text-sm font-semibold text-text md:px-6">Versions</h3>
-        {query.isLoading || query.isLoadingError ? null : rules.length === 0 ? (
+        {query.isLoading ? (
+          <VersionRowsSkeleton />
+        ) : query.isLoadingError ? null : rules.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-subtle">No prices yet</p>
         ) : (
           <ul className="divide-y divide-border">
@@ -142,5 +147,22 @@ export function PricingTab() {
       <PriceDialog open={creating} onOpenChange={setCreating} />
       <ActivateDialog rule={confirming} onClose={() => setConfirming(null)} />
     </div>
+  );
+}
+
+/** Version rows while the prices load (the current-price line above announces the loading). */
+function VersionRowsSkeleton() {
+  return (
+    <ul aria-hidden="true" className="divide-y divide-border">
+      {[0, 1, 2].map((i) => (
+        <li key={i} className="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-4 w-64 max-w-full" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+          <Skeleton className="h-8 w-20" />
+        </li>
+      ))}
+    </ul>
   );
 }

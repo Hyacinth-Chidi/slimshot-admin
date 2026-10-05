@@ -1,5 +1,6 @@
 'use client';
 
+import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProviders, providersQueryKey } from '@/lib/api/providers';
 import { ProviderCard } from './provider-card';
@@ -25,7 +26,23 @@ export function ProvidersTab() {
         </p>
       </div>
 
-      {query.isLoading ? <p className="text-sm text-subtle">Loading…</p> : null}
+      {query.isLoading ? (
+        <LoadingRegion label="Loading providers" className="grid gap-3 md:grid-cols-2 md:gap-4">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-48" />
+              <div className="flex gap-2">
+                <Skeleton className="h-11 w-24 md:h-8" />
+                <Skeleton className="h-11 w-20 md:h-8" />
+              </div>
+            </div>
+          ))}
+        </LoadingRegion>
+      ) : null}
 
       {providers ? (
         <div className="grid gap-3 md:grid-cols-2 md:gap-4">

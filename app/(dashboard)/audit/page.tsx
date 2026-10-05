@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { AuditPageContent } from '@/components/audit/audit-page-content';
+import { AuditListSkeleton } from '@/components/audit/audit-skeleton';
 
 // AuditPageContent reads useSearchParams (for the URL-driven filters, same
 // as assets' page.tsx), which forces the Client Component tree up to the
@@ -8,7 +9,7 @@ import { AuditPageContent } from '@/components/audit/audit-page-content';
 // (verified in node_modules/next/dist/docs/.../use-search-params.md).
 export default function AuditPage() {
   return (
-    <Suspense fallback={<p className="py-12 text-center text-sm text-subtle">Loading audit log…</p>}>
+    <Suspense fallback={<AuditListSkeleton />}>
       <AuditPageContent />
     </Suspense>
   );

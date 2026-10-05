@@ -324,3 +324,18 @@ describe('CategoryTree 422 handling', () => {
     );
   });
 });
+
+describe('CategoryTree loading', () => {
+  it('shows a skeleton tree while kinds and categories load, not loading text', async () => {
+    vi.mocked(kindsApi.fetchKinds).mockReturnValue(new Promise(() => {}));
+    vi.mocked(categoriesApi.fetchTree).mockReturnValue(new Promise(() => {}));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <CategoryTree kind="audio" />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByRole('status', { name: 'Loading categories' })).toBeInTheDocument();
+    expect(screen.queryByText(/Loading.*…/)).toBeNull();
+  });
+});

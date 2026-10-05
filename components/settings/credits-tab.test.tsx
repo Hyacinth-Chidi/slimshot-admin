@@ -156,3 +156,12 @@ describe('CreditsTab', () => {
     expect(await screen.findByText('adDailyCap must not be greater than 1000')).toBeInTheDocument();
   });
 });
+
+describe('CreditsTab loading', () => {
+  it('shows a skeleton of the form while the settings load', async () => {
+    vi.mocked(creditsApi.fetchCreditSettings).mockReturnValue(new Promise(() => {}));
+    renderTab();
+    expect(await screen.findByRole('status', { name: 'Loading credit settings' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading…')).toBeNull();
+  });
+});

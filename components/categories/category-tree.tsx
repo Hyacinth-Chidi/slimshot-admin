@@ -27,6 +27,7 @@ import { buildTree, moveSibling } from '@/lib/categories/tree-helpers';
 import { CategoryRow } from './category-row';
 import { CreateCategoryDialog } from './create-category-dialog';
 import { DeleteDialog } from './delete-dialog';
+import { LoadingRegion, Skeleton, skeletonWidth } from '@/components/ui/skeleton';
 
 /** A 422's own messages rather than its generic envelope text; else the error's message. */
 function errorMessage(error: unknown, fallback: string): string {
@@ -224,13 +225,13 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
       </div>
 
       {kindsQuery.isLoading ? (
-        <p className="py-12 text-center text-sm text-subtle">Loading…</p>
+        <CategoryTreeSkeleton />
       ) : loadedKinds.length === 0 ? (
         <p className="py-12 text-center text-sm text-subtle">
           No kinds are registered yet — categories need a kind to belong to.
         </p>
       ) : treeQuery.isLoading ? (
-        <p className="py-12 text-center text-sm text-subtle">Loading categories…</p>
+        <CategoryTreeSkeleton />
       ) : tree.length === 0 ? (
         <p className="py-12 text-center text-sm text-subtle">No categories yet.</p>
       ) : (
@@ -266,5 +267,26 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
         }}
       />
     </div>
+  );
+}
+
+/** The category tree while kinds or categories load: a few rows, some nested. */
+function CategoryTreeSkeleton() {
+  const depths = [0, 1, 1, 0, 1, 0];
+  return (
+    <LoadingRegion label="Loading categories">
+      <ul className="flex flex-col gap-1">
+        {depths.map((depth, i) => (
+          <li
+            key={i}
+            className={`flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 ${depth === 1 ? 'ml-8' : ''}`}
+          >
+            <Skeleton className="size-4" />
+            <Skeleton className={`h-4 ${skeletonWidth(i)}`} />
+            <Skeleton className="ml-auto h-5 w-9 rounded-full" />
+          </li>
+        ))}
+      </ul>
+    </LoadingRegion>
   );
 }

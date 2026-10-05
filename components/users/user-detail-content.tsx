@@ -9,6 +9,7 @@ import { fetchUser } from '@/lib/api/users';
 import { useProfile } from '@/lib/auth/profile';
 import { CreditHistory } from './credit-history';
 import { UserActions } from './user-actions';
+import { UserDetailSkeleton } from './user-detail-skeleton';
 import { UserHeader } from './user-header';
 
 export function UserDetailContent({ id }: { id: string }) {
@@ -28,9 +29,9 @@ export function UserDetailContent({ id }: { id: string }) {
 
   if (query.isLoading) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 md:gap-6">
         {back}
-        <p className="py-12 text-center text-sm text-subtle">Loading user…</p>
+        <UserDetailSkeleton />
       </div>
     );
   }

@@ -9,6 +9,7 @@ import { AuditList } from './audit-list';
 import { AuditFiltersBar } from './audit-filters';
 import { filtersFromSearchParams, searchParamsFromFilters } from './filters-url';
 import type { AuditFilters } from './audit-filters-types';
+import { AuditListSkeleton } from './audit-skeleton';
 
 const PAGE_LIMIT = 25;
 
@@ -45,7 +46,7 @@ export function AuditPageContent() {
       <AuditFiltersBar filters={filters} onChange={setFilters} pathname={pathname} />
 
       {query.isLoading ? (
-        <p className="py-12 text-center text-sm text-subtle">Loading audit log…</p>
+        <AuditListSkeleton />
       ) : (
         <AuditList entries={entries} hasActiveFilters={hasActiveFilters} />
       )}

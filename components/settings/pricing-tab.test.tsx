@@ -102,3 +102,12 @@ describe('PricingTab', () => {
     expect(screen.getByRole('heading', { name: 'New caption price' })).toBeInTheDocument();
   });
 });
+
+describe('PricingTab loading', () => {
+  it('shows a skeleton of the current price and versions while they load', async () => {
+    vi.mocked(creditsApi.fetchPricingRules).mockReturnValue(new Promise(() => {}));
+    renderTab();
+    expect(await screen.findByRole('status', { name: 'Loading prices' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading…')).toBeNull();
+  });
+});

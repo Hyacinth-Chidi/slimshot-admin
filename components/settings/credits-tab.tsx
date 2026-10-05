@@ -1,5 +1,6 @@
 'use client';
 
+import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -160,9 +161,34 @@ export function CreditsTab() {
       ) : query.isError ? (
         <p className="text-sm text-error">Could not load the credit settings. Reload the page to try again.</p>
       ) : (
-        <p className="text-sm text-subtle">Loading…</p>
+        <CreditsFormSkeleton />
       )}
       <BalanceCheck />
     </div>
+  );
+}
+
+/** The settings form while it loads: the three field groups, then the domain list. */
+function CreditsFormSkeleton() {
+  return (
+    <LoadingRegion label="Loading credit settings" className="flex flex-col gap-6">
+      {[3, 4, 6].map((fields, group) => (
+        <div key={group} className="rounded-xl border border-border bg-surface p-4 md:p-6">
+          <Skeleton className="mb-4 h-4 w-24" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: fields }, (_, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-11 w-full md:h-10" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="rounded-xl border border-border bg-surface p-4 md:p-6">
+        <Skeleton className="mb-4 h-4 w-48" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    </LoadingRegion>
   );
 }

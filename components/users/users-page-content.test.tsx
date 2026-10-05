@@ -147,3 +147,14 @@ describe('UsersPageContent', () => {
     expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
   });
 });
+
+describe('UsersPageContent loading', () => {
+  it('shows skeleton cards and rows while the first page loads, not loading text', async () => {
+    searchUsersMock.mockReturnValue(new Promise(() => {}));
+    renderPage();
+    const region = await screen.findByRole('status', { name: 'Loading users' });
+    expect(within(region).getByTestId('users-skeleton-cards')).toHaveClass('md:hidden');
+    expect(within(region).getByTestId('users-skeleton-table')).toHaveClass('hidden', 'md:block');
+    expect(screen.queryByText('Loading users…')).toBeNull();
+  });
+});

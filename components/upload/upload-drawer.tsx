@@ -22,6 +22,7 @@ import { fetchKinds, type Kind } from '@/lib/api/kinds';
 import { startItems } from '@/lib/upload/orchestrator';
 import { addFiles, queueReducer, type QueueItem } from '@/lib/upload/reducer';
 import { UploadRow } from './upload-row';
+import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 
 function DropZone({
   onFiles,
@@ -165,7 +166,9 @@ export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChan
           {activeKind ? (
             <DropZone onFiles={handleFiles} acceptExtensions={acceptedExtensions} />
           ) : (
-            <p className="text-sm text-subtle">Loading upload kinds…</p>
+            <LoadingRegion label="Loading upload kinds">
+              <Skeleton className="h-40 w-full rounded-xl" />
+            </LoadingRegion>
           )}
 
           {queuedItems.length > 1 && (

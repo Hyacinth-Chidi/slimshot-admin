@@ -106,3 +106,12 @@ describe('AuditPageContent', () => {
     expect(screen.queryByRole('menuitem', { name: /delete|remove/i })).not.toBeInTheDocument();
   });
 });
+
+describe('AuditPageContent loading', () => {
+  it('shows skeleton rows while the log loads, not loading text', async () => {
+    fetchAuditLogsMock.mockReturnValue(new Promise(() => {}));
+    renderPage();
+    expect(await screen.findByRole('status', { name: 'Loading audit log' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading audit log…')).toBeNull();
+  });
+});

@@ -15,6 +15,7 @@ import { useAssetActions } from './use-asset-actions';
 import { fetchAssets, type AssetFilters } from '@/lib/api/assets';
 import { Button } from '@/components/ui/button';
 import { UploadDrawer } from '@/components/upload/upload-drawer';
+import { AssetsListSkeleton } from './assets-skeleton';
 
 const PAGE_LIMIT = 25;
 
@@ -122,7 +123,7 @@ function AssetsPageBody({
       />
 
       {query.isLoading ? (
-        <p className="py-12 text-center text-sm text-subtle">Loading assets…</p>
+        <AssetsListSkeleton />
       ) : query.isLoadingError ? (
         // The first load for these filters failed: there is no list to show,
         // and "No assets yet." would be a lie. (A failed next-page fetch

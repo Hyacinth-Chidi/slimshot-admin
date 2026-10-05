@@ -2,12 +2,33 @@
 
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { LoadingRegion, Skeleton, skeletonWidth } from '@/components/ui/skeleton';
 import { ledgerLabel } from '@/lib/api/credits';
 import { fetchUserLedger } from '@/lib/api/users';
 import { cn } from '@/lib/cn';
 import { formatCredits, formatDateTime, formatSigned } from './format';
 
 const PAGE_LIMIT = 20;
+
+/** History rows while they load: label and date on the left, amount and balance on the right. */
+export function HistoryRowsSkeleton() {
+  return (
+    <ul className="divide-y divide-border">
+      {Array.from({ length: 5 }, (_, i) => (
+        <li key={i} className="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
+          <div className="flex flex-col gap-2">
+            <Skeleton className={`h-4 ${skeletonWidth(i)}`} />
+            <Skeleton className="h-3 w-28" />
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Skeleton className="h-4 w-10" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /** A user's ledger, newest first: every credit added or taken, with the balance it left. */
 export function CreditHistory({ userId }: { userId: string }) {
@@ -25,7 +46,9 @@ export function CreditHistory({ userId }: { userId: string }) {
       <h2 className="border-b border-border px-4 py-3 text-sm font-semibold text-text md:px-6">Credit history</h2>
 
       {query.isLoading ? (
-        <p className="px-4 py-8 text-center text-sm text-subtle">Loading history…</p>
+        <LoadingRegion label="Loading credit history">
+          <HistoryRowsSkeleton />
+        </LoadingRegion>
       ) : query.isLoadingError ? (
         <div role="alert" className="flex flex-col items-center gap-3 px-4 py-8 text-center">
           <p className="text-sm text-muted">Couldn’t load the credit history.</p>

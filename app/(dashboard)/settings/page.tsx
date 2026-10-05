@@ -1,5 +1,6 @@
 'use client';
 
+import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { CreditsTab } from '@/components/settings/credits-tab';
 import { PricingTab } from '@/components/settings/pricing-tab';
 import { ProvidersTab } from '@/components/settings/providers-tab';
@@ -14,7 +15,14 @@ export default function SettingsPage() {
       <h1 className="text-xl font-semibold text-text">Settings</h1>
 
       {profile.isLoading ? (
-        <p className="text-sm text-subtle">Loading…</p>
+        <LoadingRegion label="Loading settings" className="flex flex-col gap-4">
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-20" />
+            <Skeleton className="h-9 w-20" />
+          </div>
+          <Skeleton className="h-40 w-full rounded-xl" />
+        </LoadingRegion>
       ) : profile.isError ? (
         <p className="text-sm text-error">Could not load your profile. Reload the page to try again.</p>
       ) : profile.data?.role === 'owner' ? (

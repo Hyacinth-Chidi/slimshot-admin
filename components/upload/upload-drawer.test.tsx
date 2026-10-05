@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as kindsApi from '@/lib/api/kinds';
 import { UploadDrawer } from './upload-drawer';
 
 vi.mock('@/lib/api/kinds', () => ({
@@ -115,5 +116,14 @@ describe('UploadDrawer (R9f)', () => {
 
     await screen.findByText('Requesting upload…');
     expect(screen.getByLabelText('Title')).toBeDisabled();
+  });
+});
+
+describe('UploadDrawer loading', () => {
+  it('shows a skeleton drop zone while the upload kinds load', async () => {
+    vi.mocked(kindsApi.fetchKinds).mockReturnValueOnce(new Promise(() => {}));
+    renderDrawer();
+    expect(await screen.findByRole('status', { name: 'Loading upload kinds' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading upload kinds…')).toBeNull();
   });
 });
