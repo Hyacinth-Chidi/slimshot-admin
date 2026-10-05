@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { AdminProfile } from '@/lib/auth/session';
 import * as apiClient from '@/lib/api/client';
+import * as creditsApi from '@/lib/api/credits';
 import * as providersApi from '@/lib/api/providers';
 import SettingsPage from './page';
 
@@ -12,6 +13,11 @@ import SettingsPage from './page';
 vi.mock('@/lib/api/client', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api/client')>('@/lib/api/client');
   return { ...actual, apiFetch: vi.fn() };
+});
+
+vi.mock('@/lib/api/credits', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/api/credits')>('@/lib/api/credits');
+  return { ...actual, fetchCreditSettings: vi.fn() };
 });
 
 vi.mock('@/lib/api/providers', async () => {
@@ -43,6 +49,8 @@ describe('SettingsPage', () => {
     expect(await screen.findByText('Only the owner can manage settings.')).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 20));
     expect(providersApi.fetchProviders).not.toHaveBeenCalled();
+    expect(creditsApi.fetchCreditSettings).not.toHaveBeenCalled();
+    expect(screen.queryByRole('tab', { name: 'Credits' })).toBeNull();
   });
 
   it('shows the owner the Providers tab with the Auto caption section', async () => {
@@ -52,5 +60,6 @@ describe('SettingsPage', () => {
 
     expect(await screen.findByRole('tab', { name: 'Providers' })).toHaveAttribute('data-state', 'active');
     expect(screen.getByRole('heading', { name: 'Auto caption' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Credits' })).toBeInTheDocument();
   });
 });
