@@ -1,13 +1,84 @@
 import { describe, expect, it } from 'vitest';
-import { describeLength, describeRule, draftProblems, toNewRule, type PriceDraft } from './pricing-format';
+import {
+  describeLength,
+  describeRule,
+  draftProblems,
+  previewPrices,
+  priceBySecond,
+  toNewRule,
+  type PriceDraft,
+} from './pricing-format';
 
 const draft = (overrides: Partial<PriceDraft> = {}): PriceDraft => ({
   mode: 'duration_tiers',
   perJob: '',
   rows: [{ upTo: '60', credits: '2' }],
   longer: '5',
+  blockSeconds: '',
+  blockCredits: '',
+  minCredits: '',
   note: '',
   ...overrides,
+});
+
+const bySecond = (overrides: Partial<PriceDraft> = {}) =>
+  draft({ mode: 'per_second', blockSeconds: '10', blockCredits: '1', minCredits: '2', ...overrides });
+
+describe('by the second', () => {
+  const rate = { blockSeconds: 10, blockCredits: 1, minCredits: 2 };
+
+  it.each([
+    [3, 2],
+    [60, 6],
+    [61, 7],
+    [300, 30],
+    [60 + 1e-9, 6],
+  ])('prices %p seconds at %p credits, as the server does', (seconds, credits) => {
+    expect(priceBySecond(seconds, rate)).toBe(credits);
+  });
+
+  it('summarises the rate and its minimum', () => {
+    const rule = { version: 5, mode: 'per_second' as const, perJobCredits: null, tiers: null };
+    expect(describeRule({ ...rule, blockSeconds: 10, blockCredits: 1, minCredits: 2 })).toBe(
+      'v5 · 1 credit per 10 s · at least 2 credits',
+    );
+    expect(describeRule({ ...rule, blockSeconds: 60, blockCredits: 3, minCredits: null })).toBe(
+      'v5 · 3 credits per 1 min',
+    );
+  });
+
+  it('previews what typical clips would cost', () => {
+    expect(previewPrices(bySecond())).toBe('30 s → 3 credits · 1 min → 6 · 5 min → 30');
+    expect(previewPrices(bySecond({ blockSeconds: '' }))).toBeNull();
+  });
+
+  it.each([
+    [{ blockSeconds: '0' }, 'Block length must be a whole number of seconds from 1 to 86,400.'],
+    [{ blockCredits: '' }, 'Credits per block must be a whole number from 0 to 100,000.'],
+    [{ minCredits: '1.5' }, 'The minimum must be empty or a whole number from 0 to 100,000.'],
+  ])('flags %j', (overrides, problem) => {
+    expect(draftProblems(bySecond(overrides))).toContain(problem);
+  });
+
+  it('accepts an empty minimum', () => {
+    expect(draftProblems(bySecond({ minCredits: '' }))).toEqual([]);
+  });
+
+  it('sends the block rate, and the minimum only when given', () => {
+    expect(toNewRule(bySecond())).toEqual({
+      feature: 'auto_captions',
+      mode: 'per_second',
+      blockSeconds: 10,
+      blockCredits: 1,
+      minCredits: 2,
+    });
+    expect(toNewRule(bySecond({ minCredits: ' ' }))).toEqual({
+      feature: 'auto_captions',
+      mode: 'per_second',
+      blockSeconds: 10,
+      blockCredits: 1,
+    });
+  });
 });
 
 describe('describeLength', () => {

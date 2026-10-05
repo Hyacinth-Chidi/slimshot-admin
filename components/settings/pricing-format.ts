@@ -20,10 +20,36 @@ function credits(n: number): string {
   return `${NUMBER.format(n)} ${n === 1 ? 'credit' : 'credits'}`;
 }
 
-/** One line per version, e.g. `v3 · up to 1 min → 2 credits · up to 5 min → 5 · longer → 10`. */
-export function describeRule(rule: Pick<PricingRule, 'version' | 'mode' | 'perJobCredits' | 'tiers'>): string {
+export interface BlockRate {
+  blockSeconds: number;
+  blockCredits: number;
+  minCredits: number | null;
+}
+
+/**
+ * The server's by-the-second formula (pricing.ts priceFor), for the dialog's
+ * preview: started blocks × credits, never below the minimum, the length
+ * rounded to the millisecond first.
+ */
+export function priceBySecond(seconds: number, rate: BlockRate): number {
+  const blocks = Math.max(1, Math.ceil(Math.round(seconds * 1000) / (rate.blockSeconds * 1000)));
+  return Math.max(rate.minCredits ?? 0, blocks * rate.blockCredits);
+}
+
+/**
+ * One line per version, e.g. `v3 · up to 1 min → 2 credits · up to 5 min → 5 · longer → 10`
+ * or `v5 · 1 credit per 10 s · at least 2 credits`.
+ */
+export function describeRule(
+  rule: Pick<PricingRule, 'version' | 'mode' | 'perJobCredits' | 'tiers'> &
+    Partial<Pick<PricingRule, 'blockSeconds' | 'blockCredits' | 'minCredits'>>,
+): string {
   const version = `v${rule.version}`;
   if (rule.mode === 'per_job') return `${version} · ${credits(rule.perJobCredits ?? 0)} per job`;
+  if (rule.mode === 'per_second') {
+    const rate = `${credits(rule.blockCredits ?? 0)} per ${describeLength(rule.blockSeconds ?? 0)}`;
+    return rule.minCredits ? `${version} · ${rate} · at least ${credits(rule.minCredits)}` : `${version} · ${rate}`;
+  }
 
   const tiers = rule.tiers ?? [];
   if (tiers.length === 1 && tiers[0].upToSeconds === null) {
@@ -46,6 +72,10 @@ export interface PriceDraft {
   rows: Array<{ upTo: string; credits: string }>;
   /** Credits for the fixed last tier, "Anything longer" (upToSeconds: null). */
   longer: string;
+  /** By the second: credits per started block of blockSeconds, never below minCredits (optional). */
+  blockSeconds: string;
+  blockCredits: string;
+  minCredits: string;
   note: string;
 }
 
@@ -69,6 +99,19 @@ export function draftProblems(draft: PriceDraft): string[] {
     return problems;
   }
 
+  if (draft.mode === 'per_second') {
+    if (wholeIn(draft.blockSeconds, 1, MAX_SECONDS) === null) {
+      problems.push(`Block length must be a whole number of seconds from 1 to ${NUMBER.format(MAX_SECONDS)}.`);
+    }
+    if (wholeIn(draft.blockCredits, 0, MAX_CREDITS) === null) {
+      problems.push(`Credits per block must be a whole number from 0 to ${NUMBER.format(MAX_CREDITS)}.`);
+    }
+    if (draft.minCredits.trim() !== '' && wholeIn(draft.minCredits, 0, MAX_CREDITS) === null) {
+      problems.push(`The minimum must be empty or a whole number from 0 to ${NUMBER.format(MAX_CREDITS)}.`);
+    }
+    return problems;
+  }
+
   if (draft.rows.length + 1 > MAX_TIERS) problems.push(`At most ${MAX_TIERS} tiers, counting "Anything longer".`);
   let previous: number | null = null;
   draft.rows.forEach((row, i) => {
@@ -87,8 +130,41 @@ export function draftProblems(draft: PriceDraft): string[] {
   return problems;
 }
 
+function blockRate(draft: PriceDraft): BlockRate {
+  const min = draft.minCredits.trim();
+  return {
+    blockSeconds: Number(draft.blockSeconds.trim()),
+    blockCredits: Number(draft.blockCredits.trim()),
+    minCredits: min === '' ? null : Number(min),
+  };
+}
+
+const PREVIEW_SECONDS = [30, 60, 300];
+
+/** `30 s → 3 credits · 1 min → 6 · 5 min → 30`, or null until the rate is valid. */
+export function previewPrices(draft: PriceDraft): string | null {
+  if (draft.mode !== 'per_second' || draftProblems(draft).length > 0) return null;
+  const rate = blockRate(draft);
+  return PREVIEW_SECONDS.map((seconds, i) => {
+    const price = priceBySecond(seconds, rate);
+    return `${describeLength(seconds)} → ${i === 0 ? credits(price) : NUMBER.format(price)}`;
+  }).join(' · ');
+}
+
 /** The request body. Call only when draftProblems is empty. */
 export function toNewRule(draft: PriceDraft): NewPricingRule {
+  if (draft.mode === 'per_second') {
+    const { minCredits, ...rate } = blockRate(draft);
+    const rule: NewPricingRule = {
+      feature: 'auto_captions',
+      mode: 'per_second',
+      ...rate,
+      ...(minCredits === null ? {} : { minCredits }),
+    };
+    const note = draft.note.trim();
+    if (note) rule.note = note;
+    return rule;
+  }
   const rule: NewPricingRule =
     draft.mode === 'per_job'
       ? { feature: 'auto_captions', mode: 'per_job', perJobCredits: Number(draft.perJob.trim()) }

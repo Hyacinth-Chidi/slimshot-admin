@@ -20,6 +20,9 @@ const created: PricingRule = {
   mode: 'per_job',
   perJobCredits: 3,
   tiers: null,
+  blockSeconds: null,
+  blockCredits: null,
+  minCredits: null,
   isActive: false,
   note: null,
   createdById: 'a1',
@@ -60,6 +63,29 @@ describe('PriceDialog', () => {
     });
     expect(creditsApi.activatePricingRule).toHaveBeenCalledWith('r9');
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('creates a by-the-second price, previewing what clips would cost', async () => {
+    vi.mocked(creditsApi.createPricingRule).mockResolvedValue({ ...created, mode: 'per_second' });
+    vi.mocked(creditsApi.activatePricingRule).mockResolvedValue([]);
+    renderDialog();
+
+    await userEvent.click(screen.getByRole('button', { name: 'By the second' }));
+    await userEvent.type(screen.getByLabelText('Credits per block'), '1');
+    await userEvent.type(screen.getByLabelText('Block length in seconds'), '10');
+    await userEvent.type(screen.getByLabelText('Minimum per job (optional)'), '2');
+
+    expect(screen.getByTestId('price-preview')).toHaveTextContent('30 s → 3 credits · 1 min → 6 · 5 min → 30');
+    await userEvent.click(submit());
+
+    expect(creditsApi.createPricingRule).toHaveBeenCalledWith({
+      feature: 'auto_captions',
+      mode: 'per_second',
+      blockSeconds: 10,
+      blockCredits: 1,
+      minCredits: 2,
+    });
+    expect(creditsApi.activatePricingRule).toHaveBeenCalledWith('r9');
   });
 
   it('leaves the new version inactive when "Activate now" is off', async () => {

@@ -139,14 +139,19 @@ check daily and never corrects a mismatch by itself.
 Feature: `auto_captions`, the only one today.
 
 - **Current price card.** The active version as one line: *v3 · up to 1 min → 2 credits ·
-  up to 5 min → 5 · longer → 10*, or *v2 · 3 credits per job*. With no active version, a
+  up to 5 min → 5 · longer → 10*, *v2 · 3 credits per job*, or *v5 · 1 credit per 10 s ·
+  at least 2 credits*. With no active version, a
   warning: *No price is active, so Auto caption is switched off in the app.*
 - **Version history**, newest first: version, the same one-line summary, the note, created
   date; the active one carries an *Active* badge, the others an **Activate** button behind a
   confirm: *New caption jobs will be charged at v4. Jobs already charged keep their price.*
 - **New price** opens a dialog:
-  - Mode: *Per job* or *By length*.
+  - Mode: *By length*, *By the second* or *Per job*.
   - Per job: one credits field (0–100000).
+  - By the second (added 2026-10-05): *[credits] per [seconds] s* and *Minimum per job
+    (optional)*. Every started block costs its credits in full, never below the minimum; the
+    length is measured to the millisecond, as on the server. A live line previews 30 s, 1 min
+    and 5 min: *30 s → 3 credits · 1 min → 6 · 5 min → 30*.
   - By length: rows *Up to [seconds] → [credits]*, an **Add tier** button (up to 50 tiers),
     a remove control per row, and a fixed last row *Anything longer → [credits]* that sends
     `upToSeconds: null`. Each seconds field shows a readable length beside it (*90 s =

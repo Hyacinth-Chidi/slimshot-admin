@@ -18,15 +18,31 @@ import { ApiError } from '@/lib/api/client';
 import { activatePricingRule, createPricingRule } from '@/lib/api/credits';
 import { cn } from '@/lib/cn';
 import { toast } from '@/lib/use-toast';
-import { describeLength, draftProblems, MAX_TIERS, toNewRule, type PriceDraft } from './pricing-format';
+import {
+  describeLength,
+  draftProblems,
+  MAX_TIERS,
+  previewPrices,
+  toNewRule,
+  type PriceDraft,
+} from './pricing-format';
 
 const EMPTY_DRAFT: PriceDraft = {
   mode: 'duration_tiers',
   perJob: '',
   rows: [{ upTo: '', credits: '' }],
   longer: '',
+  blockSeconds: '',
+  blockCredits: '',
+  minCredits: '',
   note: '',
 };
+
+const MODE_LABELS = {
+  duration_tiers: 'By length',
+  per_second: 'By the second',
+  per_job: 'Per job',
+} as const;
 
 /** The server's own sentences when it still refuses (`details.problems`), else its message. */
 function serverProblems(error: unknown): string[] {
@@ -94,17 +110,17 @@ function PriceForm({ onClose }: { onClose: () => void }) {
         </DialogDescription>
       </DialogHeader>
 
-      <div className="grid grid-cols-2 gap-2" role="group" aria-label="How to charge">
-        {(['duration_tiers', 'per_job'] as const).map((mode) => (
+      <div className="grid grid-cols-3 gap-2" role="group" aria-label="How to charge">
+        {(['duration_tiers', 'per_second', 'per_job'] as const).map((mode) => (
           <Button
             key={mode}
             type="button"
             variant="secondary"
             aria-pressed={draft.mode === mode}
             onClick={() => update({ mode })}
-            className={cn(draft.mode === mode && 'border-text text-text')}
+            className={cn('px-2', draft.mode === mode && 'border-text text-text')}
           >
-            {mode === 'per_job' ? 'Per job' : 'By length'}
+            {MODE_LABELS[mode]}
           </Button>
         ))}
       </div>
@@ -114,6 +130,44 @@ function PriceForm({ onClose }: { onClose: () => void }) {
           <span className="text-muted">Credits per job</span>
           <Input inputMode="numeric" value={draft.perJob} onChange={(e) => update({ perJob: e.target.value })} />
         </label>
+      ) : draft.mode === 'per_second' ? (
+        <div className="grid gap-3">
+          <p className="text-sm text-muted">
+            Every started block costs its credits in full. The audio&apos;s length is measured to the millisecond.
+          </p>
+          <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2">
+            <Input
+              aria-label="Credits per block"
+              inputMode="numeric"
+              placeholder="Credits"
+              value={draft.blockCredits}
+              onChange={(e) => update({ blockCredits: e.target.value })}
+            />
+            <span className="text-sm text-muted">per</span>
+            <Input
+              aria-label="Block length in seconds"
+              inputMode="numeric"
+              placeholder="Seconds"
+              value={draft.blockSeconds}
+              onChange={(e) => update({ blockSeconds: e.target.value })}
+            />
+            <span className="text-sm text-muted">s</span>
+          </div>
+          <label className="grid gap-2 text-sm">
+            <span className="text-muted">Minimum per job (optional)</span>
+            <Input
+              inputMode="numeric"
+              placeholder="No minimum"
+              value={draft.minCredits}
+              onChange={(e) => update({ minCredits: e.target.value })}
+            />
+          </label>
+          {previewPrices(draft) ? (
+            <p data-testid="price-preview" className="text-sm text-text">
+              {previewPrices(draft)}
+            </p>
+          ) : null}
+        </div>
       ) : (
         <div className="grid gap-3">
           {draft.rows.map((row, i) => {
