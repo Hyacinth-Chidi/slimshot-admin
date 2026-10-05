@@ -31,6 +31,7 @@ Commands marked **PC** run in PowerShell on your computer. The others run on the
 | 4 | VPS | `setup-nginx.sh`: HTTPS certificate |
 | 5 | VPS | `deploy.sh`: first deploy, then sign in |
 | 6 | VPS | Everyday commands |
+| 7 | VPS and GitHub | Automatic deploys on push (webhook), optional |
 
 ---
 
@@ -144,8 +145,49 @@ pricing, and removing the bootstrap lines).
 | nginx logs | `tail -f /var/log/nginx/slimshot-admin.error.log` |
 | Reinstall nginx config after editing `deploy/nginx/*` | `./deploy/scripts/setup-nginx.sh slimshot-admin.techfamz.com you@techfamz.com` |
 
-Deploys are manual: push, then run `deploy.sh`. Automatic deploys can be added later the same
-way as the API's (its step 9), with this dashboard on its own listener port.
+Once step 7 is set up, a push to `main` deploys by itself; `deploy.sh` stays for manual deploys.
+
+## 7. Automatic deploys on push (webhook)
+
+Works like the API's (its step 9), with its own listener, port and secret so the two never clash:
+GitHub calls `https://slimshot-admin.techfamz.com/hooks/deploy`, the listener checks GitHub's
+signature, and pushes to `main` run `deploy.sh`. Other branches are ignored.
+
+The nginx site needs the `/hooks/` route, which arrived after your first setup, so reinstall it first:
+
+```bash
+cd /var/www/slimshot-admin
+git pull
+./deploy/scripts/setup-nginx.sh slimshot-admin.techfamz.com YOUR_EMAIL
+./deploy/scripts/setup-webhook.sh
+```
+
+`setup-webhook.sh`:
+- installs and starts the `slimshot-admin-webhook` service on `127.0.0.1:9001`, as the unprivileged
+  `slimshot-hook` user (shared with the API's listener);
+- adds one `sudo` rule (`/etc/sudoers.d/slimshot-admin-webhook`) to run this repo's deploy script only;
+- creates the secret in `/etc/slimshot/admin-webhook.env` and prints what to paste into GitHub.
+
+**On GitHub:** **Hyacinth-Chidi/slimshot-admin → Settings → Webhooks → Add webhook**:
+
+| Field | Value |
+|---|---|
+| Payload URL | `https://slimshot-admin.techfamz.com/hooks/deploy` |
+| Content type | `application/json` |
+| Secret | the one the script printed (`cat /etc/slimshot/admin-webhook.env` shows it again) |
+| SSL verification | Enable |
+| Which events | Just the push event |
+
+Check the ping arrived, then watch deploys after each push:
+
+```bash
+tail -n 5 /var/log/slimshot-admin-deploy.log
+# … GitHub ping received: the webhook is connected.
+tail -f /var/log/slimshot-admin-deploy.log
+```
+
+GitHub only sees "delivered"; whether the deploy worked is in that log. Pause with
+`systemctl stop slimshot-admin-webhook`, resume with `systemctl start slimshot-admin-webhook`.
 
 ## Troubleshooting
 
@@ -157,6 +199,7 @@ way as the API's (its step 9), with this dashboard on its own listener port.
 | "The server returned an unreadable response" | The API is down or answering 502; check the API's logs |
 | Signed out on every reload | The sign-in cookie needs HTTPS. Open the `https://` address, not `http://` |
 | `setup-nginx.sh`: "does not resolve" / "points to …" | The `slimshot-admin` A record is missing, wrong, or hasn't spread yet |
+| GitHub webhook delivery shows 403 / 500 / 502 | 403: secret empty or content type not JSON. 500: secret mismatch, paste it again. 502: `systemctl status slimshot-admin-webhook` |
 | `git pull`: `Permission denied (publickey)` | The alias or deploy key is missing: redo step 1's `printf` line and the GitHub deploy key |
 
 ## Where things live
@@ -168,7 +211,10 @@ way as the API's (its step 9), with this dashboard on its own listener port.
 | `.env.production.example` | Template for `.env` (the API address) |
 | `deploy/scripts/setup-nginx.sh` | nginx and the Let's Encrypt certificate |
 | `deploy/scripts/deploy.sh` | Pull, build, restart, health check |
+| `deploy/scripts/setup-webhook.sh` / `webhook-deploy.sh` | Automatic deploys: setup, and what each push runs |
+| `deploy/webhook/` | The listener's rule and its systemd service |
 | `deploy/nginx/` | The nginx site, its proxy settings and the certificate-request config |
 | On the VPS: `/var/www/slimshot-admin` | The code and `.env` |
 | On the VPS: `/root/.ssh/github_slimshot_admin` | This repo's deploy key (alias `github-slimshot-admin` in `/root/.ssh/config`) |
 | On the VPS: `/etc/nginx/sites-available/slimshot-admin` | The installed nginx site |
+| On the VPS: `/etc/slimshot/admin-webhook.env`, `/var/log/slimshot-admin-deploy.log` | The webhook secret and every automatic deploy's output |
