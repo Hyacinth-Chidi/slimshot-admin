@@ -55,6 +55,16 @@ describe('PricingTab', () => {
     expect(creditsApi.fetchPricingRules).toHaveBeenCalledWith('auto_captions');
   });
 
+  it('says the prices could not be loaded instead of claiming none is active', async () => {
+    vi.mocked(creditsApi.fetchPricingRules).mockRejectedValue(new Error('Network down'));
+    renderTab();
+
+    expect(await screen.findByText('Couldn’t load the prices.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.queryByText(/No price is active/)).toBeNull();
+    expect(screen.queryByText('No prices yet')).toBeNull();
+  });
+
   it('warns when no price is active', async () => {
     vi.mocked(creditsApi.fetchPricingRules).mockResolvedValue([rule({ isActive: false })]);
     renderTab();

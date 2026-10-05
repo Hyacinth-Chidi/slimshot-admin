@@ -112,6 +112,15 @@ describe('UsersPageContent', () => {
     await waitFor(() => expect(replaceSpy).toHaveBeenCalledWith(null, '', '/users?q=ann+lee%26co'));
   });
 
+  it('says the users could not be loaded instead of claiming there are none', async () => {
+    searchUsersMock.mockRejectedValue(new Error('Network down'));
+    renderPage();
+
+    expect(await screen.findByText('Couldn’t load users.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.queryByText('No app users yet')).toBeNull();
+  });
+
   it('says when there are no app users yet', async () => {
     searchUsersMock.mockResolvedValue({ items: [], nextCursor: null });
     renderPage();

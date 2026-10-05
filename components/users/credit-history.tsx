@@ -26,6 +26,13 @@ export function CreditHistory({ userId }: { userId: string }) {
 
       {query.isLoading ? (
         <p className="px-4 py-8 text-center text-sm text-subtle">Loading history…</p>
+      ) : query.isLoadingError ? (
+        <div role="alert" className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+          <p className="text-sm text-muted">Couldn’t load the credit history.</p>
+          <Button variant="secondary" size="sm" onClick={() => query.refetch()}>
+            Retry
+          </Button>
+        </div>
       ) : entries.length === 0 ? (
         <p className="px-4 py-8 text-center text-sm text-subtle">No credit history yet</p>
       ) : (

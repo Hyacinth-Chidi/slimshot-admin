@@ -88,6 +88,14 @@ export function PricingTab() {
           <h3 className="text-sm font-semibold text-text">Auto caption price</h3>
           {query.isLoading ? (
             <p className="mt-1 text-sm text-subtle">Loading…</p>
+          ) : query.isLoadingError ? (
+            // No list to judge from: "no price is active" would be a false alarm.
+            <div role="alert" className="mt-1 flex items-center gap-3">
+              <p className="text-sm text-muted">Couldn’t load the prices.</p>
+              <Button variant="secondary" size="sm" onClick={() => query.refetch()}>
+                Retry
+              </Button>
+            </div>
           ) : active ? (
             <p className="mt-1 text-sm text-text">{describeRule(active)}</p>
           ) : (
@@ -104,7 +112,7 @@ export function PricingTab() {
 
       <section className="rounded-xl border border-border bg-surface">
         <h3 className="border-b border-border px-4 py-3 text-sm font-semibold text-text md:px-6">Versions</h3>
-        {query.isLoading ? null : rules.length === 0 ? (
+        {query.isLoading || query.isLoadingError ? null : rules.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-subtle">No prices yet</p>
         ) : (
           <ul className="divide-y divide-border">

@@ -42,6 +42,15 @@ describe('CreditHistory', () => {
     expect(usersApi.fetchUserLedger).toHaveBeenCalledWith('u1', { cursor: undefined, limit: 20 });
   });
 
+  it('says the history could not be loaded instead of claiming it is empty', async () => {
+    vi.mocked(usersApi.fetchUserLedger).mockRejectedValue(new Error('Network down'));
+    renderHistory();
+
+    expect(await screen.findByText('Couldn’t load the credit history.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.queryByText('No credit history yet')).toBeNull();
+  });
+
   it('says when there is no history yet', async () => {
     vi.mocked(usersApi.fetchUserLedger).mockResolvedValue({ items: [], nextCursor: null });
     renderHistory();

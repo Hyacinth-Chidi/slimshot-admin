@@ -38,6 +38,14 @@ export function UsersPageContent() {
 
       {query.isLoading ? (
         <p className="py-12 text-center text-sm text-subtle">Loading users…</p>
+      ) : query.isLoadingError ? (
+        // The first load failed: "No app users yet" would be a lie.
+        <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
+          <p className="text-sm text-muted">Couldn’t load users.</p>
+          <Button variant="secondary" onClick={() => query.refetch()}>
+            Retry
+          </Button>
+        </div>
       ) : users.length === 0 ? (
         <p className="py-12 text-center text-sm text-subtle">
           {q ? `No users match "${q}"` : 'No app users yet'}
