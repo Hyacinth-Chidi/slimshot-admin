@@ -85,4 +85,14 @@ describe('UploadWaveform', () => {
     const table = screen.getByRole('table', { name: /uploads per day/i });
     expect(within(table).getAllByRole('row')).toHaveLength(31); // header + 30 days
   });
+
+  it('hides that table in a box that can shrink, so it adds no empty scroll below the page', () => {
+    // A <table> can't be squeezed below its rows' height, so sr-only on the table
+    // itself leaves an invisible ~600px box that lengthens the page.
+    render(<UploadWaveform points={THIRTY} />);
+    const table = screen.getByRole('table', { name: /uploads per day/i });
+    expect(table).not.toHaveClass('sr-only');
+    expect(table.parentElement?.tagName).toBe('DIV');
+    expect(table.parentElement).toHaveClass('sr-only');
+  });
 });

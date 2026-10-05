@@ -63,6 +63,16 @@ describe('CreditsWaveform', () => {
     expect(readout).toHaveTextContent('Auto caption');
   });
 
+  it('hides its data table in a box that can shrink, so it adds no empty scroll below the page', () => {
+    // A <table> can't be squeezed below its rows' height, so sr-only on the table
+    // itself leaves an invisible ~600px box hanging below the last panel.
+    render(<CreditsWaveform days={days} />);
+    const table = screen.getByRole('table', { name: /credits granted and spent per day/i });
+    expect(table).not.toHaveClass('sr-only');
+    expect(table.parentElement?.tagName).toBe('DIV');
+    expect(table.parentElement).toHaveClass('sr-only');
+  });
+
   it('shows a loading state while the data is on its way', () => {
     render(<CreditsWaveform days={undefined} />);
     expect(screen.getByRole('heading', { name: 'Credits, last 30 days' })).toBeInTheDocument();

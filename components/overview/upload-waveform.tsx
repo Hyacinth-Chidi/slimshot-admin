@@ -198,23 +198,27 @@ export function UploadWaveform({
       </div>
 
       {!loading ? (
-        <table className="sr-only">
-          <caption>Uploads per day, last {days.length} days</caption>
-          <thead>
-            <tr>
-              <th scope="col">Day</th>
-              <th scope="col">Uploads</th>
-            </tr>
-          </thead>
-          <tbody>
-            {days.map((d) => (
-              <tr key={d.date}>
-                <td>{formatDay(d.date, true)}</td>
-                <td>{d.count}</td>
+        // sr-only on a div, not the table: a table can't shrink below its rows'
+        // height, so it would leave an invisible ~600px box that lengthens the page.
+        <div className="sr-only">
+          <table>
+            <caption>Uploads per day, last {days.length} days</caption>
+            <thead>
+              <tr>
+                <th scope="col">Day</th>
+                <th scope="col">Uploads</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {days.map((d) => (
+                <tr key={d.date}>
+                  <td>{formatDay(d.date, true)}</td>
+                  <td>{d.count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
     </section>
   );
