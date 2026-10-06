@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# SlimShot admin dashboard image. Built by docker-compose.prod.yml; see
+# SlimShot admin dashboard image. Built by docker-compose.yml; see
 # docs/deploy/vps-setup.md.
 #
 # NEXT_PUBLIC_API_BASE is baked into the build: Next.js inlines NEXT_PUBLIC_*

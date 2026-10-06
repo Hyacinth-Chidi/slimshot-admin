@@ -139,11 +139,19 @@ pricing, and removing the bootstrap lines).
 |---|---|
 | Deploy new code (push from your PC first) | `./deploy/scripts/deploy.sh` |
 | Point it at a different API address | edit `.env`, then `SKIP_PULL=1 ./deploy/scripts/deploy.sh` |
-| Follow its log | `docker compose -f docker-compose.prod.yml logs -f web` |
-| See if it's running | `docker compose -f docker-compose.prod.yml ps` |
-| Restart it | `docker compose -f docker-compose.prod.yml restart web` |
+| Follow its log | `docker compose logs -f --tail=100 web` |
+| Its log for the last day | `docker compose logs --since 24h web` |
+| Only the errors | `docker compose logs --since 24h web \| grep -iE "error\|warn"` |
+| Same, from any folder | `docker logs -f --tail=100 slimshot-admin-web-1` |
+| See if it's running | `docker compose ps` |
+| Restart it | `docker compose restart web` |
 | nginx logs | `tail -f /var/log/nginx/slimshot-admin.error.log` |
 | Reinstall nginx config after editing `deploy/nginx/*` | `./deploy/scripts/setup-nginx.sh slimshot-admin.techfamz.com you@techfamz.com` |
+
+`restart` doesn't pick up a `.env` change:
+`NEXT_PUBLIC_API_BASE` is built into the code, so only `deploy.sh` (a rebuild) applies it.
+`--since` also takes `1h`, `7d` or a time like `2026-10-05T12:00:00`. Each deploy starts an empty
+container log (at most 50 MB is kept).
 
 Once step 7 is set up, a push to `main` deploys by itself; `deploy.sh` stays for manual deploys.
 
@@ -193,7 +201,7 @@ GitHub only sees "delivered"; whether the deploy worked is in that log. Pause wi
 
 | Symptom | Cause and fix |
 |---|---|
-| Browser shows **502 Bad Gateway** | The dashboard isn't running: `docker compose -f docker-compose.prod.yml ps`, then `… logs --tail=100 web` |
+| Browser shows **502 Bad Gateway** | The dashboard isn't running: `docker compose ps`, then `… logs --tail=100 web` |
 | `deploy.sh`: "The dashboard did not become healthy" | Read the log lines it printed |
 | Sign-in page loads, but signing in fails or the browser console shows a **CORS** error | The API's `ADMIN_BASE_URL` isn't exactly `https://slimshot-admin.techfamz.com` (step 3), or the API isn't running (`curl https://slimshot-server.techfamz.com/health`) |
 | "The server returned an unreadable response" | The API is down or answering 502; check the API's logs |
@@ -207,7 +215,7 @@ GitHub only sees "delivered"; whether the deploy worked is in that log. Pause wi
 | Path | What it is |
 |---|---|
 | `Dockerfile` | The image: Next.js standalone server on Node 24, non-root |
-| `docker-compose.prod.yml` | One container, `127.0.0.1:3001`, project `slimshot-admin` |
+| `docker-compose.yml` | One container, `127.0.0.1:3001`, project `slimshot-admin` |
 | `.env.production.example` | Template for `.env` (the API address) |
 | `deploy/scripts/setup-nginx.sh` | nginx and the Let's Encrypt certificate |
 | `deploy/scripts/deploy.sh` | Pull, build, restart, health check |

@@ -20,7 +20,7 @@ step() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 # can change it underneath.
 main() {
   cd "$(dirname "${BASH_SOURCE[0]}")/../.."
-  local compose=(docker compose -f docker-compose.prod.yml)
+  local compose=(docker compose -f docker-compose.yml)
 
   # One deploy at a time.
   exec 9>.deploy.lock
