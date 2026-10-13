@@ -48,9 +48,10 @@ describe('startItems', () => {
             data: {
               assetId: 'asset-b',
               sessionId: 'sess-b',
-              uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload',
+              uploadUrl: 'https://acct.r2.cloudflarestorage.com/slimshot-audio/slimshot/audio/abc.mp3?X-Amz-Signature=sig',
+              method: 'PUT',
+              headers: { 'Content-Type': 'audio/mpeg' },
               storageKey: 'slimshot/audio/b',
-              fields: {},
               expiresAt: new Date(Date.now() + 900_000).toISOString(),
             },
           });
@@ -58,7 +59,7 @@ describe('startItems', () => {
         if (String(url).includes('finalize')) {
           return jsonResponse({ success: true, data: { assetId: 'asset-b', status: 'ready' } });
         }
-        return new Response(JSON.stringify({ public_id: 'x' }), { status: 200 });
+        return new Response(null, { status: 200 });
       }),
     );
 
@@ -103,9 +104,10 @@ describe('startItems', () => {
             data: {
               assetId: 'a1',
               sessionId: 's1',
-              uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload',
+              uploadUrl: 'https://acct.r2.cloudflarestorage.com/slimshot-audio/slimshot/audio/abc.mp3?X-Amz-Signature=sig',
+              method: 'PUT',
+              headers: { 'Content-Type': 'audio/mpeg' },
               storageKey: 'slimshot/audio/a',
-              fields: {},
               expiresAt: new Date(Date.now() + 900_000).toISOString(),
             },
           });
@@ -113,7 +115,7 @@ describe('startItems', () => {
         if (String(url).includes('finalize')) {
           return jsonResponse({ success: true, data: { assetId: 'a1', status: 'ready' } });
         }
-        return new Response(JSON.stringify({ public_id: 'x' }), { status: 200 });
+        return new Response(null, { status: 200 });
       }),
     );
 

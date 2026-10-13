@@ -26,9 +26,10 @@ describe('uploadFile', () => {
             data: {
               assetId: 'a1',
               sessionId: 's1',
-              uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload',
-              storageKey: 'slimshot/audio/abc',
-              fields: { timestamp: '1700000000', signature: 'sig', api_key: 'key' },
+              uploadUrl: 'https://acct.r2.cloudflarestorage.com/slimshot-audio/slimshot/audio/abc.mp3?X-Amz-Signature=sig',
+              method: 'PUT',
+              headers: { 'Content-Type': 'audio/mpeg' },
+              storageKey: 'slimshot/audio/abc.mp3',
               expiresAt: new Date(Date.now() + 900_000).toISOString(),
             },
           });
@@ -36,9 +37,9 @@ describe('uploadFile', () => {
         if (String(url).includes('finalize')) {
           return jsonResponse({ success: true, data: { assetId: 'a1', status: 'ready' } });
         }
-        // The direct upload itself: Cloudinary's signed-upload endpoint, not
-        // our API — returns whatever shape the provider returns, unread here.
-        return new Response(JSON.stringify({ public_id: 'slimshot/audio/abc' }), { status: 200 });
+        // The direct upload itself: R2's presigned URL, not our API. R2
+        // answers 200 with an empty body.
+        return new Response(null, { status: 200 });
       }),
     );
 
@@ -61,19 +62,17 @@ describe('uploadFile', () => {
       author: 'DJ Test',
     });
 
-    // The direct upload is a multipart POST to the signed uploadUrl, carrying
-    // every signed field plus the file — not a PUT with a JSON/binary body.
-    expect(calls[1].url).toBe('https://api.cloudinary.com/v1_1/demo/video/upload');
-    expect(calls[1].init?.method).toBe('POST');
-    const form = calls[1].init?.body as FormData;
-    expect(form.get('timestamp')).toBe('1700000000');
-    expect(form.get('signature')).toBe('sig');
-    expect(form.get('api_key')).toBe('key');
-    expect(form.get('file')).toBe(FILE);
-    // Cloudinary is a third party, not our API: this POST must carry no
-    // Authorization header and no cookies/credentials — the signed `fields`
-    // are the only auth Cloudinary needs, and leaking our bearer token to a
-    // third-party host would be a real credential leak.
+    // The direct upload is the raw file, PUT to the presigned URL with exactly
+    // the headers the ticket lists: R2 signed the type and the length, so any
+    // other Content-Type is refused.
+    expect(calls[1].url).toBe('https://acct.r2.cloudflarestorage.com/slimshot-audio/slimshot/audio/abc.mp3?X-Amz-Signature=sig');
+    expect(calls[1].init?.method).toBe('PUT');
+    expect(calls[1].init?.body).toBe(FILE);
+    expect(new Headers(calls[1].init?.headers).get('content-type')).toBe('audio/mpeg');
+    // R2 is a third party, not our API: this PUT must carry no Authorization
+    // header and no cookies/credentials. The URL's signature is the only auth
+    // R2 needs, and leaking our bearer token to another host would be a real
+    // credential leak.
     expect(new Headers(calls[1].init?.headers).has('authorization')).toBe(false);
     expect(calls[1].init?.credentials).not.toBe('include');
 
@@ -119,9 +118,10 @@ describe('uploadFile', () => {
             data: {
               assetId: 'a1',
               sessionId: 's1',
-              uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload',
-              storageKey: 'slimshot/audio/abc',
-              fields: {},
+              uploadUrl: 'https://acct.r2.cloudflarestorage.com/slimshot-audio/slimshot/audio/abc.mp3?X-Amz-Signature=sig',
+              method: 'PUT',
+              headers: { 'Content-Type': 'audio/mpeg' },
+              storageKey: 'slimshot/audio/abc.mp3',
               expiresAt: new Date(Date.now() + 900_000).toISOString(),
             },
           });
@@ -162,9 +162,10 @@ describe('uploadFile', () => {
             data: {
               assetId: 'a1',
               sessionId: 's1',
-              uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload',
-              storageKey: 'slimshot/audio/abc',
-              fields: {},
+              uploadUrl: 'https://acct.r2.cloudflarestorage.com/slimshot-audio/slimshot/audio/abc.mp3?X-Amz-Signature=sig',
+              method: 'PUT',
+              headers: { 'Content-Type': 'audio/mpeg' },
+              storageKey: 'slimshot/audio/abc.mp3',
               expiresAt: new Date(Date.now() + 900_000).toISOString(),
             },
           });
@@ -178,7 +179,7 @@ describe('uploadFile', () => {
             400,
           );
         }
-        return new Response(JSON.stringify({ public_id: 'x' }), { status: 200 });
+        return new Response(null, { status: 200 });
       }),
     );
 
@@ -190,22 +191,27 @@ describe('uploadFile', () => {
   });
 });
 
-/** Stubs fetch with a ticket, a Cloudinary response, and a finalize; records every call. */
-function stubUploadFlow(cloudinary: () => Response = () => new Response('{}', { status: 200 })) {
+/**
+ * Stubs fetch with a ticket, an R2 response, and a finalize; records every call.
+ * Like the server, the ticket signs whatever type the ticket request declared.
+ */
+function stubUploadFlow(storage: () => Response | Promise<Response> = () => new Response(null, { status: 200 })) {
   const calls: { url: string; init?: RequestInit }[] = [];
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
       calls.push({ url: String(url), init });
       if (String(url).includes('upload-ticket')) {
+        const declared = (JSON.parse(init!.body as string) as { mimeType: string }).mimeType;
         return jsonResponse({
           success: true,
           data: {
             assetId: 'a1',
             sessionId: 's1',
-            uploadUrl: 'https://api.cloudinary.com/v1_1/demo/video/upload',
-            storageKey: 'slimshot/audio/abc',
-            fields: {},
+            uploadUrl: 'https://acct.r2.cloudflarestorage.com/slimshot-audio/slimshot/audio/abc.mp3?X-Amz-Signature=sig',
+            method: 'PUT',
+            headers: { 'Content-Type': declared },
+            storageKey: 'slimshot/audio/abc.mp3',
             expiresAt: new Date(Date.now() + 900_000).toISOString(),
           },
         });
@@ -213,7 +219,7 @@ function stubUploadFlow(cloudinary: () => Response = () => new Response('{}', { 
       if (String(url).includes('finalize')) {
         return jsonResponse({ success: true, data: { assetId: 'a1', status: 'ready' } });
       }
-      return cloudinary();
+      return storage();
     }),
   );
   return calls;
@@ -239,10 +245,9 @@ describe('uploadFile declared MIME type (I3)', () => {
     await uploadFile(file, META, {});
 
     expect(JSON.parse(calls[0].init!.body as string).mimeType).toBe(canonical);
-    const sent = (calls[1].init?.body as FormData).get('file') as File;
-    expect(sent.type).toBe(canonical);
-    expect(sent.name).toBe(name);
-    expect(sent.size).toBe(file.size);
+    // The PUT carries the signed type, whatever the browser thinks the file is.
+    expect(new Headers(calls[1].init?.headers).get('content-type')).toBe(canonical);
+    expect(calls[1].init?.body).toBe(file);
   });
 
   it("falls back to the browser's type for an extension it has no mapping for", async () => {
@@ -252,32 +257,48 @@ describe('uploadFile declared MIME type (I3)', () => {
   });
 });
 
-describe('uploadFile Cloudinary failure message (I4)', () => {
-  // Spec §6.3: a failed file keeps the server's error message.
-  it("keeps Cloudinary's own error message from its JSON body", async () => {
+describe('uploadFile storage failure message (I4)', () => {
+  // Spec §6.3: a failed file keeps the storage's own reason. R2 answers S3-style XML.
+  it("keeps R2's own message and code from its XML error", async () => {
     stubUploadFlow(
       () =>
-        new Response(JSON.stringify({ error: { message: 'Invalid Signature 1f2e.' } }), {
-          status: 401,
-          headers: { 'content-type': 'application/json' },
-        }),
+        new Response(
+          '<?xml version="1.0" encoding="UTF-8"?><Error><Code>SignatureDoesNotMatch</Code>' +
+            '<Message>The request signature we calculated does not match the signature you provided. </Message></Error>',
+          { status: 403, headers: { 'content-type': 'application/xml' } },
+        ),
     );
     await expect(uploadFile(FILE, META, {})).rejects.toMatchObject({
-      message: 'Invalid Signature 1f2e.',
+      message:
+        'The request signature we calculated does not match the signature you provided. (SignatureDoesNotMatch)',
     });
   });
 
-  it('falls back to the status message when the failed response is not JSON', async () => {
+  it('names the code when R2 gives no message', async () => {
+    stubUploadFlow(() => new Response('<Error><Code>AccessDenied</Code></Error>', { status: 403 }));
+    await expect(uploadFile(FILE, META, {})).rejects.toMatchObject({
+      message: 'Upload failed (403): AccessDenied.',
+    });
+  });
+
+  it('falls back to the status message when the failed response is not XML', async () => {
     stubUploadFlow(() => new Response('<html>Bad gateway</html>', { status: 502 }));
     await expect(uploadFile(FILE, META, {})).rejects.toMatchObject({
       message: 'Upload failed (502).',
     });
   });
 
-  it('falls back to the status message when the JSON has no error message', async () => {
-    stubUploadFlow(() => new Response(JSON.stringify({ oops: true }), { status: 400 }));
-    await expect(uploadFile(FILE, META, {})).rejects.toMatchObject({
-      message: 'Upload failed (400).',
+  it('explains a blocked or unreachable storage upload, and never finalizes', async () => {
+    // A missing CORS policy on the bucket surfaces in the browser as a bare
+    // "Failed to fetch": say what to check instead.
+    const calls = stubUploadFlow(() => {
+      throw new TypeError('Failed to fetch');
     });
+    const states: string[] = [];
+    await expect(uploadFile(FILE, META, { onState: (s) => states.push(s) })).rejects.toMatchObject({
+      message: "Couldn't reach file storage. Check your connection, and that the bucket's CORS policy allows this site.",
+    });
+    expect(calls.some((c) => c.url.includes('finalize'))).toBe(false);
+    expect(states).toEqual(['ticketing', 'uploading', 'failed']);
   });
 });

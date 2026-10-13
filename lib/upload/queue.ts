@@ -27,12 +27,12 @@ interface Hooks {
 interface TicketResponse {
   assetId: string;
   sessionId: string;
+  /** Presigned Cloudflare R2 URL: the signature in it is the only auth needed. */
   uploadUrl: string;
+  method: 'PUT';
+  /** Must be sent exactly: R2 signed the Content-Type (and the file's length). */
+  headers: Record<string, string>;
   storageKey: string;
-  /** Signed multipart form fields (Cloudinary signed upload) — must all be
-   * resent verbatim in the direct-upload POST or Cloudinary can't verify the
-   * signature. */
-  fields: Record<string, string>;
   expiresAt: string;
 }
 
@@ -66,21 +66,29 @@ export function declaredMimeType(file: File): string {
   return CANONICAL_MIME[ext] ?? file.type;
 }
 
+/** The text of one `<Tag>…</Tag>` in R2's XML error, if present. */
+function xmlTag(xml: string, tag: string): string | undefined {
+  const match = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`).exec(xml);
+  const text = match?.[1].trim();
+  return text ? text : undefined;
+}
+
 /**
- * Cloudinary reports a failed upload as JSON `{ error: { message } }`
- * (spec §6.3: a failed file keeps the server's message). Anything else — a
- * proxy's HTML page, an empty body — falls back to the status.
+ * R2 reports a failed upload S3-style, as XML `<Error><Code/><Message/></Error>`
+ * (spec §6.3: a failed file keeps the storage's reason). Anything else, such as
+ * a proxy's HTML page or an empty body, falls back to the status.
  */
 async function directUploadError(res: Response): Promise<Error> {
-  try {
-    const body = (await res.json()) as { error?: { message?: unknown } } | null;
-    const message = body?.error?.message;
-    if (typeof message === 'string' && message.trim()) return new Error(message);
-  } catch {
-    // Not JSON: use the status below.
-  }
+  const body = await res.text().catch(() => '');
+  const code = xmlTag(body, 'Code');
+  const message = xmlTag(body, 'Message');
+  if (message) return new Error(code ? `${message} (${code})` : message);
+  if (code) return new Error(`Upload failed (${res.status}): ${code}.`);
   return new Error(`Upload failed (${res.status}).`);
 }
+
+const UNREACHABLE_STORAGE =
+  "Couldn't reach file storage. Check your connection, and that the bucket's CORS policy allows this site.";
 
 /**
  * Each file runs its own ticket -> direct-upload -> finalize sequence so one
@@ -88,11 +96,10 @@ async function directUploadError(res: Response): Promise<Error> {
  * upload succeeds: finalizing an upload that never landed would create an
  * asset row pointing at a file that does not exist.
  *
- * The direct upload is a signed multipart POST (Cloudinary), not a PUT: the
- * ticket carries `fields` (timestamp/signature/api_key/...) that must travel
- * as form fields alongside the file, or Cloudinary rejects the signature
- * (CloudinaryAdapter.createUploadTicket,
- * ../slimshot_server/src/core/storage/adapters/cloudinary.adapter.ts:69-110).
+ * The direct upload is the raw file PUT to a presigned Cloudflare R2 URL, with
+ * exactly the ticket's headers: R2 signed the Content-Type and the length, so
+ * any other type or size is refused (R2Adapter.createUploadTicket,
+ * ../slimshot_server/src/core/storage/adapters/r2.adapter.ts).
  *
  * `title`/`author` are sent on the ticket call, because CreateUploadTicketDto
  * declares them and FinalizeUploadDto declares only `sessionId`
@@ -104,8 +111,6 @@ export async function uploadFile(
   hooks: Hooks,
 ): Promise<{ assetId: string; status: string }> {
   const mimeType = declaredMimeType(file);
-  // The multipart part carries the same canonical type as the ticket.
-  const upload = file.type === mimeType ? file : new File([file], file.name, { type: mimeType });
 
   try {
     hooks.onState?.('ticketing');
@@ -124,13 +129,16 @@ export async function uploadFile(
     );
 
     hooks.onState?.('uploading');
-    const form = new FormData();
-    for (const [key, value] of Object.entries(ticket.fields)) {
-      form.set(key, value);
-    }
-    form.set('file', upload);
-
-    const put = await fetch(ticket.uploadUrl, { method: 'POST', body: form });
+    // A different host: no Authorization header, no cookies. The browser sets
+    // Content-Length from the file, which R2 checks against the signed size.
+    // A rejected fetch here is almost always the bucket's CORS policy.
+    const put = await fetch(ticket.uploadUrl, {
+      method: ticket.method,
+      headers: ticket.headers,
+      body: file,
+    }).catch(() => {
+      throw new Error(UNREACHABLE_STORAGE);
+    });
     if (!put.ok) throw await directUploadError(put);
     hooks.onProgress?.(1);
 

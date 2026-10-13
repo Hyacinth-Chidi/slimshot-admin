@@ -202,6 +202,8 @@ GitHub only sees "delivered"; whether the deploy worked is in that log. Pause wi
 | Symptom | Cause and fix |
 |---|---|
 | Browser shows **502 Bad Gateway** | The dashboard isn't running: `docker compose ps`, then `… logs --tail=100 web` |
+| Upload fails: "Couldn't reach file storage" | Files go from the browser straight to Cloudflare R2. The bucket's CORS policy must list `https://slimshot-admin.techfamz.com` exactly (API guide, step 0, "Cloudflare R2") |
+| Upload fails with an R2 code (`SignatureDoesNotMatch`, `AccessDenied`, …) | The API's `R2_*` values are wrong; see the API guide's troubleshooting |
 | `deploy.sh`: "The dashboard did not become healthy" | Read the log lines it printed |
 | Sign-in page loads, but signing in fails or the browser console shows a **CORS** error | The API's `ADMIN_BASE_URL` isn't exactly `https://slimshot-admin.techfamz.com` (step 3), or the API isn't running (`curl https://slimshot-server.techfamz.com/health`) |
 | "The server returned an unreadable response" | The API is down or answering 502; check the API's logs |
