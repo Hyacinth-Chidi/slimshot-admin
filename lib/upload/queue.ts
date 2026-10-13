@@ -30,7 +30,7 @@ interface TicketResponse {
   /** Presigned Cloudflare R2 URL: the signature in it is the only auth needed. */
   uploadUrl: string;
   method: 'PUT';
-  /** Must be sent exactly: R2 signed the Content-Type (and the file's length). */
+  /** Must be sent exactly: R2 signed them (Content-Type, If-None-Match) and the length. */
   headers: Record<string, string>;
   storageKey: string;
   expiresAt: string;

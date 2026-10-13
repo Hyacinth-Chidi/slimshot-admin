@@ -28,7 +28,7 @@ describe('uploadFile', () => {
               sessionId: 's1',
               uploadUrl: 'https://acct.r2.cloudflarestorage.com/slimshot-audio/slimshot/audio/abc.mp3?X-Amz-Signature=sig',
               method: 'PUT',
-              headers: { 'Content-Type': 'audio/mpeg' },
+              headers: { 'Content-Type': 'audio/mpeg', 'If-None-Match': '*' },
               storageKey: 'slimshot/audio/abc.mp3',
               expiresAt: new Date(Date.now() + 900_000).toISOString(),
             },
@@ -69,6 +69,8 @@ describe('uploadFile', () => {
     expect(calls[1].init?.method).toBe('PUT');
     expect(calls[1].init?.body).toBe(FILE);
     expect(new Headers(calls[1].init?.headers).get('content-type')).toBe('audio/mpeg');
+    // Create-only: every signed header the ticket lists goes along as given.
+    expect(new Headers(calls[1].init?.headers).get('if-none-match')).toBe('*');
     // R2 is a third party, not our API: this PUT must carry no Authorization
     // header and no cookies/credentials. The URL's signature is the only auth
     // R2 needs, and leaking our bearer token to another host would be a real
