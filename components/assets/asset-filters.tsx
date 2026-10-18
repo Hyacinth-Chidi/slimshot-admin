@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -17,6 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { CategoryPicker } from '@/components/categories/category-picker';
 import { cn } from '@/lib/cn';
 import type { AssetStatus } from '@/components/ui/status-pill';
 import type { AssetFilters } from '@/lib/api/assets';
@@ -108,23 +109,6 @@ function KindSelect({
   );
 }
 
-/**
- * R8f: categoryId isn't a real filter — the server 400s on it. If it's in
- * the URL (e.g. a stale Task 10 link, or someone editing the URL by hand),
- * say so instead of silently showing an unfiltered list with no explanation.
- */
-function UnsupportedCategoryNotice({ onClear }: { onClear: () => void }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
-      <span>Filtering by category isn&apos;t supported by the API yet — showing all assets.</span>
-      <Button variant="ghost" size="sm" onClick={onClear} className="shrink-0">
-        <X className="size-4" />
-        Clear
-      </Button>
-    </div>
-  );
-}
-
 function FilterFields({
   filters,
   onChange,
@@ -149,12 +133,14 @@ function FilterFields({
           }}
         />
         <KindSelect value={filters.kind} onChange={(kind) => onChange({ ...filters, kind })} />
-      </div>
-      {filters.categoryId && (
-        <UnsupportedCategoryNotice
-          onClear={() => onChange({ ...filters, categoryId: undefined })}
+        <CategoryPicker
+          kind={filters.kind ?? 'audio'}
+          value={filters.categoryId ?? null}
+          onChange={(categoryId) => onChange({ ...filters, categoryId: categoryId ?? undefined })}
+          noneLabel="All categories"
+          className="md:w-48"
         />
-      )}
+      </div>
     </div>
   );
 }
@@ -174,7 +160,7 @@ export function AssetFiltersBar({
   pathname: string;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const activeCount = [filters.status, filters.search, filters.kind].filter(Boolean).length;
+  const activeCount = [filters.status, filters.search, filters.kind, filters.categoryId].filter(Boolean).length;
 
   return (
     <>

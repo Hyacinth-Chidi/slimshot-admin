@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Category } from '@/lib/api/categories';
-import { buildTree, moveSibling } from './tree-helpers';
+import { buildTree, flattenWithDepth, moveSibling } from './tree-helpers';
 
 function cat(overrides: Partial<Category> & { id: string }): Category {
   return {
@@ -84,6 +84,29 @@ describe('moveSibling', () => {
     expect(moveSibling(gappy, 'b', 'up')).toEqual([
       { id: 'b', sortOrder: 0 },
       { id: 'a', sortOrder: 1 },
+    ]);
+  });
+});
+
+describe('flattenWithDepth', () => {
+  it('lists a tree parent-first, in sortOrder, with each depth', () => {
+    const tree = [
+      cat({
+        id: 'sfx',
+        sortOrder: 1,
+        children: [
+          cat({ id: 'ui', sortOrder: 2, children: [cat({ id: 'ui-clicks', parentId: 'ui', children: [] })] }),
+          cat({ id: 'alerts', sortOrder: 1, children: [] }),
+        ],
+      }),
+      cat({ id: 'music', sortOrder: 0, children: [] }),
+    ];
+    expect(flattenWithDepth(tree).map((c) => [c.id, c.depth])).toEqual([
+      ['music', 0],
+      ['sfx', 0],
+      ['alerts', 1],
+      ['ui', 1],
+      ['ui-clicks', 2],
     ]);
   });
 });

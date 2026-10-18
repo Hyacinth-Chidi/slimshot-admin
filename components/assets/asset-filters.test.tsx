@@ -1,12 +1,24 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AssetFilters } from '@/lib/api/assets';
+import { fetchTree } from '@/lib/api/categories';
 import { AssetFiltersBar } from './asset-filters';
+
+vi.mock('@/lib/api/categories', async () => ({
+  ...(await vi.importActual<typeof import('@/lib/api/categories')>('@/lib/api/categories')),
+  fetchTree: vi.fn(async () => []),
+}));
 
 function renderBar(filters: AssetFilters = {}) {
   const onChange = vi.fn();
-  const utils = render(<AssetFiltersBar filters={filters} onChange={onChange} pathname="/assets" />);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const utils = render(
+    <QueryClientProvider client={client}>
+      <AssetFiltersBar filters={filters} onChange={onChange} pathname="/assets" />
+    </QueryClientProvider>,
+  );
   return { onChange, ...utils };
 }
 
@@ -59,21 +71,36 @@ describe('AssetFiltersBar status segmented control (R8h)', () => {
   });
 });
 
-describe('AssetFiltersBar categoryId notice (R8f)', () => {
-  it('shows nothing when categoryId is absent', () => {
-    renderBar();
+describe('AssetFiltersBar category filter', () => {
+  it('no longer says filtering by category is unsupported', () => {
+    renderBar({ categoryId: 'c1' });
     expect(screen.queryByText(/isn.t supported by the API yet/i)).not.toBeInTheDocument();
   });
 
-  it('shows the unsupported-filter notice when categoryId is present', () => {
+  it('counts an active category in the mobile Filters button', () => {
     renderBar({ categoryId: 'c1' });
-    expect(screen.getAllByText(/isn.t supported by the API yet/i)[0]).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
   });
 
-  it('clears categoryId when the notice\'s Clear button is clicked', async () => {
-    const user = userEvent.setup();
-    const { onChange } = renderBar({ categoryId: 'c1' });
-    await user.click(screen.getAllByRole('button', { name: /clear/i })[0]);
+  it('clears the category filter with "All categories"', async () => {
+    vi.mocked(fetchTree).mockResolvedValue([
+      {
+        id: 'ui',
+        kind: 'audio',
+        parentId: null,
+        slug: 'ui',
+        name: 'UI',
+        description: null,
+        sortOrder: 0,
+        isActive: true,
+        children: [],
+      },
+    ]);
+    const { onChange } = renderBar({ kind: 'audio', categoryId: 'ui' });
+    const trigger = screen.getAllByRole('combobox', { name: 'Category' })[0];
+    await vi.waitFor(() => expect(trigger).toBeEnabled());
+    await userEvent.click(trigger);
+    await userEvent.click(await screen.findByRole('option', { name: 'All categories' }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ categoryId: undefined }));
   });
 });

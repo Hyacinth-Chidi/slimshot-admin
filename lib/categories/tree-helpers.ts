@@ -31,6 +31,14 @@ export function buildTree(categories: Category[]): Category[] {
   return roots.sort(bySortOrder);
 }
 
+/** The tree as one list, each parent before its children, with its depth (0 = top level). */
+export function flattenWithDepth(nodes: Category[], depth = 0): Array<Category & { depth: number }> {
+  return buildTree(nodes).flatMap((node) => [
+    { ...node, depth },
+    ...flattenWithDepth(node.children ?? [], depth + 1),
+  ]);
+}
+
 function bySortOrder(a: Category, b: Category): number {
   return a.sortOrder - b.sortOrder;
 }

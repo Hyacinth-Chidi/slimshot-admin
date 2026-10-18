@@ -9,3 +9,11 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
     disconnect() {}
   };
 }
+
+// jsdom lacks the pointer-capture and scrolling calls Radix Select makes when it
+// opens; browsers have them, so no-op stand-ins let tests open a select.
+if (typeof Element !== 'undefined') {
+  Element.prototype.hasPointerCapture ??= () => false;
+  Element.prototype.releasePointerCapture ??= () => {};
+  Element.prototype.scrollIntoView ??= () => {};
+}
