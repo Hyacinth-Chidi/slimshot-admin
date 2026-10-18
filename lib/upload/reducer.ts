@@ -16,6 +16,8 @@ export interface QueueItem {
   kind: string;
   title: string;
   author: string;
+  /** The batch category chosen when the file was added. */
+  categoryId?: string;
   status: QueueItemStatus;
   error?: string;
   assetId?: string;
@@ -59,6 +61,7 @@ export function addFiles(
   files: File[],
   kind: string,
   acceptedExtensions?: readonly string[],
+  categoryId?: string,
 ): Extract<QueueAction, { type: 'ADD' }> {
   const items: QueueItem[] = files.map((file) => {
     const ext = extensionOf(file.name);
@@ -71,6 +74,7 @@ export function addFiles(
       kind,
       title: titleFromFilename(file.name),
       author: '',
+      ...(categoryId ? { categoryId } : {}),
       status: accepted ? 'queued' : 'rejected',
       error: accepted
         ? undefined

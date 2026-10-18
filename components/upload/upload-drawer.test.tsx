@@ -5,6 +5,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as kindsApi from '@/lib/api/kinds';
 import { UploadDrawer } from './upload-drawer';
 
+vi.mock('@/lib/api/categories', async () => ({
+  ...(await vi.importActual<typeof import('@/lib/api/categories')>('@/lib/api/categories')),
+  fetchTree: vi.fn(async () => [
+    {
+      id: 'ui',
+      kind: 'audio',
+      parentId: null,
+      slug: 'ui',
+      name: 'UI',
+      description: null,
+      sortOrder: 0,
+      isActive: true,
+      children: [],
+    },
+  ]),
+}));
+
 vi.mock('@/lib/api/kinds', () => ({
   fetchKinds: vi.fn(async () => [
     { kind: 'audio', label: 'Audio', extensions: ['.mp3'], fileRoles: [] },
@@ -126,5 +143,48 @@ describe('UploadDrawer loading', () => {
     renderDrawer();
     expect(await screen.findByRole('status', { name: 'Loading upload kinds' })).toBeInTheDocument();
     expect(screen.queryByText('Loading upload kinds…')).toBeNull();
+  });
+});
+
+describe('UploadDrawer category', () => {
+  it('files the batch under the category chosen before adding the files', async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), init });
+        if (String(url).includes('upload-ticket')) {
+          return jsonResponse({
+            success: true,
+            data: {
+              assetId: 'a1',
+              sessionId: 's1',
+              uploadUrl: 'https://acct.r2.cloudflarestorage.com/b/k?X-Amz-Signature=s',
+              method: 'PUT',
+              headers: { 'Content-Type': 'audio/mpeg' },
+              storageKey: 'k',
+              expiresAt: new Date(Date.now() + 900_000).toISOString(),
+            },
+          });
+        }
+        if (String(url).includes('finalize')) {
+          return jsonResponse({ success: true, data: { assetId: 'a1', status: 'ready' } });
+        }
+        return new Response(null, { status: 200 });
+      }),
+    );
+
+    renderDrawer();
+    const picker = await screen.findByRole('combobox', { name: 'Category for these uploads' });
+    await vi.waitFor(() => expect(picker).toBeEnabled());
+    await userEvent.click(picker);
+    await userEvent.click(await screen.findByRole('option', { name: 'UI' }));
+
+    await dropFile('loop.mp3');
+    await userEvent.click(await screen.findByRole('button', { name: /^upload$/i }));
+
+    await vi.waitFor(() => expect(calls.some((c) => c.url.includes('upload-ticket'))).toBe(true));
+    const ticket = calls.find((c) => c.url.includes('upload-ticket'))!;
+    expect(JSON.parse(ticket.init!.body as string).categoryId).toBe('ui');
   });
 });

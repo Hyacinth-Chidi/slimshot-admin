@@ -29,7 +29,12 @@ async function runItem(
   try {
     const result = await uploadFile(
       current.file,
-      { kind: current.kind, title: current.title, author: current.author || undefined },
+      {
+        kind: current.kind,
+        title: current.title,
+        author: current.author || undefined,
+        categoryId: current.categoryId,
+      },
       { onState: (state) => dispatch({ type: 'STATE', id, state }) },
     );
     dispatch({ type: 'DONE', id, assetId: result.assetId, assetStatus: result.status });

@@ -304,3 +304,17 @@ describe('uploadFile storage failure message (I4)', () => {
     expect(states).toEqual(['ticketing', 'uploading', 'failed']);
   });
 });
+
+describe('uploadFile category', () => {
+  it('files the new sound under the chosen category', async () => {
+    const calls = stubUploadFlow();
+    await uploadFile(FILE, { ...META, categoryId: 'c1' }, {});
+    expect(JSON.parse(calls[0].init!.body as string).categoryId).toBe('c1');
+  });
+
+  it('sends no categoryId key when none is chosen', async () => {
+    const calls = stubUploadFlow();
+    await uploadFile(FILE, META, {});
+    expect(JSON.parse(calls[0].init!.body as string)).not.toHaveProperty('categoryId');
+  });
+});

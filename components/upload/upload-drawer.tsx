@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { CategoryPicker } from '@/components/categories/category-picker';
 import { fetchKinds, type Kind } from '@/lib/api/kinds';
 import { startItems } from '@/lib/upload/orchestrator';
 import { addFiles, queueReducer, type QueueItem } from '@/lib/upload/reducer';
@@ -91,6 +92,8 @@ export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChan
   const kinds: Kind[] = useMemo(() => kindsQuery.data ?? [], [kindsQuery.data]);
   const [selectedKind, setSelectedKind] = useState<string | undefined>(undefined);
   const activeKind = selectedKind ?? kinds[0]?.kind;
+  // Applies to files added after it is chosen: changing it never re-files queued ones.
+  const [categoryId, setCategoryId] = useState<string | null>(null);
 
   const acceptedExtensions = useMemo(
     () => kinds.find((k) => k.kind === activeKind)?.extensions ?? [],
@@ -108,9 +111,9 @@ export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChan
       // R9f: newly added files stay `queued` — nothing starts automatically.
       // Each row gets its own "Upload" action, and the drawer offers
       // "Upload all" below, so title/author can be edited first.
-      dispatch(addFiles(files, activeKind, acceptedExtensions));
+      dispatch(addFiles(files, activeKind, acceptedExtensions, categoryId ?? undefined));
     },
-    [activeKind, acceptedExtensions],
+    [activeKind, acceptedExtensions, categoryId],
   );
 
   const runOne = useCallback(
@@ -161,6 +164,15 @@ export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChan
                 ))}
               </SelectContent>
             </Select>
+          )}
+
+          {activeKind && (
+            <CategoryPicker
+              kind={activeKind}
+              value={categoryId}
+              onChange={setCategoryId}
+              label="Category for these uploads"
+            />
           )}
 
           {activeKind ? (

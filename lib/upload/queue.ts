@@ -13,6 +13,7 @@ export interface UploadMeta {
   kind: string;
   title: string;
   author?: string;
+  categoryId?: string;
 }
 
 interface Hooks {
@@ -124,6 +125,7 @@ export async function uploadFile(
           byteSize: file.size,
           title: meta.title,
           ...(meta.author ? { author: meta.author } : {}),
+          ...(meta.categoryId ? { categoryId: meta.categoryId } : {}),
         }),
       }),
     );

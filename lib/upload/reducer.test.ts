@@ -109,3 +109,15 @@ describe('queueReducer', () => {
     expect(next).toEqual(state);
   });
 });
+
+describe('addFiles category', () => {
+  it('files every added item under the batch category chosen at the time', () => {
+    const state = queueReducer({ items: [] }, addFiles([file('a.mp3'), file('b.mp3')], 'audio', ['.mp3'], 'c1'));
+    expect(state.items.map((i) => i.categoryId)).toEqual(['c1', 'c1']);
+  });
+
+  it('leaves the category unset when none is chosen', () => {
+    const state = queueReducer({ items: [] }, addFiles([file('a.mp3')], 'audio', ['.mp3']));
+    expect(state.items[0].categoryId).toBeUndefined();
+  });
+});
