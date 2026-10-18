@@ -13,6 +13,7 @@ const ASSET: Asset = {
   durationMs: 65_000,
   createdAt: '2026-09-20T10:00:00Z',
   coverUrl: null,
+  originalUrl: null,
 };
 
 function noop() {}
@@ -48,5 +49,19 @@ describe('AssetCard link', () => {
   it("links the title to the sound's page", () => {
     render(<AssetCard asset={ASSET} onPublish={() => {}} onUnpublish={() => {}} onDelete={() => {}} />);
     expect(screen.getByRole('link', { name: 'Rain Loop' })).toHaveAttribute('href', '/assets/a1');
+  });
+});
+
+describe('AssetCard play button', () => {
+  it('puts a play button next to the duration', () => {
+    render(
+      <AssetCard
+        asset={{ ...ASSET, originalUrl: 'https://cdn.test/a1.mp3' }}
+        onPublish={() => {}}
+        onUnpublish={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Play Rain Loop' })).toBeInTheDocument();
   });
 });

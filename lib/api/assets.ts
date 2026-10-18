@@ -17,6 +17,8 @@ export interface Asset {
   createdAt: string | null;
   /** The cover image, when the asset has one. */
   coverUrl: string | null;
+  /** The uploaded file itself, for listening in the dashboard. */
+  originalUrl: string | null;
 }
 
 /** One asset in full, for its own page. */
@@ -24,7 +26,6 @@ export interface AssetDetail extends Asset {
   slug: string;
   byteSize: number | null;
   format: string | null;
-  originalUrl: string | null;
   publishedAt: string | null;
 }
 
@@ -94,6 +95,7 @@ function toAsset(row: ServerAsset, activeStatus?: AssetStatus): Asset {
     createdAt: row.createdAt ?? null,
     durationMs: toDurationMs(row.detail),
     coverUrl: row.files.thumbnail?.url || null,
+    originalUrl: row.files.original?.url || null,
   };
 }
 
@@ -104,7 +106,6 @@ function toDetail(row: ServerAsset): AssetDetail {
     slug: row.slug,
     byteSize: original?.byteSize ?? null,
     format: original?.format ?? null,
-    originalUrl: original?.url || null,
     publishedAt: row.publishedAt ?? null,
   };
 }

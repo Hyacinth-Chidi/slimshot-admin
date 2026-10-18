@@ -6,6 +6,7 @@ import type { Asset } from '@/lib/api/assets';
 import { Artwork } from './artwork';
 import { formatCreatedDate, formatDuration } from './format';
 import { AssetActionsMenu } from './asset-actions-menu';
+import { PlayButton } from './play-button';
 
 export function AssetTable({
   assets,
@@ -77,7 +78,12 @@ export function AssetTable({
               </div>
             </td>
             <td className="py-2 pr-3 text-muted">{asset.author ?? '—'}</td>
-            <td className="py-2 pr-3 text-muted">{formatDuration(asset.durationMs)}</td>
+            <td className="py-2 pr-3 text-muted">
+              <div className="flex items-center gap-1">
+                <span>{formatDuration(asset.durationMs)}</span>
+                {asset.originalUrl && <PlayButton id={asset.id} title={asset.title} url={asset.originalUrl} />}
+              </div>
+            </td>
             <td className="py-2 pr-3">
               {asset.status ? <StatusPill status={asset.status} /> : <span className="text-subtle">—</span>}
             </td>

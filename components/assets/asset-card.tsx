@@ -4,6 +4,7 @@ import type { Asset } from '@/lib/api/assets';
 import { Artwork } from './artwork';
 import { formatCreatedDate, formatDuration } from './format';
 import { AssetActionsMenu } from './asset-actions-menu';
+import { PlayButton } from './play-button';
 
 export function AssetCard({
   asset,
@@ -30,6 +31,7 @@ export function AssetCard({
         <p className="truncate text-sm text-muted">{asset.author ?? '—'}</p>
         <div className="mt-1 flex items-center gap-2 text-xs text-subtle">
           <span>{formatDuration(asset.durationMs)}</span>
+          {asset.originalUrl && <PlayButton id={asset.id} title={asset.title} url={asset.originalUrl} />}
           {asset.status ? <StatusPill status={asset.status} /> : null}
           {/* Table and card show the same fields (spec ruling 10) — created was missing here. */}
           <span>{formatCreatedDate(asset.createdAt)}</span>

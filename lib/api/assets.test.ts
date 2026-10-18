@@ -164,6 +164,7 @@ describe('admin asset view', () => {
       categoryId: 'c1',
       createdAt: '2026-10-01T10:00:00.000Z',
       coverUrl: 'https://cdn.test/slimshot/covers/c.png',
+      originalUrl: 'https://cdn.test/slimshot/audio/a1.mp3',
     });
   });
 

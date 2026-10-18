@@ -27,6 +27,7 @@ function makeAsset(id: string, overrides: Partial<Asset> = {}): Asset {
     durationMs: 1000,
     createdAt: null,
     coverUrl: null,
+    originalUrl: null,
     ...overrides,
   };
 }
