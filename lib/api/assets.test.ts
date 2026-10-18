@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchAssets } from './assets';
+import { fetchAsset, fetchAssets, removeCover, updateAsset } from './assets';
 import { setAccessToken } from './client';
 
 function mockFetch(body: unknown, status = 200) {
@@ -35,14 +35,13 @@ describe('fetchAssets param mapping', () => {
     expect(url).not.toContain('search=');
   });
 
-  it('R8f: never sends categoryId — the server 400s on it (ValidationPipe forbidNonWhitelisted, main.ts:19-24; ListAssetsDto has no categoryId field)', async () => {
+  it('sends categoryId so the server filters by that category and everything under it', async () => {
     const fetchMock = mockFetch(EMPTY_PAGE);
     vi.stubGlobal('fetch', fetchMock);
 
     await fetchAssets({ categoryId: 'c1' });
 
-    const url = lastRequestUrl(fetchMock);
-    expect(url).not.toContain('categoryId');
+    expect(lastRequestUrl(fetchMock)).toContain('categoryId=c1');
   });
 
   it('sends a valid kind (audio|font|template, the server AssetKind enum)', async () => {
@@ -132,5 +131,90 @@ describe('fetchAssets status mapping (R8e)', () => {
 
     const page = await fetchAssets({});
     expect(page.data[0].durationMs).toBe(65_000);
+  });
+});
+
+const ADMIN_ROW = {
+  id: 'a1',
+  slug: 'rain-1a2b3c4d',
+  kind: 'audio',
+  title: 'Rain',
+  author: 'Studio',
+  tags: [],
+  files: {
+    original: { url: 'https://cdn.test/slimshot/audio/a1.mp3', byteSize: 81_234, format: 'mp3', durationMs: 412 },
+    thumbnail: { url: 'https://cdn.test/slimshot/covers/c.png', byteSize: 2_000, format: 'png' },
+  },
+  detail: { durationMs: 412 },
+  stats: { downloadCount: 3 },
+  status: 'ready',
+  visibility: 'public',
+  categoryId: 'c1',
+  createdAt: '2026-10-01T10:00:00.000Z',
+  publishedAt: null,
+};
+
+describe('admin asset view', () => {
+  it('takes status, category, created date and cover from the server', async () => {
+    vi.stubGlobal('fetch', mockFetch({ success: true, data: [ADMIN_ROW], meta: { nextCursor: null } }));
+
+    const page = await fetchAssets({});
+    expect(page.data[0]).toMatchObject({
+      status: 'ready',
+      categoryId: 'c1',
+      createdAt: '2026-10-01T10:00:00.000Z',
+      coverUrl: 'https://cdn.test/slimshot/covers/c.png',
+    });
+  });
+
+  it('has no cover when the server sends no thumbnail', async () => {
+    const row = { ...ADMIN_ROW, files: { original: ADMIN_ROW.files.original } };
+    vi.stubGlobal('fetch', mockFetch({ success: true, data: [row], meta: { nextCursor: null } }));
+
+    const page = await fetchAssets({});
+    expect(page.data[0].coverUrl).toBeNull();
+  });
+
+  it('fetches one sound with its original file details', async () => {
+    const fetchMock = mockFetch({ success: true, data: ADMIN_ROW });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const asset = await fetchAsset('a1');
+    expect(lastRequestUrl(fetchMock)).toMatch(/\/assets\/a1$/);
+    expect(asset).toMatchObject({
+      id: 'a1',
+      slug: 'rain-1a2b3c4d',
+      title: 'Rain',
+      status: 'ready',
+      categoryId: 'c1',
+      durationMs: 412,
+      byteSize: 81_234,
+      format: 'mp3',
+      originalUrl: 'https://cdn.test/slimshot/audio/a1.mp3',
+      coverUrl: 'https://cdn.test/slimshot/covers/c.png',
+      publishedAt: null,
+    });
+  });
+
+  it('saves edits with PATCH, sending a null category to clear it', async () => {
+    const fetchMock = mockFetch({ success: true, data: { ...ADMIN_ROW, categoryId: null } });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const saved = await updateAsset('a1', { categoryId: null });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toMatch(/\/assets\/a1$/);
+    expect(init?.method).toBe('PATCH');
+    expect(init?.body).toBe('{"categoryId":null}');
+    expect(saved.categoryId).toBeNull();
+  });
+
+  it('removes a cover with DELETE and accepts the empty 204', async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(removeCover('a1')).resolves.toBeUndefined();
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(String(url)).toMatch(/\/assets\/a1\/cover$/);
+    expect(init.method).toBe('DELETE');
   });
 });

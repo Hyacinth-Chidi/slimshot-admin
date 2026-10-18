@@ -3,27 +3,8 @@ import { withRefresh } from '@/lib/auth/session';
 import type { AssetStatus } from '@/components/ui/status-pill';
 
 /**
- * Verified against ../slimshot_server/src (read-only), not the live API — the
- * api-reference's /assets sample was captured with an empty dev database, so
- * it never showed a real item.
- *
- * The server's list item (AssetKindDescriptor#toPublicDto, e.g.
- * kinds/audio/audio.descriptor.ts:59-73) returns
- * `{ id, slug, kind, title, author, tags, files, detail, stats }` — it does
- * NOT include `status`, `categoryId`, or `createdAt`, even though the Prisma
- * Asset row has all three (generated/prisma/models/Asset.ts). Every asset
- * kind descriptor funnels through the same AssetService.list()
- * (modules/assets/asset.service.ts:33-60), and AdminAssetsController.list
- * (modules/admin/admin-assets.controller.ts:33-38) calls that same method —
- * there is no richer admin-only serializer anywhere in the server. So the
- * fields this admin UI needs for the status pill, the category filter link
- * from Task 10, and the "created" column are genuinely absent from
- * GET /assets today. fetchAssets below maps the real response onto this
- * shape: `status` is filled in truthfully from an active status filter
- * (R8e — the server already filtered on it) and left `null` otherwise;
- * `categoryId`/`createdAt` are always `null` rather than a fabricated guess.
- * See task-8-report.md for the full writeup and suggested server fix (add
- * status/categoryId/createdAt to PublicAsset).
+ * The admin API's asset view (server spec §5.2): the public shape plus status,
+ * category, dates and the files the admin may see (original and cover).
  */
 export interface Asset {
   id: string;
@@ -34,14 +15,26 @@ export interface Asset {
   categoryId: string | null;
   durationMs: number | null;
   createdAt: string | null;
+  /** The cover image, when the asset has one. */
+  coverUrl: string | null;
 }
 
-/**
- * The server's real list-item shape (asset-kind.interface.ts:28-38). `detail`
- * is kind-specific — for `audio` it holds `durationMs`/`bpm`/`isLoopable`
- * (kinds/audio/audio.descriptor.ts:67-71); other kinds aren't implemented
- * server-side yet (kind-registry.ts throws for an unregistered kind).
- */
+/** One asset in full, for its own page. */
+export interface AssetDetail extends Asset {
+  slug: string;
+  byteSize: number | null;
+  format: string | null;
+  originalUrl: string | null;
+  publishedAt: string | null;
+}
+
+interface ServerFile {
+  url: string;
+  byteSize?: number;
+  format?: string;
+  durationMs?: number;
+}
+
 interface ServerAsset {
   id: string;
   slug: string;
@@ -49,9 +42,14 @@ interface ServerAsset {
   title: string;
   author: string;
   tags: string[];
-  files: Record<string, { url: string; durationMs?: number }>;
+  files: Record<string, ServerFile>;
   detail: Record<string, unknown>;
   stats: { downloadCount: number };
+  status?: AssetStatus;
+  visibility?: string;
+  categoryId?: string | null;
+  createdAt?: string;
+  publishedAt?: string | null;
 }
 
 /**
@@ -65,11 +63,7 @@ export type AssetPage = { data: Asset[]; meta: { nextCursor: string | null } };
 export interface AssetFilters {
   kind?: string;
   status?: AssetStatus;
-  /**
-   * Round-tripped through the URL (R8c) but never sent to the server — see
-   * R8f below. Kept on the filters type so filters-url.ts and the "view
-   * blocking assets" link (Task 10) still have somewhere to carry it.
-   */
+  /** That category and everything under it. */
   categoryId?: string;
   search?: string;
   cursor?: string;
@@ -88,46 +82,44 @@ function toDurationMs(detail: Record<string, unknown>): number | null {
   return typeof value === 'number' ? value : null;
 }
 
-/**
- * R8e: when the list is filtered by status, every returned row genuinely has
- * that status — the server already filtered on it (asset.service.ts:33-60).
- * Unfiltered, status is unknown and must not be guessed.
- */
-function toAsset(row: ServerAsset, activeStatus: AssetStatus | undefined): Asset {
+/** A server status wins; for an older server without one, an active status filter is still true. */
+function toAsset(row: ServerAsset, activeStatus?: AssetStatus): Asset {
   return {
     id: row.id,
     kind: row.kind,
     title: row.title,
     author: row.author || null,
-    status: activeStatus ?? null,
-    // Not present on the server's list item — see the module comment above.
-    categoryId: null,
-    createdAt: null,
+    status: row.status ?? activeStatus ?? null,
+    categoryId: row.categoryId ?? null,
+    createdAt: row.createdAt ?? null,
     durationMs: toDurationMs(row.detail),
+    coverUrl: row.files.thumbnail?.url || null,
+  };
+}
+
+function toDetail(row: ServerAsset): AssetDetail {
+  const original = row.files.original;
+  return {
+    ...toAsset(row),
+    slug: row.slug,
+    byteSize: original?.byteSize ?? null,
+    format: original?.format ?? null,
+    originalUrl: original?.url || null,
+    publishedAt: row.publishedAt ?? null,
   };
 }
 
 /**
- * ListAssetsDto (../slimshot_server/src/modules/assets/dto/list-assets.dto.ts)
- * accepts kind, status, q, cursor, limit — the free-text filter is `q`, not
- * `search`.
- *
- * R8f: the server runs a global `ValidationPipe({ whitelist: true,
- * forbidNonWhitelisted: true })` (main.ts:19-24). ListAssetsDto has no
- * `categoryId` field, so sending it 400s the whole request rather than being
- * silently ignored — confirmed by rereading main.ts after the first review
- * round; the original report's "harmless unknown param" was wrong.
- * `categoryId` is therefore dropped here, never forwarded to the API. An
- * invalid `kind` would similarly 400 (`@IsEnum` on ListAssetsDto), so `kind`
- * is validated against the server's known enum before being sent; an
- * unrecognized value is dropped rather than risk the request.
+ * ListAssetsDto accepts kind, status, categoryId, q, cursor, limit (the
+ * free-text filter is `q`, not `search`). The server rejects unknown params
+ * and an invalid `kind` (@IsEnum), so `kind` is checked against the known enum
+ * and an unrecognised value is dropped rather than risk the request.
  */
 export function fetchAssets(filters: AssetFilters = {}): Promise<AssetPage> {
   const { search, kind } = filters;
-  // categoryId is deliberately never read from `filters` — see the R8f note
-  // above — so `rest` below only ever contains status/cursor/limit.
-  const rest: Omit<AssetFilters, 'search' | 'kind' | 'categoryId'> = {
+  const rest: Omit<AssetFilters, 'search' | 'kind'> = {
     status: filters.status,
+    categoryId: filters.categoryId,
     cursor: filters.cursor,
     limit: filters.limit,
   };
@@ -144,6 +136,31 @@ export function fetchAssets(filters: AssetFilters = {}): Promise<AssetPage> {
       `/assets${suffix}`,
     );
     return { data: data.map((row) => toAsset(row, filters.status)), meta };
+  });
+}
+
+export function fetchAsset(id: string): Promise<AssetDetail> {
+  return withRefresh(async () => toDetail(await apiFetch<ServerAsset>(`/assets/${encodeURIComponent(id)}`)));
+}
+
+/** `categoryId: null` removes the category. Only the fields given are changed. */
+export function updateAsset(
+  id: string,
+  patch: { title?: string; authorName?: string; categoryId?: string | null },
+): Promise<AssetDetail> {
+  return withRefresh(async () =>
+    toDetail(
+      await apiFetch<ServerAsset>(`/assets/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      }),
+    ),
+  );
+}
+
+export function removeCover(id: string): Promise<void> {
+  return withRefresh(async () => {
+    await apiFetch<undefined>(`/assets/${encodeURIComponent(id)}/cover`, { method: 'DELETE' });
   });
 }
 

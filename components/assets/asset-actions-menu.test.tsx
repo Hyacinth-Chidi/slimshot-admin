@@ -49,6 +49,7 @@ const BASE_ASSET: Asset = {
   categoryId: null,
   durationMs: 65_000,
   createdAt: null,
+  coverUrl: null,
 };
 
 function noop() {}

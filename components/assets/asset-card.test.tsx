@@ -12,6 +12,7 @@ const ASSET: Asset = {
   categoryId: null,
   durationMs: 65_000,
   createdAt: '2026-09-20T10:00:00Z',
+  coverUrl: null,
 };
 
 function noop() {}

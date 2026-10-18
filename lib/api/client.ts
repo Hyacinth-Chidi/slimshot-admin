@@ -48,6 +48,9 @@ async function fetchAndParseJson<T>(
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
 
+  // 204 No Content (e.g. removing a cover): a success with nothing to parse.
+  if (res.status === 204) return { body: { success: true, data: undefined } as T, status: res.status };
+
   let body: T;
   try {
     body = (await res.json()) as T;
