@@ -19,7 +19,7 @@ export function AssetCard({
 }) {
   return (
     <div className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-surface p-3">
-      <Artwork id={asset.id} size={40} />
+      <Artwork id={asset.id} size={40} src={asset.coverUrl ?? undefined} />
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-text">{asset.title}</p>
         <p className="truncate text-sm text-muted">{asset.author ?? '—'}</p>

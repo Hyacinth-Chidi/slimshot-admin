@@ -69,7 +69,7 @@ export function AssetTable({
             )}
             <td className="py-2 pr-3">
               <div className="flex items-center gap-3">
-                <Artwork id={asset.id} size={32} />
+                <Artwork id={asset.id} size={32} src={asset.coverUrl ?? undefined} />
                 <span className="font-medium text-text">{asset.title}</span>
               </div>
             </td>

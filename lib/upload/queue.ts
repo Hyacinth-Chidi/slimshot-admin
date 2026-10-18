@@ -25,7 +25,7 @@ interface Hooks {
  * The server's ticket response (IngestService.createTicket, returning
  * TicketResponse — ../slimshot_server/src/modules/ingest/ingest.service.ts:19-26).
  */
-interface TicketResponse {
+export interface TicketResponse {
   assetId: string;
   sessionId: string;
   /** Presigned Cloudflare R2 URL: the signature in it is the only auth needed. */
@@ -37,7 +37,7 @@ interface TicketResponse {
   expiresAt: string;
 }
 
-interface FinalizeResponse {
+export interface FinalizeResponse {
   assetId: string;
   status: string;
 }
@@ -92,6 +92,23 @@ const UNREACHABLE_STORAGE =
   "Couldn't reach file storage. Check your connection, and that the bucket's CORS policy allows this site.";
 
 /**
+ * Sends a file to the ticket's presigned R2 URL. A different host: no
+ * Authorization header, no cookies. The browser sets Content-Length from the
+ * file, which R2 checks against the signed size. A rejected fetch here is
+ * almost always the bucket's CORS policy.
+ */
+export async function putToStorage(ticket: TicketResponse, file: File): Promise<void> {
+  const put = await fetch(ticket.uploadUrl, {
+    method: ticket.method,
+    headers: ticket.headers,
+    body: file,
+  }).catch(() => {
+    throw new Error(UNREACHABLE_STORAGE);
+  });
+  if (!put.ok) throw await directUploadError(put);
+}
+
+/**
  * Each file runs its own ticket -> direct-upload -> finalize sequence so one
  * failure does not fail the batch. finalize is reached ONLY after the direct
  * upload succeeds: finalizing an upload that never landed would create an
@@ -131,17 +148,7 @@ export async function uploadFile(
     );
 
     hooks.onState?.('uploading');
-    // A different host: no Authorization header, no cookies. The browser sets
-    // Content-Length from the file, which R2 checks against the signed size.
-    // A rejected fetch here is almost always the bucket's CORS policy.
-    const put = await fetch(ticket.uploadUrl, {
-      method: ticket.method,
-      headers: ticket.headers,
-      body: file,
-    }).catch(() => {
-      throw new Error(UNREACHABLE_STORAGE);
-    });
-    if (!put.ok) throw await directUploadError(put);
+    await putToStorage(ticket, file);
     hooks.onProgress?.(1);
 
     hooks.onState?.('finalizing');
