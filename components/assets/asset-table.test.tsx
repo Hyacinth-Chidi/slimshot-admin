@@ -24,7 +24,7 @@ describe('AssetTable', () => {
 });
 
 describe('AssetTable play button', () => {
-  it('puts a play button right after the duration', () => {
+  it('puts the play button in its own centred column, between duration and status', () => {
     render(
       <AssetTable
         assets={[{ ...ASSET, originalUrl: 'https://cdn.test/a1.mp3' }]}
@@ -33,8 +33,15 @@ describe('AssetTable play button', () => {
         onDelete={() => {}}
       />,
     );
-    const button = screen.getByRole('button', { name: 'Play Rain Loop' });
-    expect(button.closest('td')).toHaveTextContent('1:05');
+    const cell = screen.getByRole('button', { name: 'Play Rain Loop' }).closest('td')!;
+    expect(cell).toHaveClass('text-center');
+    expect(cell).not.toHaveTextContent('1:05');
+    expect(cell.previousElementSibling).toHaveTextContent('1:05');
+    expect(cell.nextElementSibling).toHaveTextContent('Ready');
+    // The header row keeps one cell per column.
+    const headers = screen.getAllByRole('columnheader');
+    const rowCells = cell.parentElement!.children;
+    expect(headers).toHaveLength(rowCells.length);
   });
 
   it('has no play button when the sound has no file', () => {

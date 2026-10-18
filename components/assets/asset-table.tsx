@@ -48,6 +48,9 @@ export function AssetTable({
           <th className="py-2 pr-3 font-medium">Title</th>
           <th className="py-2 pr-3 font-medium">Author</th>
           <th className="py-2 pr-3 font-medium">Duration</th>
+          <th className="py-2 pr-3">
+            <span className="sr-only">Play</span>
+          </th>
           <th className="py-2 pr-3 font-medium">Status</th>
           <th className="py-2 pr-3 font-medium">Created</th>
           <th className="w-10 py-2" />
@@ -78,11 +81,9 @@ export function AssetTable({
               </div>
             </td>
             <td className="py-2 pr-3 text-muted">{asset.author ?? '—'}</td>
-            <td className="py-2 pr-3 text-muted">
-              <div className="flex items-center gap-1">
-                <span>{formatDuration(asset.durationMs)}</span>
-                {asset.originalUrl && <PlayButton id={asset.id} title={asset.title} url={asset.originalUrl} />}
-              </div>
+            <td className="py-2 pr-3 text-muted">{formatDuration(asset.durationMs)}</td>
+            <td className="py-2 pr-3 text-center">
+              {asset.originalUrl && <PlayButton id={asset.id} title={asset.title} url={asset.originalUrl} />}
             </td>
             <td className="py-2 pr-3">
               {asset.status ? <StatusPill status={asset.status} /> : <span className="text-subtle">—</span>}
