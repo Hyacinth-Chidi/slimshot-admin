@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Asset } from '@/lib/api/assets';
 import { Artwork } from './artwork';
@@ -70,7 +71,9 @@ export function AssetTable({
             <td className="py-2 pr-3">
               <div className="flex items-center gap-3">
                 <Artwork id={asset.id} size={32} src={asset.coverUrl ?? undefined} />
-                <span className="font-medium text-text">{asset.title}</span>
+                <Link href={`/assets/${asset.id}`} className="font-medium text-text hover:underline">
+                  {asset.title}
+                </Link>
               </div>
             </td>
             <td className="py-2 pr-3 text-muted">{asset.author ?? '—'}</td>

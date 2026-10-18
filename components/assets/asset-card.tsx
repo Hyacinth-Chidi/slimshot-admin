@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Asset } from '@/lib/api/assets';
 import { Artwork } from './artwork';
@@ -21,7 +22,11 @@ export function AssetCard({
     <div className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-surface p-3">
       <Artwork id={asset.id} size={40} src={asset.coverUrl ?? undefined} />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-text">{asset.title}</p>
+        <p className="truncate font-medium text-text">
+          <Link href={`/assets/${asset.id}`} className="hover:underline">
+            {asset.title}
+          </Link>
+        </p>
         <p className="truncate text-sm text-muted">{asset.author ?? '—'}</p>
         <div className="mt-1 flex items-center gap-2 text-xs text-subtle">
           <span>{formatDuration(asset.durationMs)}</span>

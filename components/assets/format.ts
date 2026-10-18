@@ -8,6 +8,14 @@ export function formatDuration(durationMs: number | null): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
+/** A file size in B, KB or MB, one decimal at most. */
+export function formatBytes(bytes: number | null): string {
+  if (bytes === null || Number.isNaN(bytes)) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  const [value, unit] = bytes < 1024 * 1024 ? [bytes / 1024, 'KB'] : [bytes / (1024 * 1024), 'MB'];
+  return `${Number(value.toFixed(1))} ${unit}`;
+}
+
 /** Short absolute date for the table/card "created" field. */
 export function formatCreatedDate(createdAt: string | null): string {
   if (!createdAt) return '—';

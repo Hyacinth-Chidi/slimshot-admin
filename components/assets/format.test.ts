@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCreatedDate, formatDuration } from './format';
+import { formatCreatedDate, formatDuration, formatBytes } from './format';
 
 describe('formatDuration', () => {
   it('formats whole minutes as m:ss', () => {
@@ -34,5 +34,17 @@ describe('formatCreatedDate', () => {
 
   it('returns an em dash for an invalid date string', () => {
     expect(formatCreatedDate('not-a-date')).toBe('—');
+  });
+});
+
+describe('formatBytes', () => {
+  it.each([
+    [null, '—'],
+    [512, '512 B'],
+    [2_048, '2 KB'],
+    [1_572_864, '1.5 MB'],
+    [52_428_800, '50 MB'],
+  ])('%s bytes reads %s', (bytes, expected) => {
+    expect(formatBytes(bytes)).toBe(expected);
   });
 });
