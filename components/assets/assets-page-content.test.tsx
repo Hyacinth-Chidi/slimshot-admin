@@ -29,6 +29,7 @@ function makeAsset(id: string, overrides: Partial<Asset> = {}): Asset {
     coverUrl: null,
     originalUrl: null,
     previewUrl: null,
+    keptForGood: false,
     ...overrides,
   };
 }

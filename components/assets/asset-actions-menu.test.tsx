@@ -52,6 +52,7 @@ const BASE_ASSET: Asset = {
   coverUrl: null,
   originalUrl: null,
   previewUrl: null,
+  keptForGood: false,
 };
 
 function noop() {}
@@ -75,5 +76,32 @@ describe('AssetActionsMenu pointer-events regression (Radix dialog-after-menu)',
     await user.click(screen.getByRole('button', { name: /cancel/i }));
 
     expect(document.body.style.pointerEvents).not.toBe('none');
+  });
+});
+
+describe('AssetActionsMenu for fonts', () => {
+  async function openMenu(asset: Asset) {
+    render(<AssetActionsMenu asset={asset} onPublish={noop} onUnpublish={noop} onDelete={noop} />);
+    await userEvent.click(screen.getByRole('button', { name: `Actions for ${asset.title}` }));
+  }
+
+  it('offers no Unpublish or Delete for a font that was ever published, and says why', async () => {
+    await openMenu({ ...BASE_ASSET, kind: 'font', title: 'Lato Regular', status: 'published', keptForGood: true });
+    expect(screen.queryByRole('menuitem', { name: 'Unpublish' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull();
+    expect(screen.getByRole('menuitem', { name: /Kept for good/ })).toHaveAttribute('data-disabled');
+  });
+
+  it('still lets a never-published font be deleted', async () => {
+    await openMenu({ ...BASE_ASSET, kind: 'font', title: 'Lato Regular', status: 'ready', keptForGood: false });
+    expect(screen.getByRole('menuitem', { name: 'Publish' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+  });
+
+  it("leaves a sound's menu as it was", async () => {
+    await openMenu({ ...BASE_ASSET, status: 'published' });
+    expect(screen.getByRole('menuitem', { name: 'Unpublish' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Kept for good/ })).toBeNull();
   });
 });

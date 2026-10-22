@@ -15,6 +15,7 @@ const ASSET: Asset = {
   coverUrl: null,
   originalUrl: null,
   previewUrl: null,
+  keptForGood: false,
 };
 
 function noop() {}

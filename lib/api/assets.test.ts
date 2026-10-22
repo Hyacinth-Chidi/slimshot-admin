@@ -292,3 +292,18 @@ describe('admin font view', () => {
     expect((await fetchAsset('a1')).font).toBeNull();
   });
 });
+
+describe('fonts kept for good', () => {
+  it('marks a font that was ever published, and nothing else', async () => {
+    const kept = { ...FONT_ROW, id: 'f2', font: { ...FONT_ROW.font, firstPublishedAt: '2026-10-20T09:00:00.000Z' } };
+    vi.stubGlobal('fetch', mockFetch({ success: true, data: [kept, FONT_ROW, ADMIN_ROW], meta: { nextCursor: null } }));
+
+    const page = await fetchAssets({});
+    expect(page.data.map((a) => a.keptForGood)).toEqual([true, false, false]);
+  });
+
+  it('counts downloads on the detail view', async () => {
+    vi.stubGlobal('fetch', mockFetch({ success: true, data: { ...FONT_ROW, stats: { downloadCount: 41 } } }));
+    expect((await fetchAsset('f1')).downloadCount).toBe(41);
+  });
+});
