@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { assetHref } from '@/lib/library/kinds';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Asset } from '@/lib/api/assets';
 import { Artwork } from './artwork';
@@ -24,7 +25,7 @@ export function AssetCard({
       <Artwork id={asset.id} size={40} src={asset.coverUrl ?? undefined} />
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-text">
-          <Link href={`/assets/${asset.id}`} className="hover:underline">
+          <Link href={assetHref(asset.kind, asset.id)} className="hover:underline">
             {asset.title}
           </Link>
         </p>

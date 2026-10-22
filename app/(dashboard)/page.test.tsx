@@ -35,10 +35,10 @@ beforeEach(() => {
 });
 
 describe('OverviewPage recent activity', () => {
-  it('links "View all" to /audit', async () => {
+  it('links "View all" to the audit log under System', async () => {
     renderPage();
     const link = await screen.findByRole('link', { name: /view all/i });
-    expect(link).toHaveAttribute('href', '/audit');
+    expect(link).toHaveAttribute('href', '/system/audit');
   });
 });
 

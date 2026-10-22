@@ -48,7 +48,7 @@ describe('AssetCard', () => {
 describe('AssetCard link', () => {
   it("links the title to the sound's page", () => {
     render(<AssetCard asset={ASSET} onPublish={() => {}} onUnpublish={() => {}} onDelete={() => {}} />);
-    expect(screen.getByRole('link', { name: 'Rain Loop' })).toHaveAttribute('href', '/assets/a1');
+    expect(screen.getByRole('link', { name: 'Rain Loop' })).toHaveAttribute('href', '/audio/a1');
   });
 });
 

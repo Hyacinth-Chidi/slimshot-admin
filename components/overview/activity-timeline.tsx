@@ -28,7 +28,7 @@ export function ActivityTimeline({ entries }: { entries: AuditEntry[] | undefine
           Activity
         </h2>
         <Link
-          href="/audit"
+          href="/system/audit"
           className="flex h-11 items-center text-sm font-medium text-muted underline-offset-4 hover:text-text hover:underline md:h-auto"
         >
           View all

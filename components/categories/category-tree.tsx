@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
@@ -22,6 +23,8 @@ import {
   updateCategory,
   type Category,
 } from '@/lib/api/categories';
+import { cn } from '@/lib/cn';
+import { librarySection } from '@/lib/library/kinds';
 import { fetchKinds } from '@/lib/api/kinds';
 import { buildTree, moveSibling } from '@/lib/categories/tree-helpers';
 import { CategoryRow } from './category-row';
@@ -49,7 +52,17 @@ function siblingsOf(tree: Category[], id: string): Category[] {
   return parent ? (parent.children ?? []) : tree;
 }
 
-export function CategoryTree({ kind: initialKind }: { kind?: string }) {
+export function CategoryTree({
+  kind: initialKind,
+  lockKind = false,
+  emptyState,
+}: {
+  kind?: string;
+  /** Inside a Library section the kind is fixed: no kind picker. */
+  lockKind?: boolean;
+  /** What to show when the kind has no categories yet. */
+  emptyState?: ReactNode;
+}) {
   const queryClient = useQueryClient();
   // The user's explicit choice from the Select, if any. Starts undefined —
   // until kinds load, there is nothing valid to select, and nothing to
@@ -204,7 +217,8 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className={cn('flex items-center gap-3', lockKind ? 'justify-end' : 'justify-between')}>
+        {!lockKind && (
         <Select value={activeKind} onValueChange={setSelectedKind} disabled={loadedKinds.length === 0}>
           <SelectTrigger className="w-40" aria-label="Kind">
             <SelectValue placeholder="Kind" />
@@ -217,6 +231,7 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
             ))}
           </SelectContent>
         </Select>
+        )}
 
         <Button variant="primary" onClick={() => setCreateTarget({})} disabled={!activeKind}>
           <Plus className="size-4" />
@@ -233,7 +248,7 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
       ) : treeQuery.isLoading ? (
         <CategoryTreeSkeleton />
       ) : tree.length === 0 ? (
-        <p className="py-12 text-center text-sm text-subtle">No categories yet.</p>
+        (emptyState ?? <p className="py-12 text-center text-sm text-subtle">No categories yet.</p>)
       ) : (
         <ul className="flex flex-col gap-1">{renderNodes(tree, 0)}</ul>
       )}
@@ -258,6 +273,7 @@ export function CategoryTree({ kind: initialKind }: { kind?: string }) {
         open={deleteTarget !== null}
         name={deleteTarget?.name ?? ''}
         categoryId={deleteTarget?.id}
+        listHref={activeKind ? librarySection(activeKind)?.href : undefined}
         error={deleteError}
         pending={deleteMutation.isPending}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}

@@ -6,7 +6,7 @@ import { AssetDetailContent } from '@/components/assets/asset-detail-content';
 import { AssetDetailSkeleton } from '@/components/assets/asset-detail-skeleton';
 
 // A Client Component page reads its dynamic segment with useParams (Next 16).
-export default function AssetPage() {
+export default function SoundPage() {
   const { id } = useParams<{ id: string }>();
 
   return (

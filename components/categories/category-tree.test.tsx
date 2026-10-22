@@ -339,3 +339,31 @@ describe('CategoryTree loading', () => {
     expect(screen.queryByText(/Loading.*…/)).toBeNull();
   });
 });
+
+describe('CategoryTree inside a Library section', () => {
+  function renderLocked(emptyState?: ReactNode) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    function Wrapper({ children }: { children: ReactNode }) {
+      return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    }
+    return render(<CategoryTree kind="audio" lockKind emptyState={emptyState} />, { wrapper: Wrapper });
+  }
+
+  it('has no kind picker: the section already says which kind', async () => {
+    vi.mocked(categoriesApi.fetchTree).mockResolvedValue([]);
+    vi.mocked(kindsApi.fetchKinds).mockResolvedValue([
+      AUDIO_KIND,
+      { kind: 'font', label: 'Font', extensions: [], fileRoles: [] },
+    ]);
+    renderLocked();
+    await waitFor(() => expect(categoriesApi.fetchTree).toHaveBeenCalledWith('audio'));
+    expect(screen.queryByRole('combobox', { name: 'Kind' })).toBeNull();
+  });
+
+  it('shows the section\'s own empty state when there are no categories', async () => {
+    vi.mocked(categoriesApi.fetchTree).mockResolvedValue([]);
+    vi.mocked(kindsApi.fetchKinds).mockResolvedValue([AUDIO_KIND]);
+    renderLocked(<p>Create a top-level category named Sound effects.</p>);
+    expect(await screen.findByText('Create a top-level category named Sound effects.')).toBeInTheDocument();
+  });
+});

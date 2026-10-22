@@ -113,10 +113,12 @@ function FilterFields({
   filters,
   onChange,
   pathname,
+  kind,
 }: {
   filters: AssetFilters;
   onChange: (next: AssetFilters) => void;
   pathname: string;
+  kind?: string;
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -132,9 +134,9 @@ function FilterFields({
             return `${pathname}${params.toString() ? `?${params}` : ''}`;
           }}
         />
-        <KindSelect value={filters.kind} onChange={(kind) => onChange({ ...filters, kind })} />
+        {!kind && <KindSelect value={filters.kind} onChange={(next) => onChange({ ...filters, kind: next })} />}
         <CategoryPicker
-          kind={filters.kind ?? 'audio'}
+          kind={kind ?? filters.kind ?? 'audio'}
           value={filters.categoryId ?? null}
           onChange={(categoryId) => onChange({ ...filters, categoryId: categoryId ?? undefined })}
           noneLabel="All categories"
@@ -153,19 +155,24 @@ export function AssetFiltersBar({
   filters,
   onChange,
   pathname,
+  kind,
 }: {
   filters: AssetFilters;
   onChange: (next: AssetFilters) => void;
   /** Needed by the debounced search input to write history.replaceState URLs. */
   pathname: string;
+  /** Set inside a Library section: the kind is fixed, so there is no kind picker. */
+  kind?: string;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const activeCount = [filters.status, filters.search, filters.kind, filters.categoryId].filter(Boolean).length;
+  const activeCount = [filters.status, filters.search, kind ? undefined : filters.kind, filters.categoryId].filter(
+    Boolean,
+  ).length;
 
   return (
     <>
       <div className="hidden md:block">
-        <FilterFields filters={filters} onChange={onChange} pathname={pathname} />
+        <FilterFields filters={filters} onChange={onChange} pathname={pathname} kind={kind} />
       </div>
 
       <div className="md:hidden">
@@ -182,7 +189,7 @@ export function AssetFiltersBar({
               <SheetTitle>Filters</SheetTitle>
             </SheetHeader>
             <div className="px-4 pb-4">
-              <FilterFields filters={filters} onChange={onChange} pathname={pathname} />
+              <FilterFields filters={filters} onChange={onChange} pathname={pathname} kind={kind} />
             </div>
           </SheetContent>
         </Sheet>

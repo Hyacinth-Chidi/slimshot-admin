@@ -16,6 +16,8 @@ import { fetchAssets, type AssetFilters } from '@/lib/api/assets';
 import { Button } from '@/components/ui/button';
 import { UploadDrawer } from '@/components/upload/upload-drawer';
 import { AssetsListSkeleton } from './assets-skeleton';
+import { LibraryHeader } from '@/components/library/library-header';
+import { librarySection, type LibrarySection } from '@/lib/library/kinds';
 
 const PAGE_LIMIT = 25;
 
@@ -41,15 +43,18 @@ const PAGE_LIMIT = 25;
  * search input) stay mounted throughout.
  */
 function AssetsPageBody({
+  section,
   filters,
   pathname,
   onFiltersChange,
 }: {
+  section: LibrarySection;
   filters: AssetFilters;
   pathname: string;
   onFiltersChange: (next: AssetFilters) => void;
 }) {
-  const filterKey = searchParamsFromFilters(filters).toString();
+  // The section's own kind is not a filter the owner set.
+  const filterKey = searchParamsFromFilters({ ...filters, kind: undefined }).toString();
   const [pageIndex, setPageIndex] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
@@ -111,7 +116,7 @@ function AssetsPageBody({
 
   return (
     <div className="flex flex-col gap-4">
-      <AssetFiltersBar filters={filters} onChange={onFiltersChange} pathname={pathname} />
+      <AssetFiltersBar filters={filters} onChange={onFiltersChange} pathname={pathname} kind={section.kind} />
 
       <BulkActionBar
         count={selected.size}
@@ -129,14 +134,16 @@ function AssetsPageBody({
         // and "No assets yet." would be a lie. (A failed next-page fetch
         // keeps its loaded pages and is not a loading error.)
         <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
-          <p className="text-sm text-muted">Couldn’t load assets.</p>
+          <p className="text-sm text-muted">Couldn’t load {section.noun.many}.</p>
           <Button variant="secondary" onClick={() => query.refetch()}>
             Retry
           </Button>
         </div>
       ) : allAssets.length === 0 ? (
         <p className="py-12 text-center text-sm text-subtle">
-          {filterKey ? 'No assets match these filters.' : 'No assets yet.'}
+          {filterKey
+            ? `No ${section.noun.many} match these filters.`
+            : `No ${section.noun.many} yet. Use Upload to add the first one.`}
         </p>
       ) : (
         <>
@@ -189,30 +196,35 @@ function AssetsPageBody({
   );
 }
 
-export function AssetsPageContent() {
+/** One Library section's list (Audio > Sounds): only that kind, with its own upload. */
+export function AssetsPageContent({ kind }: { kind: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const section = librarySection(kind)!;
 
-  const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams]);
+  // The section fixes the kind; a stray ?kind= in the URL never widens the list.
+  const filters = useMemo(() => ({ ...filtersFromSearchParams(searchParams), kind }), [searchParams, kind]);
 
   function setFilters(next: AssetFilters) {
-    const params = searchParamsFromFilters(next);
+    const params = searchParamsFromFilters({ ...next, kind: undefined });
     router.push(`${pathname}${params.toString() ? `?${params}` : ''}`);
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">Assets</h1>
-        {/* Upload entry point: a primary button here at md+; below md the
-            same drawer opens from the FAB rendered after this header (R9b). */}
-        <Button variant="primary" className="hidden md:inline-flex" onClick={() => setUploadOpen(true)}>
-          <Plus className="size-4" />
-          Upload
-        </Button>
-      </div>
+      {/* Upload entry point: a primary button in the header at md+; below md
+          the same drawer opens from the FAB rendered further down (R9b). */}
+      <LibraryHeader
+        section={section}
+        actions={
+          <Button variant="primary" className="hidden md:inline-flex" onClick={() => setUploadOpen(true)}>
+            <Plus className="size-4" />
+            Upload
+          </Button>
+        }
+      />
 
       {/* Not keyed on the URL — AssetsPageBody resets pageIndex/selected
           itself (via the "adjust state during render" pattern) whenever the
@@ -220,6 +232,7 @@ export function AssetsPageContent() {
           it (and its in-flight debounce/focus) survives a filter change,
           including its own committed search. */}
       <AssetsPageBody
+        section={section}
         filters={filters}
         pathname={pathname}
         onFiltersChange={setFilters}
@@ -238,7 +251,7 @@ export function AssetsPageContent() {
         <Plus className="size-6" />
       </Button>
 
-      <UploadDrawer open={uploadOpen} onOpenChange={setUploadOpen} />
+      <UploadDrawer open={uploadOpen} onOpenChange={setUploadOpen} kind={kind} />
     </div>
   );
 }

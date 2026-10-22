@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { StatusPill } from '@/components/ui/status-pill';
 import { fetchAsset } from '@/lib/api/assets';
 import { ApiError } from '@/lib/api/client';
+import { librarySection } from '@/lib/library/kinds';
+import { PageHeader } from '@/components/shell/page-header';
 import { AssetDetailSkeleton } from './asset-detail-skeleton';
 import { AssetEditForm } from './asset-edit-form';
 import { CoverPanel } from './cover-panel';
@@ -20,10 +22,11 @@ export function AssetDetailContent({ id }: { id: string }) {
   const query = useQuery({ queryKey: ['assets', 'detail', id], queryFn: () => fetchAsset(id) });
   const { runAction, pendingId } = useAssetActions();
 
+  const section = librarySection(query.data?.kind ?? 'audio') ?? librarySection('audio')!;
   const back = (
-    <Link href="/assets" className="inline-flex w-fit items-center gap-1 text-sm text-muted hover:text-text">
+    <Link href={section.href} className="inline-flex w-fit items-center gap-1 text-sm text-muted hover:text-text">
       <ArrowLeft size={16} aria-hidden="true" />
-      Back to assets
+      Back to {section.label.toLowerCase()}
     </Link>
   );
 
@@ -56,11 +59,12 @@ export function AssetDetailContent({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       {back}
+      <PageHeader crumbs={[{ label: 'Library' }, { label: section.label, href: section.href }]} title={asset.title} />
       <section className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 md:flex-row md:p-6">
         <CoverPanel assetId={asset.id} coverUrl={asset.coverUrl} />
         <div className="flex min-w-0 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-xl font-semibold text-text">{asset.title}</h1>
+            <p className="truncate text-lg font-semibold text-text">{asset.title}</p>
             {asset.status && <StatusPill status={asset.status} />}
           </div>
           <p className="flex flex-wrap gap-x-3 text-sm text-muted">

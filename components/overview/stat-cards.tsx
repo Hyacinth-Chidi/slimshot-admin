@@ -129,7 +129,7 @@ export function StatCards({ stats }: { stats: OverviewStats | undefined }) {
       >
         {failed > 0 ? (
           <Link
-            href="/assets?status=failed"
+            href="/audio?status=failed"
             className="-my-3 inline-flex h-11 items-center font-medium text-text underline underline-offset-4 md:my-0 md:h-auto"
           >
             Review failed assets

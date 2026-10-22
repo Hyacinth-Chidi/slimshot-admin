@@ -11,7 +11,7 @@ const push = vi.fn((url: string) => {
 });
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/assets',
+  usePathname: () => '/audio',
   useRouter: () => ({ push }),
   useSearchParams: () => new URLSearchParams(currentSearch),
 }));
@@ -60,7 +60,7 @@ function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const utils = render(
     <QueryClientProvider client={client}>
-      <AssetsPageContent />
+      <AssetsPageContent kind="audio" />
     </QueryClientProvider>,
   );
   return {
@@ -68,7 +68,7 @@ function renderPage() {
     rerenderPage: () =>
       utils.rerender(
         <QueryClientProvider client={client}>
-          <AssetsPageContent />
+          <AssetsPageContent kind="audio" />
         </QueryClientProvider>,
       ),
   };
@@ -235,8 +235,8 @@ describe('AssetsPageContent load states (T8a)', () => {
     const user = userEvent.setup();
     renderPage();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn.t load assets/i);
-    expect(screen.queryByText(/no assets yet/i)).not.toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn.t load sounds/i);
+    expect(screen.queryByText(/no sounds yet/i)).not.toBeInTheDocument();
 
     fetchAssetsMock.mockResolvedValueOnce({ data: [makeAsset('a1')], meta: { nextCursor: null } });
     await user.click(screen.getByRole('button', { name: /retry/i }));
@@ -246,18 +246,18 @@ describe('AssetsPageContent load states (T8a)', () => {
     expect(fetchAssetsMock).toHaveBeenCalledTimes(2);
   });
 
-  it('says "No assets yet." when nothing exists and no filter is set', async () => {
+  it('says "No sounds yet." when nothing exists and no filter is set', async () => {
     fetchAssetsMock.mockResolvedValue({ data: [], meta: { nextCursor: null } });
     renderPage();
-    expect(await screen.findByText('No assets yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No sounds yet. Use Upload to add the first one.')).toBeInTheDocument();
   });
 
   it('says "No assets match these filters." when filters are active and nothing matches', async () => {
     currentSearch = 'status=published&search=rain';
     fetchAssetsMock.mockResolvedValue({ data: [], meta: { nextCursor: null } });
     renderPage();
-    expect(await screen.findByText('No assets match these filters.')).toBeInTheDocument();
-    expect(screen.queryByText('No assets yet.')).not.toBeInTheDocument();
+    expect(await screen.findByText('No sounds match these filters.')).toBeInTheDocument();
+    expect(screen.queryByText(/No sounds yet/)).not.toBeInTheDocument();
   });
 });
 
@@ -269,5 +269,27 @@ describe('AssetsPageContent loading', () => {
     expect(within(region).getByTestId('assets-skeleton-cards')).toHaveClass('md:hidden');
     expect(within(region).getByTestId('assets-skeleton-table')).toHaveClass('hidden', 'md:block');
     expect(screen.queryByText('Loading assets…')).toBeNull();
+  });
+});
+
+describe('AssetsPageContent as the Audio page of the Library', () => {
+  it('shows Library > Audio, with Sounds and Categories tabs', async () => {
+    fetchAssetsMock.mockResolvedValue({ data: [], meta: { nextCursor: null } });
+    renderPage();
+    const trail = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(trail).getByText('Library')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Audio' })).toBeInTheDocument();
+    const tabs = screen.getByRole('navigation', { name: 'Audio sections' });
+    expect(within(tabs).getByRole('link', { name: 'Sounds' })).toHaveAttribute('href', '/audio');
+    expect(within(tabs).getByRole('link', { name: 'Categories' })).toHaveAttribute('href', '/audio/categories');
+  });
+
+  it('lists only audio, whatever the URL says, and has no kind filter', async () => {
+    currentSearch = 'kind=font';
+    fetchAssetsMock.mockResolvedValue({ data: [], meta: { nextCursor: null } });
+    renderPage();
+    await vi.waitFor(() => expect(fetchAssetsMock).toHaveBeenCalled());
+    expect(fetchAssetsMock).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'audio' }));
+    expect(screen.queryByRole('combobox', { name: 'Kind' })).toBeNull();
   });
 });

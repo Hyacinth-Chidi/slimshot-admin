@@ -94,7 +94,7 @@ export function UploadWaveform({
         <p className="mt-2 text-sm text-muted">
           Uploaded audio shows up here, one column per day.{' '}
           <Link
-            href="/assets"
+            href="/audio"
             className="inline-flex h-11 items-center font-medium text-text underline underline-offset-4 md:h-auto"
           >
             Upload audio

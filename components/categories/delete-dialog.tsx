@@ -23,6 +23,7 @@ export function DeleteDialog({
   open,
   name,
   categoryId,
+  listHref = '/audio',
   error,
   onConfirm,
   onClose,
@@ -31,13 +32,15 @@ export function DeleteDialog({
   open: boolean;
   name: string;
   categoryId?: string;
+  /** The list of the category's kind (its Library section). Defaults to Audio. */
+  listHref?: string;
   error: ApiError | null;
   onConfirm: () => void;
   onClose: () => void;
   pending?: boolean;
 }) {
   const isConflict = error?.status === 409;
-  const viewHref = categoryId ? `/assets?categoryId=${encodeURIComponent(categoryId)}` : '/assets';
+  const viewHref = categoryId ? `${listHref}?categoryId=${encodeURIComponent(categoryId)}` : listHref;
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>

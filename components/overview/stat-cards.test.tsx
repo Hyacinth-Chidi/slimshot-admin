@@ -56,7 +56,7 @@ describe('StatCards', () => {
     expect(card('failed')).toHaveAttribute('data-tone', 'error');
     expect(screen.getByRole('link', { name: 'Review failed assets' })).toHaveAttribute(
       'href',
-      '/assets?status=failed',
+      '/audio?status=failed',
     );
   });
 

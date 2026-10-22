@@ -75,7 +75,16 @@ function DropZone({
   );
 }
 
-export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function UploadDrawer({
+  open,
+  onOpenChange,
+  kind,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Opened from a Library section: uploads go to that kind, with no kind picker. */
+  kind?: string;
+}) {
   const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(queueReducer, { items: [] });
   // A ref mirror of `state`, so orchestrator code started from an event
@@ -91,7 +100,7 @@ export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChan
   const kindsQuery = useQuery({ queryKey: ['kinds'], queryFn: fetchKinds, enabled: open });
   const kinds: Kind[] = useMemo(() => kindsQuery.data ?? [], [kindsQuery.data]);
   const [selectedKind, setSelectedKind] = useState<string | undefined>(undefined);
-  const activeKind = selectedKind ?? kinds[0]?.kind;
+  const activeKind = kind ?? selectedKind ?? kinds[0]?.kind;
   // Applies to files added after it is chosen: changing it never re-files queued ones.
   const [categoryId, setCategoryId] = useState<string | null>(null);
 
@@ -151,7 +160,7 @@ export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChan
         </DialogHeader>
 
         <div className="flex flex-col gap-3 overflow-y-auto px-1">
-          {kinds.length > 1 && (
+          {!kind && kinds.length > 1 && (
             <Select value={activeKind} onValueChange={setSelectedKind}>
               <SelectTrigger aria-label="Kind">
                 <SelectValue placeholder="Choose a kind" />
@@ -175,7 +184,9 @@ export function UploadDrawer({ open, onOpenChange }: { open: boolean; onOpenChan
             />
           )}
 
-          {activeKind ? (
+          {/* Only once the kind's accepted extensions are known: a file dropped
+              before that would be checked against an empty list and refused. */}
+          {activeKind && kindsQuery.data ? (
             <DropZone onFiles={handleFiles} acceptExtensions={acceptedExtensions} />
           ) : (
             <LoadingRegion label="Loading upload kinds">

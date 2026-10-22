@@ -47,13 +47,23 @@ describe('DeleteDialog R10a: categoryId-scoped view link', () => {
     );
     expect(screen.getByRole('link', { name: /view/i })).toHaveAttribute(
       'href',
-      '/assets?categoryId=c1',
+      '/audio?categoryId=c1',
     );
   });
 
   it('links to plain /assets when categoryId is absent', () => {
     const err = new ApiError({ code: 'CONFLICT', message: '3 assets use this category.', traceId: 't' }, 409);
     render(<DeleteDialog open name="SFX" error={err} onConfirm={() => {}} onClose={() => {}} />);
-    expect(screen.getByRole('link', { name: /view/i })).toHaveAttribute('href', '/assets');
+    expect(screen.getByRole('link', { name: /view/i })).toHaveAttribute('href', '/audio');
+  });
+});
+
+describe('DeleteDialog view link per kind', () => {
+  it("opens the category's own kind section", () => {
+    const err = new ApiError({ code: 'CONFLICT', message: '3 fonts use this category.', traceId: 't' }, 409);
+    render(
+      <DeleteDialog open name="Serif" categoryId="c9" listHref="/fonts" error={err} onConfirm={() => {}} onClose={() => {}} />,
+    );
+    expect(screen.getByRole('link', { name: /view/i })).toHaveAttribute('href', '/fonts?categoryId=c9');
   });
 });

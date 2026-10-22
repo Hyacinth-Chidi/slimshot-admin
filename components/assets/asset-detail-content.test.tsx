@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,7 +10,7 @@ import { toast } from '@/lib/use-toast';
 import { AssetDetailContent } from './asset-detail-content';
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/assets/a1',
+  usePathname: () => '/audio/a1',
   useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -97,7 +97,9 @@ describe('AssetDetailContent', () => {
     expect(screen.getByText('Ready')).toBeInTheDocument();
     expect(screen.getByText('1:05')).toBeInTheDocument();
     expect(screen.getByText('1.5 MB')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /back to assets/i })).toHaveAttribute('href', '/assets');
+    expect(screen.getByRole('link', { name: /back to audio/i })).toHaveAttribute('href', '/audio');
+    const trail = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(trail).getByRole('link', { name: 'Audio' })).toHaveAttribute('href', '/audio');
   });
 
   it('says the sound does not exist on a 404', async () => {

@@ -41,7 +41,7 @@ describe('UploadWaveform', () => {
   it('invites an upload when the month was silent', () => {
     render(<UploadWaveform points={days(Array(30).fill(0))} />);
     expect(screen.getByRole('heading', { name: 'No uploads in the last 30 days' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Upload audio' })).toHaveAttribute('href', '/assets');
+    expect(screen.getByRole('link', { name: 'Upload audio' })).toHaveAttribute('href', '/audio');
   });
 
   it('shows a neutral heading and no numbers while loading', () => {

@@ -188,3 +188,21 @@ describe('UploadDrawer category', () => {
     expect(JSON.parse(ticket.init!.body as string).categoryId).toBe('ui');
   });
 });
+
+describe('UploadDrawer for one kind', () => {
+  it('uploads to the kind of the page it was opened from, with no kind picker', async () => {
+    vi.mocked(kindsApi.fetchKinds).mockResolvedValueOnce([
+      { kind: 'audio', label: 'Audio', extensions: ['.mp3'], fileRoles: [] },
+      { kind: 'font', label: 'Font', extensions: ['.ttf'], fileRoles: [] },
+    ]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <UploadDrawer open onOpenChange={() => {}} kind="audio" />
+      </QueryClientProvider>,
+    );
+    await screen.findByText('Choose files');
+    expect(screen.queryByRole('combobox', { name: 'Kind' })).toBeNull();
+    expect(document.querySelector('input[type="file"]')).toHaveAttribute('accept', '.mp3');
+  });
+});
