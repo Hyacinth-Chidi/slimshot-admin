@@ -52,7 +52,6 @@ const BASE_ASSET: Asset = {
   coverUrl: null,
   originalUrl: null,
   previewUrl: null,
-  keptForGood: false,
   face: null,
   version: null,
   downloadCount: 0,
@@ -88,15 +87,15 @@ describe('AssetActionsMenu for fonts', () => {
     await userEvent.click(screen.getByRole('button', { name: `Actions for ${asset.title}` }));
   }
 
-  it('offers no Unpublish or Delete for a font that was ever published, and says why', async () => {
-    await openMenu({ ...BASE_ASSET, kind: 'font', title: 'Lato Regular', status: 'published', keptForGood: true });
-    expect(screen.queryByRole('menuitem', { name: 'Unpublish' })).toBeNull();
-    expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull();
-    expect(screen.getByRole('menuitem', { name: /Kept for good/ })).toHaveAttribute('data-disabled');
+  it('offers Unpublish and Delete for a published font, like a sound', async () => {
+    await openMenu({ ...BASE_ASSET, kind: 'font', title: 'Lato Regular', status: 'published' });
+    expect(screen.getByRole('menuitem', { name: 'Unpublish' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Kept for good/ })).toBeNull();
   });
 
-  it('still lets a never-published font be deleted', async () => {
-    await openMenu({ ...BASE_ASSET, kind: 'font', title: 'Lato Regular', status: 'ready', keptForGood: false });
+  it('offers Publish and Delete for a font not yet published', async () => {
+    await openMenu({ ...BASE_ASSET, kind: 'font', title: 'Lato Regular', status: 'ready' });
     expect(screen.getByRole('menuitem', { name: 'Publish' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });

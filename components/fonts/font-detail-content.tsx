@@ -83,9 +83,8 @@ function FontDetailSkeleton() {
 }
 
 /**
- * One font: its preview, what the server read from the file, its lifecycle,
- * a new version, and the fields the owner edits. Once published it is kept
- * for good, so the page offers neither Unpublish nor Delete.
+ * One font: its preview, what the server read from the file, Publish or
+ * Unpublish (like a sound), a new version, and the fields the owner edits.
  */
 export function FontDetailContent({ id }: { id: string }) {
   const query = useQuery({ queryKey: ['assets', 'detail', id], queryFn: () => fetchAsset(id) });
@@ -124,7 +123,7 @@ export function FontDetailContent({ id }: { id: string }) {
   }
 
   const pending = pendingId === asset.id;
-  const canPublish = !asset.keptForGood && asset.status !== null && PUBLISHABLE.has(asset.status);
+  const canPublish = asset.status !== null && PUBLISHABLE.has(asset.status);
 
   return (
     <div className="flex flex-col gap-4 md:gap-6">
@@ -150,6 +149,17 @@ export function FontDetailContent({ id }: { id: string }) {
                 Publish
               </Button>
             )}
+            {asset.status === 'published' && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-11 md:h-8"
+                disabled={pending}
+                onClick={() => runAction('unpublish', asset.id)}
+              >
+                Unpublish
+              </Button>
+            )}
             {asset.originalUrl && (
               <a
                 href={asset.originalUrl}
@@ -165,12 +175,6 @@ export function FontDetailContent({ id }: { id: string }) {
           {canPublish && !asset.previewUrl && (
             <p id="font-publish-reason" className="text-sm text-subtle">
               No preview yet, so it can’t be published. Upload the file again as a new version to draw it.
-            </p>
-          )}
-          {asset.keptForGood && (
-            <p className="text-sm text-subtle">
-              This font stays available for the projects that use it, so it can’t be unpublished or deleted. To take
-              it out of the app’s list, move it out of Trending.
             </p>
           )}
         </div>

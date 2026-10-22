@@ -21,11 +21,6 @@ export interface Asset {
   originalUrl: string | null;
   /** A font's preview image, drawn by the server from the file. */
   previewUrl: string | null;
-  /**
-   * A font that was ever published: projects may use it, so the server
-   * refuses to unpublish or delete it. Always false for sounds.
-   */
-  keptForGood: boolean;
   /** A font's family and style as read from the file ("Lato · Bold"); null for sounds. */
   face: string | null;
   /** A font's current version; null for sounds. */
@@ -41,7 +36,7 @@ export interface FontDetail {
   postscriptName: string | null;
   version: number;
   sortOrder: number;
-  /** Set once, on first publish: from then on the font is kept for good. */
+  /** Set once, on the first publish. */
   firstPublishedAt: string | null;
   license: string | null;
 }
@@ -125,7 +120,6 @@ function toAsset(row: ServerAsset, activeStatus?: AssetStatus): Asset {
     coverUrl: row.files.thumbnail?.url || null,
     originalUrl: row.files.original?.url || null,
     previewUrl: row.files.specimen?.url || null,
-    keptForGood: Boolean(row.font?.firstPublishedAt),
     face: row.font ? `${row.font.familyName} · ${row.font.styleName}` : null,
     version: row.font?.version ?? null,
     downloadCount: row.stats.downloadCount,

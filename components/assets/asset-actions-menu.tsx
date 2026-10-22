@@ -85,23 +85,14 @@ export function AssetActionsMenu({
               Publish
             </DropdownMenuItem>
           )}
-          {/* A font that was ever published may be in people's projects: the
-              server refuses to unpublish or delete it (409), so neither is
-              offered, and the menu says why. */}
-          {asset.keptForGood ? (
-            <DropdownMenuItem disabled>Kept for good: projects may use it</DropdownMenuItem>
-          ) : (
-            <>
-              {canUnpublish(asset.status) && (
-                <DropdownMenuItem onSelect={() => onUnpublish(asset.id)} disabled={pending}>
-                  Unpublish
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
-                Delete
-              </DropdownMenuItem>
-            </>
+          {canUnpublish(asset.status) && (
+            <DropdownMenuItem onSelect={() => onUnpublish(asset.id)} disabled={pending}>
+              Unpublish
+            </DropdownMenuItem>
           )}
+          <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
+            Delete
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <DeleteAssetDialog

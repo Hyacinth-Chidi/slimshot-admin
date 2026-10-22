@@ -293,15 +293,7 @@ describe('admin font view', () => {
   });
 });
 
-describe('fonts kept for good', () => {
-  it('marks a font that was ever published, and nothing else', async () => {
-    const kept = { ...FONT_ROW, id: 'f2', font: { ...FONT_ROW.font, firstPublishedAt: '2026-10-20T09:00:00.000Z' } };
-    vi.stubGlobal('fetch', mockFetch({ success: true, data: [kept, FONT_ROW, ADMIN_ROW], meta: { nextCursor: null } }));
-
-    const page = await fetchAssets({});
-    expect(page.data.map((a) => a.keptForGood)).toEqual([true, false, false]);
-  });
-
+describe('font list fields', () => {
   it("gives each list row a font's family and style, version and downloads", async () => {
     const row = { ...FONT_ROW, stats: { downloadCount: 41 } };
     vi.stubGlobal('fetch', mockFetch({ success: true, data: [row, ADMIN_ROW], meta: { nextCursor: null } }));

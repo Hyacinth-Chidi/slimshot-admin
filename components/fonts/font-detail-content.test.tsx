@@ -48,7 +48,6 @@ function makeFont(overrides: Partial<AssetDetail> = {}, font: Partial<FontDetail
     originalUrl: 'https://cdn.test/slimshot/fonts/f1.ttf',
     previewUrl: 'https://cdn.test/slimshot/fonts/previews/p1.png',
     publishedAt: null,
-    keptForGood: false,
     face: 'Lato · Regular',
     version: 2,
     downloadCount: 41,
@@ -138,7 +137,7 @@ describe('FontDetailContent', () => {
     expect(publish).toHaveAccessibleDescription(/No preview yet/);
   });
 
-  it('publishes a ready font that was never published', async () => {
+  it('publishes a ready font', async () => {
     vi.mocked(assetsApi.fetchAsset).mockResolvedValue(makeFont());
     vi.mocked(assetsApi.publishAsset).mockResolvedValue({});
     renderPage();
@@ -147,15 +146,28 @@ describe('FontDetailContent', () => {
     await vi.waitFor(() => expect(assetsApi.publishAsset).toHaveBeenCalledWith('f1'));
   });
 
-  it('offers neither Publish nor Unpublish once the font was published, and says it is kept', async () => {
+  it('unpublishes a published font, like a sound', async () => {
     vi.mocked(assetsApi.fetchAsset).mockResolvedValue(
-      makeFont({ status: 'published', keptForGood: true }, { firstPublishedAt: '2026-10-20T09:00:00.000Z' }),
+      makeFont({ status: 'published' }, { firstPublishedAt: '2026-10-20T09:00:00.000Z' }),
     );
+    vi.mocked(assetsApi.unpublishAsset).mockResolvedValue({});
     renderPage();
 
-    expect(await screen.findByText(/stays available for the projects that use it/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Unpublish' }));
+    await vi.waitFor(() => expect(assetsApi.unpublishAsset).toHaveBeenCalledWith('f1'));
     expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Unpublish' })).toBeNull();
+    expect(screen.queryByText(/can’t be unpublished or deleted/)).toBeNull();
+  });
+
+  it('publishes again a font that was published before, then unpublished', async () => {
+    vi.mocked(assetsApi.fetchAsset).mockResolvedValue(
+      makeFont({ status: 'ready' }, { firstPublishedAt: '2026-10-20T09:00:00.000Z' }),
+    );
+    vi.mocked(assetsApi.publishAsset).mockResolvedValue({});
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Publish' }));
+    await vi.waitFor(() => expect(assetsApi.publishAsset).toHaveBeenCalledWith('f1'));
   });
 
   it('saves the display name and category, then shows the redrawn preview', async () => {

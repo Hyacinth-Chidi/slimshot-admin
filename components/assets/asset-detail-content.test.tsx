@@ -48,7 +48,6 @@ function makeAsset(overrides: Partial<AssetDetail> = {}): AssetDetail {
     originalUrl: 'https://cdn.test/slimshot/audio/a1.mp3',
     publishedAt: null,
     previewUrl: null,
-    keptForGood: false,
     face: null,
     version: null,
     downloadCount: 0,
