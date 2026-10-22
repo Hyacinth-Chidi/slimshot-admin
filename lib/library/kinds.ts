@@ -16,6 +16,10 @@ export interface LibrarySection {
    * them shows nothing in the app, so the Categories tab says which to create.
    */
   appRoots: { slug: string; name: string }[];
+  /** What the app does with those categories, said under the empty Categories tab. */
+  categoriesHint: string;
+  /** Pages of the section beyond its list and Categories, as tabs between the two. */
+  extraTabs: { label: string; href: string }[];
 }
 
 const SECTIONS: Record<string, LibrarySection> = {
@@ -29,6 +33,8 @@ const SECTIONS: Record<string, LibrarySection> = {
       { slug: 'sound-effects', name: 'Sound effects' },
       { slug: 'music', name: 'Music' },
     ],
+    categoriesHint: 'The app shows its sub-categories as the pills to browse by.',
+    extraTabs: [],
   },
   font: {
     kind: 'font',
@@ -37,6 +43,8 @@ const SECTIONS: Record<string, LibrarySection> = {
     icon: Type,
     noun: { one: 'font', many: 'fonts' },
     appRoots: [{ slug: 'trending', name: 'Trending' }],
+    categoriesHint: 'The app lists the fonts filed under it, in the order you set on the Trending order tab.',
+    extraTabs: [{ label: 'Trending order', href: '/fonts/order' }],
   },
 };
 

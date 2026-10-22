@@ -66,3 +66,27 @@ describe('AssetCard play button', () => {
     expect(screen.getByRole('button', { name: 'Play Rain Loop' })).toBeInTheDocument();
   });
 });
+
+describe('AssetCard for a font', () => {
+  const FONT: Asset = {
+    ...ASSET,
+    id: 'f1',
+    kind: 'font',
+    title: 'Lato Regular',
+    author: null,
+    durationMs: null,
+    originalUrl: 'https://cdn.test/slimshot/fonts/f1.ttf',
+    previewUrl: 'https://cdn.test/slimshot/fonts/previews/p1.png',
+  };
+
+  it('shows the preview tile instead of a cover, with no author, duration or play button', () => {
+    render(<AssetCard asset={FONT} onPublish={noop} onUnpublish={noop} onDelete={noop} />);
+    expect(screen.getByRole('img', { name: 'Lato Regular preview' })).toHaveAttribute(
+      'src',
+      'https://cdn.test/slimshot/fonts/previews/p1.png',
+    );
+    expect(screen.getByRole('link', { name: 'Lato Regular' })).toHaveAttribute('href', '/fonts/f1');
+    expect(screen.queryByRole('button', { name: /^Play/ })).toBeNull();
+    expect(screen.queryByText('0:00')).toBeNull();
+  });
+});

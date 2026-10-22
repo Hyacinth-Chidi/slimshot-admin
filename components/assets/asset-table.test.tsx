@@ -50,3 +50,36 @@ describe('AssetTable play button', () => {
     expect(screen.queryByRole('button', { name: 'Play Rain Loop' })).toBeNull();
   });
 });
+
+describe('AssetTable for fonts', () => {
+  const FONT: Asset = {
+    ...ASSET,
+    id: 'f1',
+    kind: 'font',
+    title: 'Lato Regular',
+    author: null,
+    durationMs: null,
+    originalUrl: 'https://cdn.test/slimshot/fonts/f1.ttf',
+    previewUrl: 'https://cdn.test/slimshot/fonts/previews/p1.png',
+  };
+
+  it('shows the preview on a dark tile, and no sound columns', () => {
+    render(<AssetTable kind="font" assets={[FONT]} onPublish={() => {}} onUnpublish={() => {}} onDelete={() => {}} />);
+
+    const preview = screen.getByRole('img', { name: 'Lato Regular preview' });
+    expect(preview).toHaveAttribute('src', 'https://cdn.test/slimshot/fonts/previews/p1.png');
+    expect(preview.parentElement).toHaveClass('bg-bg');
+    expect(screen.getByRole('link', { name: 'Lato Regular' })).toHaveAttribute('href', '/fonts/f1');
+    for (const header of ['Author', 'Duration']) expect(screen.queryByRole('columnheader', { name: header })).toBeNull();
+    expect(screen.getByRole('columnheader', { name: 'Font' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Play/ })).toBeNull();
+  });
+
+  it('says so when the preview is not drawn yet', () => {
+    render(
+      <AssetTable kind="font" assets={[{ ...FONT, previewUrl: null }]} onPublish={() => {}} onUnpublish={() => {}} onDelete={() => {}} />,
+    );
+    expect(screen.queryByRole('img')).toBeNull();
+    expect(screen.getByText('No preview')).toBeInTheDocument();
+  });
+});

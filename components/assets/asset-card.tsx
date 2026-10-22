@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { assetHref } from '@/lib/library/kinds';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Asset } from '@/lib/api/assets';
-import { Artwork } from './artwork';
+import { Artwork, FontTile } from './artwork';
 import { formatCreatedDate, formatDuration } from './format';
 import { AssetActionsMenu } from './asset-actions-menu';
 import { PlayButton } from './play-button';
@@ -20,19 +20,24 @@ export function AssetCard({
   onDelete: (id: string) => void;
   pending?: boolean;
 }) {
+  const isFont = asset.kind === 'font';
   return (
     <div className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-surface p-3">
-      <Artwork id={asset.id} size={40} src={asset.coverUrl ?? undefined} />
+      {isFont ? (
+        <FontTile src={asset.previewUrl} title={asset.title} width={84} />
+      ) : (
+        <Artwork id={asset.id} size={40} src={asset.coverUrl ?? undefined} />
+      )}
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-text">
           <Link href={assetHref(asset.kind, asset.id)} className="hover:underline">
             {asset.title}
           </Link>
         </p>
-        <p className="truncate text-sm text-muted">{asset.author ?? '—'}</p>
+        {!isFont && <p className="truncate text-sm text-muted">{asset.author ?? '—'}</p>}
         <div className="mt-1 flex items-center gap-2 text-xs text-subtle">
-          <span>{formatDuration(asset.durationMs)}</span>
-          {asset.originalUrl && <PlayButton id={asset.id} title={asset.title} url={asset.originalUrl} />}
+          {!isFont && <span>{formatDuration(asset.durationMs)}</span>}
+          {!isFont && asset.originalUrl && <PlayButton id={asset.id} title={asset.title} url={asset.originalUrl} />}
           {asset.status ? <StatusPill status={asset.status} /> : null}
           {/* Table and card show the same fields (spec ruling 10) — created was missing here. */}
           <span>{formatCreatedDate(asset.createdAt)}</span>

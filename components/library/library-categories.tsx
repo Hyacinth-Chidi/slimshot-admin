@@ -19,7 +19,7 @@ export function LibraryCategories({ kind }: { kind: string }) {
           <div className="flex flex-col items-center gap-2 py-12 text-center">
             <p className="text-sm text-text">No categories yet.</p>
             <p className="max-w-md text-sm text-subtle">
-              Create a top-level category named {roots}. The app shows its sub-categories as the pills to browse by.
+              Create a top-level category named {roots}. {section.categoriesHint}
             </p>
           </div>
         }

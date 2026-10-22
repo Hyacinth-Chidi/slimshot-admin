@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { assetHref } from '@/lib/library/kinds';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Asset } from '@/lib/api/assets';
-import { Artwork } from './artwork';
+import { Artwork, FontTile } from './artwork';
 import { formatCreatedDate, formatDuration } from './format';
 import { AssetActionsMenu } from './asset-actions-menu';
 import { PlayButton } from './play-button';
 
 export function AssetTable({
+  kind = 'audio',
   assets,
   selected,
   onToggle,
@@ -19,6 +20,8 @@ export function AssetTable({
   onDelete,
   pendingId,
 }: {
+  /** The section's kind: fonts show their preview and drop the sound columns. */
+  kind?: string;
   assets: Asset[];
   /** Bulk selection is optional: the desktop-only extra from spec §6.2. */
   selected?: Set<string>;
@@ -31,6 +34,7 @@ export function AssetTable({
   pendingId?: string | null;
 }) {
   const allSelected = selected !== undefined && assets.length > 0 && selected.size === assets.length;
+  const isFont = kind === 'font';
 
   return (
     <table className="w-full border-collapse text-sm">
@@ -46,12 +50,16 @@ export function AssetTable({
               />
             </th>
           )}
-          <th className="py-2 pr-3 font-medium">Title</th>
-          <th className="py-2 pr-3 font-medium">Author</th>
-          <th className="py-2 pr-3 font-medium">Duration</th>
-          <th className="py-2 pr-3">
-            <span className="sr-only">Play</span>
-          </th>
+          <th className="py-2 pr-3 font-medium">{isFont ? 'Font' : 'Title'}</th>
+          {!isFont && (
+            <>
+              <th className="py-2 pr-3 font-medium">Author</th>
+              <th className="py-2 pr-3 font-medium">Duration</th>
+              <th className="py-2 pr-3">
+                <span className="sr-only">Play</span>
+              </th>
+            </>
+          )}
           <th className="py-2 pr-3 font-medium">Status</th>
           <th className="py-2 pr-3 font-medium">Created</th>
           <th className="w-10 py-2" />
@@ -75,17 +83,25 @@ export function AssetTable({
             )}
             <td className="py-2 pr-3">
               <div className="flex items-center gap-3">
-                <Artwork id={asset.id} size={32} src={asset.coverUrl ?? undefined} />
+                {isFont ? (
+                  <FontTile src={asset.previewUrl} title={asset.title} />
+                ) : (
+                  <Artwork id={asset.id} size={32} src={asset.coverUrl ?? undefined} />
+                )}
                 <Link href={assetHref(asset.kind, asset.id)} className="font-medium text-text hover:underline">
                   {asset.title}
                 </Link>
               </div>
             </td>
-            <td className="py-2 pr-3 text-muted">{asset.author ?? '—'}</td>
-            <td className="py-2 pr-3 text-muted">{formatDuration(asset.durationMs)}</td>
-            <td className="py-2 pr-3 text-center">
-              {asset.originalUrl && <PlayButton id={asset.id} title={asset.title} url={asset.originalUrl} />}
-            </td>
+            {!isFont && (
+              <>
+                <td className="py-2 pr-3 text-muted">{asset.author ?? '—'}</td>
+                <td className="py-2 pr-3 text-muted">{formatDuration(asset.durationMs)}</td>
+                <td className="py-2 pr-3 text-center">
+                  {asset.originalUrl && <PlayButton id={asset.id} title={asset.title} url={asset.originalUrl} />}
+                </td>
+              </>
+            )}
             <td className="py-2 pr-3">
               {asset.status ? <StatusPill status={asset.status} /> : <span className="text-subtle">—</span>}
             </td>

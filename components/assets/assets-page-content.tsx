@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
@@ -165,6 +165,7 @@ function AssetsPageBody({
           </div>
           <div data-testid="asset-table" className="hidden md:block">
             <AssetTable
+              kind={section.kind}
               assets={currentPageAssets}
               selected={selected}
               onToggle={toggleSelected}
@@ -196,8 +197,11 @@ function AssetsPageBody({
   );
 }
 
-/** One Library section's list (Audio > Sounds): only that kind, with its own upload. */
-export function AssetsPageContent({ kind }: { kind: string }) {
+/**
+ * One Library section's list (Audio > Sounds): only that kind, with its own
+ * upload. `aside` sits between the header and the list (the fonts checklist).
+ */
+export function AssetsPageContent({ kind, aside }: { kind: string; aside?: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -225,6 +229,8 @@ export function AssetsPageContent({ kind }: { kind: string }) {
           </Button>
         }
       />
+
+      {aside}
 
       {/* Not keyed on the URL — AssetsPageBody resets pageIndex/selected
           itself (via the "adjust state during render" pattern) whenever the
