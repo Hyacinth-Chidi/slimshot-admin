@@ -10,17 +10,16 @@ function tabs(name: string) {
 }
 
 describe('LibraryHeader', () => {
-  it('shows Library › Fonts with the Fonts, Trending order and Categories tabs', () => {
+  it('shows Library › Fonts with the Fonts and Order tabs, and no Categories', () => {
     render(<LibraryHeader section={librarySection('font')!} />);
 
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toHaveTextContent('Library');
     expect(screen.getByRole('heading', { name: 'Fonts' })).toBeInTheDocument();
     expect(tabs('Fonts sections').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
       ['Fonts', '/fonts'],
-      ['Trending order', '/fonts/order'],
-      ['Categories', '/fonts/categories'],
+      ['Order', '/fonts/order'],
     ]);
-    expect(screen.getByRole('link', { name: 'Trending order' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Order' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('keeps Audio to Sounds and Categories', () => {

@@ -20,25 +20,25 @@ function stub(body: unknown, status = 200) {
 }
 
 describe('fonts client', () => {
-  it("reads a category's fonts in the owner's order", async () => {
+  it("reads every published font in the app's order", async () => {
     const rows = [
       { id: 'f2', title: 'Oswald Regular', styleName: 'Regular', previewUrl: 'https://cdn.test/p2.png', status: 'published' },
       { id: 'f1', title: 'Lato Bold', styleName: 'Bold', previewUrl: null, status: 'ready' },
     ];
     const fetchMock = stub({ success: true, data: rows });
 
-    await expect(fetchFontOrder('cat 1')).resolves.toEqual(rows);
-    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/fonts\/order\?categoryId=cat%201$/);
+    await expect(fetchFontOrder()).resolves.toEqual(rows);
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/fonts\/order$/);
   });
 
   it('saves a new order as the full list of ids, and accepts the empty 204', async () => {
     const fetchMock = stub(null, 204);
 
-    await expect(reorderFonts('c1', ['f2', 'f1'])).resolves.toBeUndefined();
+    await expect(reorderFonts(['f2', 'f1'])).resolves.toBeUndefined();
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toMatch(/\/fonts\/reorder$/);
     expect(init?.method).toBe('POST');
-    expect(JSON.parse(init?.body as string)).toEqual({ categoryId: 'c1', ids: ['f2', 'f1'] });
+    expect(JSON.parse(init?.body as string)).toEqual({ ids: ['f2', 'f1'] });
   });
 
   it('sets a licence note, and clears it with null', async () => {

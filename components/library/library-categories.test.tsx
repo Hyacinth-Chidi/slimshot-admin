@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { LibraryCategories } from './library-categories';
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/fonts/categories' }));
+vi.mock('next/navigation', () => ({ usePathname: () => '/audio/categories' }));
 vi.mock('@/lib/api/kinds', () => ({
   fetchKinds: vi.fn(async () => [
     { kind: 'audio', label: 'Audio', extensions: ['.mp3'], fileRoles: [] },
@@ -25,13 +25,6 @@ function renderFor(kind: string) {
 }
 
 describe('LibraryCategories empty state', () => {
-  it('tells the owner to create Trending, the one category fonts are listed from', async () => {
-    renderFor('font');
-    expect(await screen.findByText(/Create a top-level category named "Trending"/)).toBeInTheDocument();
-    expect(screen.getByText(/The app lists the fonts filed under it, in the order you set/)).toBeInTheDocument();
-    expect(screen.queryByText(/pills/)).toBeNull();
-  });
-
   it('still names Sound effects and Music for audio', async () => {
     renderFor('audio');
     expect(await screen.findByText(/"Sound effects" or "Music"/)).toBeInTheDocument();

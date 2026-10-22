@@ -179,7 +179,7 @@ export function FontDetailContent({ id }: { id: string }) {
           )}
         </div>
       </section>
-      <FontEditForm key={`${asset.id}:${asset.title}:${asset.categoryId}`} asset={asset} />
+      <FontEditForm key={`${asset.id}:${asset.title}`} asset={asset} />
       <FontLicenseForm key={`${asset.id}:${asset.font?.license ?? ''}`} asset={asset} />
     </div>
   );

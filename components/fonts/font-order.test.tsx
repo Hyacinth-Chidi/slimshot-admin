@@ -2,39 +2,21 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as categoriesApi from '@/lib/api/categories';
 import * as fontsApi from '@/lib/api/fonts';
 import { toast } from '@/lib/use-toast';
 import { FontOrder } from './font-order';
 
-const TRENDING = {
-  id: 'cat-t',
-  kind: 'font',
-  parentId: null,
-  slug: 'trending',
-  name: 'Trending',
-  description: null,
-  sortOrder: 0,
-  isActive: true,
-  children: [],
-};
-
 const ROWS = [
   { id: 'a', title: 'Alpha Regular', styleName: 'Regular', previewUrl: 'https://cdn.test/a.png', status: 'published' as const },
   { id: 'b', title: 'Bravo Bold', styleName: 'Bold', previewUrl: 'https://cdn.test/b.png', status: 'published' as const },
-  { id: 'c', title: 'Charlie Italic', styleName: 'Italic', previewUrl: null, status: 'ready' as const },
+  { id: 'c', title: 'Charlie Italic', styleName: 'Italic', previewUrl: null, status: 'published' as const },
 ];
 
-vi.mock('@/lib/api/categories', async () => ({
-  ...(await vi.importActual<typeof import('@/lib/api/categories')>('@/lib/api/categories')),
-  fetchTree: vi.fn(),
-}));
 vi.mock('@/lib/api/fonts', () => ({ fetchFontOrder: vi.fn(), reorderFonts: vi.fn() }));
 vi.mock('@/lib/use-toast', () => ({ toast: vi.fn() }));
 
 beforeEach(() => {
-  vi.mocked(categoriesApi.fetchTree).mockResolvedValue([TRENDING]);
-  vi.mocked(fontsApi.fetchFontOrder).mockResolvedValue(ROWS);
+  vi.mocked(fontsApi.fetchFontOrder).mockReset().mockResolvedValue(ROWS);
   vi.mocked(fontsApi.reorderFonts).mockReset().mockResolvedValue(undefined);
   vi.mocked(toast).mockReset();
 });
@@ -49,21 +31,22 @@ function renderOrder() {
 }
 
 async function titles() {
-  const list = await screen.findByRole('list', { name: 'Trending order' });
+  const list = await screen.findByRole('list', { name: 'Font order' });
   return within(list)
     .getAllByRole('listitem')
     .map((li) => within(li).getByTestId('font-title').textContent);
 }
 
 describe('FontOrder', () => {
-  it("lists Trending's fonts by position, with their previews", async () => {
+  it('lists every published font by position, with its preview', async () => {
     renderOrder();
 
     expect(await titles()).toEqual(['Alpha Regular', 'Bravo Bold', 'Charlie Italic']);
-    expect(fontsApi.fetchFontOrder).toHaveBeenCalledWith('cat-t');
+    expect(fontsApi.fetchFontOrder).toHaveBeenCalledWith();
     const first = screen.getAllByRole('listitem')[0];
     expect(first).toHaveTextContent('1');
     expect(within(first).getByRole('img', { name: 'Alpha Regular preview' })).toBeInTheDocument();
+    expect(screen.queryByText(/Trending/)).toBeNull();
   });
 
   it('moves a font with Move up and Move down, saving the whole new order', async () => {
@@ -71,12 +54,12 @@ describe('FontOrder', () => {
     await titles();
 
     await userEvent.click(screen.getByRole('button', { name: 'Move Alpha Regular down' }));
-    expect(fontsApi.reorderFonts).toHaveBeenCalledWith('cat-t', ['b', 'a', 'c']);
+    expect(fontsApi.reorderFonts).toHaveBeenCalledWith(['b', 'a', 'c']);
     expect(await titles()).toEqual(['Bravo Bold', 'Alpha Regular', 'Charlie Italic']);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Move Charlie Italic up' })).toBeEnabled());
     await userEvent.click(screen.getByRole('button', { name: 'Move Charlie Italic up' }));
-    expect(fontsApi.reorderFonts).toHaveBeenLastCalledWith('cat-t', ['b', 'c', 'a']);
+    expect(fontsApi.reorderFonts).toHaveBeenLastCalledWith(['b', 'c', 'a']);
   });
 
   it('cannot move the first font up or the last one down', async () => {
@@ -94,39 +77,36 @@ describe('FontOrder', () => {
     fireEvent.dragOver(screen.getByTestId('font-row-a'));
     fireEvent.drop(screen.getByTestId('font-row-a'));
 
-    await waitFor(() => expect(fontsApi.reorderFonts).toHaveBeenCalledWith('cat-t', ['c', 'a', 'b']));
+    await waitFor(() => expect(fontsApi.reorderFonts).toHaveBeenCalledWith(['c', 'a', 'b']));
     expect(await titles()).toEqual(['Charlie Italic', 'Alpha Regular', 'Bravo Bold']);
   });
 
   it("puts the order back and shows the server's reason when saving fails", async () => {
-    vi.mocked(fontsApi.reorderFonts).mockRejectedValueOnce(new Error('The list changed. Reload and try again.'));
+    vi.mocked(fontsApi.reorderFonts).mockRejectedValueOnce(
+      new Error('The published fonts changed. Reload the order and try again.'),
+    );
     renderOrder();
     await titles();
 
     await userEvent.click(screen.getByRole('button', { name: 'Move Alpha Regular down' }));
 
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('The list changed. Reload and try again.', 'error'));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith('The published fonts changed. Reload the order and try again.', 'error'),
+    );
     expect(await titles()).toEqual(['Alpha Regular', 'Bravo Bold', 'Charlie Italic']);
   });
 
-  it('explains how to start when there is no Trending category', async () => {
-    vi.mocked(categoriesApi.fetchTree).mockResolvedValue([]);
-    renderOrder();
-
-    expect(await screen.findByText(/no Trending category yet/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Go to Categories' })).toHaveAttribute('href', '/fonts/categories');
-    expect(fontsApi.fetchFontOrder).not.toHaveBeenCalled();
-  });
-
-  it('warns that the app shows nothing while Trending is hidden', async () => {
-    vi.mocked(categoriesApi.fetchTree).mockResolvedValue([{ ...TRENDING, isActive: false }]);
-    renderOrder();
-    expect(await screen.findByText(/Trending is hidden, so the app shows no fonts/)).toBeInTheDocument();
-  });
-
-  it('says how to fill an empty Trending', async () => {
+  it('says how to fill an empty order', async () => {
     vi.mocked(fontsApi.fetchFontOrder).mockResolvedValue([]);
     renderOrder();
-    expect(await screen.findByText(/No fonts in Trending yet/)).toBeInTheDocument();
+    expect(await screen.findByText(/No published fonts yet/)).toBeInTheDocument();
+  });
+
+  it('shows a skeleton while it loads, and a retry when it fails', async () => {
+    vi.mocked(fontsApi.fetchFontOrder).mockRejectedValueOnce(new Error('down'));
+    renderOrder();
+    expect(screen.getByRole('status', { name: 'Loading font order' })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    expect(await titles()).toEqual(['Alpha Regular', 'Bravo Bold', 'Charlie Italic']);
   });
 });

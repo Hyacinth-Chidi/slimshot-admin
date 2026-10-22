@@ -104,3 +104,15 @@ describe('AssetFiltersBar category filter', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ categoryId: undefined }));
   });
 });
+
+describe('AssetFiltersBar for fonts', () => {
+  it('has no category filter: fonts have no categories', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <AssetFiltersBar filters={{ kind: 'font' }} onChange={vi.fn()} pathname="/fonts" kind="font" />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole('combobox', { name: 'Category' })).toBeNull();
+  });
+});

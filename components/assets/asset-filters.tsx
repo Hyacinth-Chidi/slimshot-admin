@@ -18,6 +18,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { CategoryPicker } from '@/components/categories/category-picker';
+import { usesCategories } from '@/lib/library/kinds';
 import { cn } from '@/lib/cn';
 import type { AssetStatus } from '@/components/ui/status-pill';
 import type { AssetFilters } from '@/lib/api/assets';
@@ -135,13 +136,15 @@ function FilterFields({
           }}
         />
         {!kind && <KindSelect value={filters.kind} onChange={(next) => onChange({ ...filters, kind: next })} />}
-        <CategoryPicker
-          kind={kind ?? filters.kind ?? 'audio'}
-          value={filters.categoryId ?? null}
-          onChange={(categoryId) => onChange({ ...filters, categoryId: categoryId ?? undefined })}
-          noneLabel="All categories"
-          className="md:w-48"
-        />
+        {usesCategories(kind ?? filters.kind ?? 'audio') && (
+          <CategoryPicker
+            kind={kind ?? filters.kind ?? 'audio'}
+            value={filters.categoryId ?? null}
+            onChange={(categoryId) => onChange({ ...filters, categoryId: categoryId ?? undefined })}
+            noneLabel="All categories"
+            className="md:w-48"
+          />
+        )}
       </div>
     </div>
   );

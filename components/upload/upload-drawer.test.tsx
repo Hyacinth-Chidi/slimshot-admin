@@ -221,6 +221,12 @@ describe('UploadDrawer for fonts', () => {
     );
   }
 
+  it('asks for no category: fonts have none', async () => {
+    renderFontDrawer();
+    await screen.findByText('Choose files');
+    expect(screen.queryByRole('combobox', { name: 'Category for these uploads' })).toBeNull();
+  });
+
   it('asks for no title or author: the server names a font from its file', async () => {
     renderFontDrawer();
     await dropFile('Lato-Regular.ttf');

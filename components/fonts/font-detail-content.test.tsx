@@ -170,7 +170,7 @@ describe('FontDetailContent', () => {
     await vi.waitFor(() => expect(assetsApi.publishAsset).toHaveBeenCalledWith('f1'));
   });
 
-  it('saves the display name and category, then shows the redrawn preview', async () => {
+  it('saves the display name, then shows the redrawn preview', async () => {
     vi.mocked(assetsApi.fetchAsset).mockResolvedValue(makeFont());
     vi.mocked(assetsApi.updateAsset).mockResolvedValue(makeFont({ title: 'Lato Text' }));
     renderPage();
@@ -178,7 +178,7 @@ describe('FontDetailContent', () => {
     const save = await screen.findByRole('button', { name: 'Save' });
     expect(save).toBeDisabled();
     expect(screen.queryByLabelText('Author')).toBeNull();
-    expect(screen.getByRole('combobox', { name: 'Category' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Category' })).toBeNull();
 
     const name = screen.getByLabelText('Display name');
     await userEvent.clear(name);
@@ -186,7 +186,7 @@ describe('FontDetailContent', () => {
     await userEvent.click(save);
 
     await vi.waitFor(() =>
-      expect(assetsApi.updateAsset).toHaveBeenCalledWith('f1', { title: 'Lato Text', categoryId: 'trending' }),
+      expect(assetsApi.updateAsset).toHaveBeenCalledWith('f1', { title: 'Lato Text' }),
     );
     await vi.waitFor(() => expect(toast).toHaveBeenCalledWith('Font saved.', 'success'));
     // The rename redraws the preview on the server; the page fetches it again.

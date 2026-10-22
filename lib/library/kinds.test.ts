@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assetHref, librarySection } from './kinds';
+import { assetHref, librarySection, usesCategories } from './kinds';
 
 describe('library kinds', () => {
   it('gives each kind its section in the Library', () => {
@@ -12,8 +12,18 @@ describe('library kinds', () => {
     expect(librarySection('font')).toMatchObject({ kind: 'font', label: 'Fonts', href: '/fonts' });
   });
 
-  it('tells the owner to create Trending, the one category the app lists fonts from', () => {
-    expect(librarySection('font')?.appRoots).toEqual([{ slug: 'trending', name: 'Trending' }]);
+  it('gives fonts no categories, while sounds keep theirs', () => {
+    expect(usesCategories('font')).toBe(false);
+    expect(librarySection('font')?.categories).toBeNull();
+    expect(usesCategories('audio')).toBe(true);
+    expect(librarySection('audio')?.categories?.appRoots).toEqual([
+      { slug: 'sound-effects', name: 'Sound effects' },
+      { slug: 'music', name: 'Music' },
+    ]);
+  });
+
+  it('assumes categories for a kind it has no section for', () => {
+    expect(usesCategories('template')).toBe(true);
   });
 
   it('has no section for a kind the dashboard has no pages for', () => {

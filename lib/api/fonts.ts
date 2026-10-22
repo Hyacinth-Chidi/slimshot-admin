@@ -7,7 +7,7 @@ import type { AssetStatus } from '@/components/ui/status-pill';
  * (../slimshot_server/src/modules/admin/admin-fonts.controller.ts).
  */
 
-/** One font in a category, as FontsService.order lists it. */
+/** One published font, as FontsService.order lists it. */
 export interface FontOrderRow {
   id: string;
   title: string;
@@ -16,14 +16,15 @@ export interface FontOrderRow {
   status: AssetStatus;
 }
 
-export function fetchFontOrder(categoryId: string): Promise<FontOrderRow[]> {
-  return withRefresh(() => apiFetch<FontOrderRow[]>(`/fonts/order?categoryId=${encodeURIComponent(categoryId)}`));
+/** Every published font, in the order the app shows them. */
+export function fetchFontOrder(): Promise<FontOrderRow[]> {
+  return withRefresh(() => apiFetch<FontOrderRow[]>('/fonts/order'));
 }
 
-/** `ids` is every font in the category, in the new order: the server refuses anything else. */
-export function reorderFonts(categoryId: string, ids: string[]): Promise<void> {
+/** `ids` is every published font, in the new order: the server refuses anything else. */
+export function reorderFonts(ids: string[]): Promise<void> {
   return withRefresh(async () => {
-    await apiFetch<undefined>('/fonts/reorder', { method: 'POST', body: JSON.stringify({ categoryId, ids }) });
+    await apiFetch<undefined>('/fonts/reorder', { method: 'POST', body: JSON.stringify({ ids }) });
   });
 }
 

@@ -37,6 +37,8 @@ export function useAssetActions() {
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['assets'] });
     queryClient.invalidateQueries({ queryKey: ['stats'] });
+    // The font Order page lists published fonts: publishing changes it.
+    queryClient.invalidateQueries({ queryKey: ['fonts'] });
   }
 
   const single = useMutation({

@@ -18,7 +18,7 @@ export function LibraryHeader({ section, actions }: { section: LibrarySection; a
         items={[
           { label: capitalise(section.noun.many), href: section.href },
           ...section.extraTabs,
-          { label: 'Categories', href: `${section.href}/categories` },
+          ...(section.categories ? [{ label: 'Categories', href: `${section.href}/categories` }] : []),
         ]}
       />
     </div>

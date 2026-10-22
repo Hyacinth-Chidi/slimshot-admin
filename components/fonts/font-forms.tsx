@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CategoryPicker } from '@/components/categories/category-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { updateAsset, type AssetDetail } from '@/lib/api/assets';
@@ -13,7 +12,7 @@ import { toast } from '@/lib/use-toast';
 /** UpdateFontDto: @MaxLength(500) on license. */
 const LICENSE_MAX = 500;
 
-/** Everything that shows a font: its page, the list, Trending order, the checklist. */
+/** Everything that shows a font: its page, the list and the Order page. */
 function useRefreshFont() {
   const queryClient = useQueryClient();
   return () => {
@@ -23,19 +22,18 @@ function useRefreshFont() {
 }
 
 /**
- * The display name and category. Family and style come from the file and
- * cannot be edited; a new name redraws the preview on the server, which the
- * refetch then shows.
+ * The display name. Family and style come from the file and cannot be
+ * edited; a new name redraws the preview on the server, which the refetch
+ * then shows.
  */
 export function FontEditForm({ asset }: { asset: AssetDetail }) {
   const refresh = useRefreshFont();
   const [title, setTitle] = useState(asset.title);
-  const [categoryId, setCategoryId] = useState<string | null>(asset.categoryId);
 
-  const dirty = title.trim() !== asset.title || categoryId !== asset.categoryId;
+  const dirty = title.trim() !== asset.title;
 
   const save = useMutation({
-    mutationFn: () => updateAsset(asset.id, { title: title.trim(), categoryId }),
+    mutationFn: () => updateAsset(asset.id, { title: title.trim() }),
     onSuccess: () => toast('Font saved.', 'success'),
     onError: (err: Error) => toast(err.message, 'error'),
     onSettled: refresh,
@@ -55,10 +53,6 @@ export function FontEditForm({ asset }: { asset: AssetDetail }) {
         </label>
         <Input id="font-title" value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} />
         <p className="text-xs text-subtle">What the app shows. The preview is drawn from it.</p>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-text">Category</span>
-        <CategoryPicker kind="font" value={categoryId} onChange={setCategoryId} />
       </div>
       <Button type="submit" className="self-start" disabled={!dirty || !title.trim() || save.isPending}>
         Save

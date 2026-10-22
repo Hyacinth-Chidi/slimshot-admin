@@ -51,6 +51,16 @@ describe('useAssetActions single-item action', () => {
     });
   });
 
+  it('refreshes the font Order page too: publishing changes what it lists', async () => {
+    vi.mocked(assetsApi.publishAsset).mockResolvedValue(undefined);
+    const { Wrapper, invalidateSpy } = makeWrapper(() => {});
+    const { result } = renderHook(() => useAssetActions(), { wrapper: Wrapper });
+
+    act(() => result.current.runAction('publish', 'f1'));
+
+    await waitFor(() => expect(invalidateSpy.mock.calls.map((c) => c[0]?.queryKey?.[0])).toContain('fonts'));
+  });
+
   it('invalidates assets and stats on settle — failure too (R3: on success/settled)', async () => {
     vi.mocked(assetsApi.publishAsset).mockRejectedValue(new Error('cannot be published'));
     const { Wrapper, invalidateSpy } = makeWrapper(() => {});

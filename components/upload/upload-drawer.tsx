@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CategoryPicker } from '@/components/categories/category-picker';
+import { usesCategories } from '@/lib/library/kinds';
 import { fetchKinds, type Kind } from '@/lib/api/kinds';
 import { startItems } from '@/lib/upload/orchestrator';
 import { addFiles, queueReducer, type QueueItem } from '@/lib/upload/reducer';
@@ -175,7 +176,7 @@ export function UploadDrawer({
             </Select>
           )}
 
-          {activeKind && (
+          {activeKind && usesCategories(activeKind) && (
             <CategoryPicker
               kind={activeKind}
               value={categoryId}
