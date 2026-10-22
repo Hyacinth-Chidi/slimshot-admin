@@ -206,3 +206,64 @@ describe('UploadDrawer for one kind', () => {
     expect(document.querySelector('input[type="file"]')).toHaveAttribute('accept', '.mp3');
   });
 });
+
+describe('UploadDrawer for fonts', () => {
+  function renderFontDrawer() {
+    vi.mocked(kindsApi.fetchKinds).mockResolvedValueOnce([
+      { kind: 'audio', label: 'Audio', extensions: ['.mp3'], fileRoles: [] },
+      { kind: 'font', label: 'Font', extensions: ['.ttf', '.otf'], fileRoles: [] },
+    ]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <UploadDrawer open onOpenChange={() => {}} kind="font" />
+      </QueryClientProvider>,
+    );
+  }
+
+  it('asks for no title or author: the server names a font from its file', async () => {
+    renderFontDrawer();
+    await dropFile('Lato-Regular.ttf');
+
+    expect(await screen.findByText('Lato-Regular.ttf')).toBeInTheDocument();
+    expect(screen.getByText('Named from the font file')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Title')).toBeNull();
+    expect(screen.queryByLabelText('Author')).toBeNull();
+  });
+
+  it('sends a font with its declared type and no title or author', async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), init });
+        if (String(url).includes('upload-ticket')) {
+          return jsonResponse({
+            success: true,
+            data: {
+              assetId: 'f1',
+              sessionId: 's1',
+              uploadUrl: 'https://acct.r2.cloudflarestorage.com/b/slimshot/fonts/f.ttf?X-Amz-Signature=sig',
+              method: 'PUT',
+              headers: { 'Content-Type': 'font/ttf', 'If-None-Match': '*' },
+              storageKey: 'slimshot/fonts/f.ttf',
+              expiresAt: new Date(Date.now() + 900_000).toISOString(),
+            },
+          });
+        }
+        if (String(url).includes('finalize')) return jsonResponse({ success: true, data: { assetId: 'f1', status: 'ready' } });
+        return new Response(null, { status: 200 });
+      }),
+    );
+
+    renderFontDrawer();
+    await dropFile('Lato-Regular.ttf');
+    await userEvent.click(await screen.findByRole('button', { name: 'Upload' }));
+    await screen.findByText('Done');
+
+    const body = JSON.parse(calls.find((c) => c.url.includes('upload-ticket'))!.init!.body as string);
+    expect(body).toMatchObject({ kind: 'font', filename: 'Lato-Regular.ttf', mimeType: 'font/ttf' });
+    expect(body).not.toHaveProperty('title');
+    expect(body).not.toHaveProperty('author');
+  });
+});

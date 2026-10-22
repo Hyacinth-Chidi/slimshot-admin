@@ -51,6 +51,7 @@ const BASE_ASSET: Asset = {
   createdAt: null,
   coverUrl: null,
   originalUrl: null,
+  previewUrl: null,
 };
 
 function noop() {}

@@ -240,6 +240,9 @@ describe('uploadFile declared MIME type (I3)', () => {
     ['loop.wav', 'audio/x-wav', 'audio/wav'],
     ['loop.flac', 'audio/x-flac', 'audio/flac'],
     ['loop.ogg', 'application/ogg', 'audio/ogg'],
+    ['Lato-Regular.ttf', '', 'font/ttf'],
+    ['Lato-Regular.TTF', 'application/x-font-ttf', 'font/ttf'],
+    ['SourceSerif4.otf', 'application/vnd.ms-opentype', 'font/otf'],
   ])('%s with File.type %j declares %s on the ticket and the upload', async (name, type, canonical) => {
     const calls = stubUploadFlow();
     const file = new File(['x'], name, { type });

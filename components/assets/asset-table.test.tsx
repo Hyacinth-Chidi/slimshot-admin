@@ -14,6 +14,7 @@ const ASSET: Asset = {
   createdAt: null,
   coverUrl: null,
   originalUrl: null,
+  previewUrl: null,
 };
 
 describe('AssetTable', () => {

@@ -45,8 +45,8 @@ export interface FinalizeResponse {
 /**
  * Canonical MIME per extension, matching the server's accepted list exactly
  * (the default of its UPLOAD_AUDIO_MIME_TYPES env variable, for the audio
- * descriptor's extensions .mp3/.wav/.aac/.ogg/.flac). The server compares the declared type with
- * `includes` (kind-registry.ts:57) and rejects before creating a draft, so
+ * descriptor's extensions .mp3/.wav/.aac/.ogg/.flac; font/ttf and font/otf
+ * for fonts). The server compares the declared type with `includes` (kind-registry.ts:57) and rejects before creating a draft, so
  * the browser's File.type cannot be sent as-is: it is "" for some types on
  * Windows, `audio/vnd.dlna.adts` for .aac there, and `audio/x-wav` /
  * `audio/x-flac` on Firefox. Declaring by extension is safe because
@@ -59,6 +59,8 @@ const CANONICAL_MIME: Record<string, string> = {
   '.aac': 'audio/aac',
   '.ogg': 'audio/ogg',
   '.flac': 'audio/flac',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
 };
 
 export function declaredMimeType(file: File): string {
@@ -140,8 +142,9 @@ export async function uploadFile(
           filename: file.name,
           mimeType,
           byteSize: file.size,
-          title: meta.title,
-          ...(meta.author ? { author: meta.author } : {}),
+          // The server names a font from the file, so a font sends neither.
+          ...(meta.kind === 'font' ? {} : { title: meta.title }),
+          ...(meta.author && meta.kind !== 'font' ? { author: meta.author } : {}),
           ...(meta.categoryId ? { categoryId: meta.categoryId } : {}),
         }),
       }),

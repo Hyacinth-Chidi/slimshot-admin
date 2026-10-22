@@ -74,22 +74,31 @@ export function UploadRow({
     <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3">
       <div className="flex items-start gap-3">
         <Artwork id={item.id} size={40} />
-        <div className="min-w-0 flex-1 flex flex-col gap-2">
-          <Input
-            value={item.title}
-            onChange={(e) => onEdit({ title: e.target.value })}
-            disabled={!editable}
-            aria-label="Title"
-            placeholder="Title"
-          />
-          <Input
-            value={item.author}
-            onChange={(e) => onEdit({ author: e.target.value })}
-            disabled={!editable}
-            aria-label="Author"
-            placeholder="Author (optional)"
-          />
-        </div>
+        {/* The server names a font from the file itself (its full name), so
+            there is nothing to type: the row shows which file it is. */}
+        {item.kind === 'font' ? (
+          <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+            <span className="truncate text-sm text-text">{item.file.name}</span>
+            <span className="text-xs text-subtle">Named from the font file</span>
+          </div>
+        ) : (
+          <div className="min-w-0 flex-1 flex flex-col gap-2">
+            <Input
+              value={item.title}
+              onChange={(e) => onEdit({ title: e.target.value })}
+              disabled={!editable}
+              aria-label="Title"
+              placeholder="Title"
+            />
+            <Input
+              value={item.author}
+              onChange={(e) => onEdit({ author: e.target.value })}
+              disabled={!editable}
+              aria-label="Author"
+              placeholder="Author (optional)"
+            />
+          </div>
+        )}
 
         {item.status === 'done' && item.assetStatus ? (
           <StatusPill status={item.assetStatus as AssetStatus} />

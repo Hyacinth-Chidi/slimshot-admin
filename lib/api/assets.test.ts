@@ -219,3 +219,76 @@ describe('admin asset view', () => {
     expect(init.method).toBe('DELETE');
   });
 });
+
+const FONT_ROW = {
+  id: 'f1',
+  slug: 'lato-regular-1a2b3c4d',
+  kind: 'font',
+  title: 'Lato Regular',
+  author: '',
+  tags: [],
+  files: {
+    original: { url: 'https://cdn.test/slimshot/fonts/f1.ttf', byteSize: 75_000, format: 'ttf' },
+    specimen: { url: 'https://cdn.test/slimshot/fonts/previews/p1.png', byteSize: 4_000, format: 'png' },
+  },
+  detail: {},
+  stats: { downloadCount: 0 },
+  status: 'ready',
+  visibility: 'public',
+  categoryId: 'trending',
+  createdAt: '2026-10-22T10:00:00.000Z',
+  publishedAt: null,
+  font: {
+    familyName: 'Lato',
+    styleName: 'Regular',
+    fullName: 'Lato Regular',
+    postscriptName: 'Lato-Regular',
+    version: 2,
+    sortOrder: 1,
+    firstPublishedAt: null,
+    license: 'SIL Open Font License 1.1',
+  },
+};
+
+describe('admin font view', () => {
+  it("takes a font's preview from its specimen file", async () => {
+    vi.stubGlobal('fetch', mockFetch({ success: true, data: [FONT_ROW], meta: { nextCursor: null } }));
+
+    const page = await fetchAssets({ kind: 'font' });
+    expect(page.data[0]).toMatchObject({
+      previewUrl: 'https://cdn.test/slimshot/fonts/previews/p1.png',
+      coverUrl: null,
+      originalUrl: 'https://cdn.test/slimshot/fonts/f1.ttf',
+    });
+  });
+
+  it('has no preview for a sound, or for a font whose preview is not drawn yet', async () => {
+    const bare = { ...FONT_ROW, files: { original: FONT_ROW.files.original } };
+    vi.stubGlobal('fetch', mockFetch({ success: true, data: [ADMIN_ROW, bare], meta: { nextCursor: null } }));
+
+    const page = await fetchAssets({});
+    expect(page.data.map((a) => a.previewUrl)).toEqual([null, null]);
+  });
+
+  it('fetches one font with its family, style, version and licence', async () => {
+    vi.stubGlobal('fetch', mockFetch({ success: true, data: FONT_ROW }));
+
+    const font = await fetchAsset('f1');
+    expect(font.font).toEqual({
+      familyName: 'Lato',
+      styleName: 'Regular',
+      fullName: 'Lato Regular',
+      postscriptName: 'Lato-Regular',
+      version: 2,
+      sortOrder: 1,
+      firstPublishedAt: null,
+      license: 'SIL Open Font License 1.1',
+    });
+    expect(font.format).toBe('ttf');
+  });
+
+  it('has no font block for a sound', async () => {
+    vi.stubGlobal('fetch', mockFetch({ success: true, data: ADMIN_ROW }));
+    expect((await fetchAsset('a1')).font).toBeNull();
+  });
+});

@@ -19,6 +19,21 @@ export interface Asset {
   coverUrl: string | null;
   /** The uploaded file itself, for listening in the dashboard. */
   originalUrl: string | null;
+  /** A font's preview image, drawn by the server from the file. */
+  previewUrl: string | null;
+}
+
+/** What the server read from a font file, plus the owner's licence note. */
+export interface FontDetail {
+  familyName: string;
+  styleName: string;
+  fullName: string;
+  postscriptName: string | null;
+  version: number;
+  sortOrder: number;
+  /** Set once, on first publish: from then on the font is kept for good. */
+  firstPublishedAt: string | null;
+  license: string | null;
 }
 
 /** One asset in full, for its own page. */
@@ -27,6 +42,8 @@ export interface AssetDetail extends Asset {
   byteSize: number | null;
   format: string | null;
   publishedAt: string | null;
+  /** Null for every kind but font. */
+  font: FontDetail | null;
 }
 
 interface ServerFile {
@@ -51,6 +68,7 @@ interface ServerAsset {
   categoryId?: string | null;
   createdAt?: string;
   publishedAt?: string | null;
+  font?: FontDetail | null;
 }
 
 /**
@@ -96,6 +114,7 @@ function toAsset(row: ServerAsset, activeStatus?: AssetStatus): Asset {
     durationMs: toDurationMs(row.detail),
     coverUrl: row.files.thumbnail?.url || null,
     originalUrl: row.files.original?.url || null,
+    previewUrl: row.files.specimen?.url || null,
   };
 }
 
@@ -107,6 +126,7 @@ function toDetail(row: ServerAsset): AssetDetail {
     byteSize: original?.byteSize ?? null,
     format: original?.format ?? null,
     publishedAt: row.publishedAt ?? null,
+    font: row.font ?? null,
   };
 }
 

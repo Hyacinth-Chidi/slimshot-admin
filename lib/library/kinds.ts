@@ -36,7 +36,7 @@ const SECTIONS: Record<string, LibrarySection> = {
     href: '/fonts',
     icon: Type,
     noun: { one: 'font', many: 'fonts' },
-    appRoots: [{ slug: 'fonts', name: 'Fonts' }],
+    appRoots: [{ slug: 'trending', name: 'Trending' }],
   },
 };
 

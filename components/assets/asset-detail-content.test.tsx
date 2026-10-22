@@ -47,6 +47,8 @@ function makeAsset(overrides: Partial<AssetDetail> = {}): AssetDetail {
     format: 'mp3',
     originalUrl: 'https://cdn.test/slimshot/audio/a1.mp3',
     publishedAt: null,
+    previewUrl: null,
+    font: null,
     ...overrides,
   };
 }

@@ -12,6 +12,10 @@ describe('library kinds', () => {
     expect(librarySection('font')).toMatchObject({ kind: 'font', label: 'Fonts', href: '/fonts' });
   });
 
+  it('tells the owner to create Trending, the one category the app lists fonts from', () => {
+    expect(librarySection('font')?.appRoots).toEqual([{ slug: 'trending', name: 'Trending' }]);
+  });
+
   it('has no section for a kind the dashboard has no pages for', () => {
     expect(librarySection('template')).toBeUndefined();
   });

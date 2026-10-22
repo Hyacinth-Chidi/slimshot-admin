@@ -14,6 +14,7 @@ const ASSET: Asset = {
   createdAt: '2026-09-20T10:00:00Z',
   coverUrl: null,
   originalUrl: null,
+  previewUrl: null,
 };
 
 function noop() {}
