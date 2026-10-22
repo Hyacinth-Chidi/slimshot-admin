@@ -115,3 +115,12 @@ describe('AuditPageContent loading', () => {
     expect(screen.queryByText('Loading audit log…')).toBeNull();
   });
 });
+
+describe('AuditPageContent under System', () => {
+  it('sits under System in the breadcrumb, titled Audit log', async () => {
+    renderPage();
+    const trail = await screen.findByRole('navigation', { name: 'Breadcrumb' });
+    expect(trail).toHaveTextContent('System');
+    expect(screen.getByRole('heading', { level: 1, name: 'Audit log' })).toBeInTheDocument();
+  });
+});

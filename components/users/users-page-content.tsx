@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/shell/page-header';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { DebouncedSearchInput } from '@/components/assets/debounced-search-input';
@@ -33,7 +34,7 @@ export function UsersPageContent() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold text-text">Users</h1>
+      <PageHeader crumbs={[{ label: 'People' }]} title="Users" />
 
       <DebouncedSearchInput value={q} buildUrl={usersUrl} placeholder="Search email or username…" />
 

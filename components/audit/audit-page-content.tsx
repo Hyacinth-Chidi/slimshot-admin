@@ -1,5 +1,6 @@
 'use client';
 
+import { SystemHeader } from '@/components/system/system-header';
 import { useMemo } from 'react';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -41,7 +42,7 @@ export function AuditPageContent() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold text-text">Audit log</h1>
+      <SystemHeader title="Audit log" />
 
       <AuditFiltersBar filters={filters} onChange={setFilters} pathname={pathname} />
 

@@ -1,23 +1,21 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
+import ProvidersPage from './page';
 import type { AdminProfile } from '@/lib/auth/session';
 import * as apiClient from '@/lib/api/client';
-import * as creditsApi from '@/lib/api/credits';
 import * as providersApi from '@/lib/api/providers';
-import SettingsPage from './page';
 
 // useProfile calls its own module-local fetchMe, which calls apiFetch
 // directly, so the profile is stubbed one layer down.
+vi.mock('next/navigation', () => ({ usePathname: () => currentPath }));
+
+let currentPath = '/system/providers';
+
 vi.mock('@/lib/api/client', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api/client')>('@/lib/api/client');
   return { ...actual, apiFetch: vi.fn() };
-});
-
-vi.mock('@/lib/api/credits', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/api/credits')>('@/lib/api/credits');
-  return { ...actual, fetchCreditSettings: vi.fn() };
 });
 
 vi.mock('@/lib/api/providers', async () => {
@@ -29,47 +27,49 @@ function profile(role: AdminProfile['role']): AdminProfile {
   return { id: '1', email: 'a@b.com', name: 'A', role };
 }
 
-function renderPage() {
+function renderWith(ui: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   }
-  return render(<SettingsPage />, { wrapper: Wrapper });
+  return render(<>{ui}</>, { wrapper: Wrapper });
 }
 
 afterEach(() => {
   vi.resetAllMocks();
 });
 
-describe('SettingsPage', () => {
+describe('System > AI providers', () => {
   it('tells a non-owner, and never asks for provider data', async () => {
     vi.mocked(apiClient.apiFetch).mockResolvedValue(profile('admin'));
-    renderPage();
-
-    expect(await screen.findByText('Only the owner can manage settings.')).toBeInTheDocument();
+    renderWith(<ProvidersPage />);
+    expect(await screen.findByText('Only the owner can manage AI providers.')).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 20));
     expect(providersApi.fetchProviders).not.toHaveBeenCalled();
-    expect(creditsApi.fetchCreditSettings).not.toHaveBeenCalled();
-    expect(screen.queryByRole('tab', { name: 'Credits' })).toBeNull();
   });
 
-  it('shows the owner the Providers tab with the Auto caption section', async () => {
+  it('shows the owner the providers under System, with the System tabs', async () => {
+    currentPath = '/system/providers';
     vi.mocked(apiClient.apiFetch).mockResolvedValue(profile('owner'));
     vi.mocked(providersApi.fetchProviders).mockResolvedValue([]);
-    renderPage();
+    renderWith(<ProvidersPage />);
 
-    expect(await screen.findByRole('tab', { name: 'Providers' })).toHaveAttribute('data-state', 'active');
-    expect(screen.getByRole('heading', { name: 'Auto caption' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Credits' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Pricing' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Auto caption' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'AI providers' })).toBeInTheDocument();
+    expect(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByText('System')).toBeInTheDocument();
+    const tabs = screen.getByRole('navigation', { name: 'System sections' });
+    expect(within(tabs).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual([
+      '/system/providers',
+      '/system/credits',
+      '/system/audit',
+    ]);
+    expect(within(tabs).getByRole('link', { name: 'AI providers' })).toHaveAttribute('aria-current', 'page');
   });
-});
 
-describe('SettingsPage loading', () => {
-  it('shows a skeleton of the tabs while the profile loads, not loading text', async () => {
+  it('shows a skeleton while the profile loads, not loading text', async () => {
     vi.mocked(apiClient.apiFetch).mockReturnValue(new Promise(() => {}));
-    renderPage();
-    expect(await screen.findByRole('status', { name: 'Loading settings' })).toBeInTheDocument();
+    renderWith(<ProvidersPage />);
+    expect(await screen.findByRole('status', { name: 'Loading AI providers' })).toBeInTheDocument();
     expect(screen.queryByText('Loading…')).toBeNull();
   });
 });

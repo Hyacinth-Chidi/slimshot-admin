@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/shell/page-header';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityTimeline } from '@/components/overview/activity-timeline';
 import { CreditsWaveform } from '@/components/overview/credits-waveform';
@@ -34,7 +35,7 @@ export default function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-6 md:gap-8">
-      <h1 className="text-xl font-semibold text-text">Overview</h1>
+      <PageHeader title="Overview" />
 
       {healthQuery.data ? (
         <HealthStrip failed={healthQuery.data.failed} delayed={healthQuery.data.delayed} />

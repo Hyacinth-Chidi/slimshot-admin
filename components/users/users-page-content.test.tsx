@@ -158,3 +158,12 @@ describe('UsersPageContent loading', () => {
     expect(screen.queryByText('Loading users…')).toBeNull();
   });
 });
+
+describe('UsersPageContent header', () => {
+  it('sits under People in the breadcrumb', () => {
+    searchUsersMock.mockReturnValue(new Promise(() => {}));
+    renderPage();
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toHaveTextContent('People');
+    expect(screen.getByRole('heading', { level: 1, name: 'Users' })).toBeInTheDocument();
+  });
+});
