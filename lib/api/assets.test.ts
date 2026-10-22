@@ -302,6 +302,15 @@ describe('fonts kept for good', () => {
     expect(page.data.map((a) => a.keptForGood)).toEqual([true, false, false]);
   });
 
+  it("gives each list row a font's family and style, version and downloads", async () => {
+    const row = { ...FONT_ROW, stats: { downloadCount: 41 } };
+    vi.stubGlobal('fetch', mockFetch({ success: true, data: [row, ADMIN_ROW], meta: { nextCursor: null } }));
+
+    const [font, sound] = (await fetchAssets({})).data;
+    expect(font).toMatchObject({ face: 'Lato · Regular', version: 2, downloadCount: 41 });
+    expect(sound).toMatchObject({ face: null, version: null, downloadCount: 3 });
+  });
+
   it('counts downloads on the detail view', async () => {
     vi.stubGlobal('fetch', mockFetch({ success: true, data: { ...FONT_ROW, stats: { downloadCount: 41 } } }));
     expect((await fetchAsset('f1')).downloadCount).toBe(41);

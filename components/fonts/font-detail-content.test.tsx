@@ -49,6 +49,8 @@ function makeFont(overrides: Partial<AssetDetail> = {}, font: Partial<FontDetail
     previewUrl: 'https://cdn.test/slimshot/fonts/previews/p1.png',
     publishedAt: null,
     keptForGood: false,
+    face: 'Lato · Regular',
+    version: 2,
     downloadCount: 41,
     font: {
       familyName: 'Lato',

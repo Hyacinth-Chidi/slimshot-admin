@@ -29,3 +29,8 @@ export function formatCreatedDate(createdAt: string | null): string {
     day: 'numeric',
   });
 }
+
+/** "1 download", "1,204 downloads". */
+export function formatDownloads(count: number): string {
+  return `${count.toLocaleString('en-US')} ${count === 1 ? 'download' : 'downloads'}`;
+}

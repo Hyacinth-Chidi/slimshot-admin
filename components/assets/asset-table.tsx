@@ -51,6 +51,12 @@ export function AssetTable({
             </th>
           )}
           <th className="py-2 pr-3 font-medium">{isFont ? 'Font' : 'Title'}</th>
+          {isFont && (
+            <>
+              <th className="py-2 pr-3 font-medium">Family and style</th>
+              <th className="py-2 pr-3 font-medium">Version</th>
+            </>
+          )}
           {!isFont && (
             <>
               <th className="py-2 pr-3 font-medium">Author</th>
@@ -61,6 +67,7 @@ export function AssetTable({
             </>
           )}
           <th className="py-2 pr-3 font-medium">Status</th>
+          {isFont && <th className="py-2 pr-3 font-medium">Downloads</th>}
           <th className="py-2 pr-3 font-medium">Created</th>
           <th className="w-10 py-2" />
         </tr>
@@ -93,6 +100,14 @@ export function AssetTable({
                 </Link>
               </div>
             </td>
+            {/* Display names can be edited and repeated; the face read from
+                the file and the version are what tell two fonts apart. */}
+            {isFont && (
+              <>
+                <td className="py-2 pr-3 text-muted">{asset.face ?? '—'}</td>
+                <td className="py-2 pr-3 text-muted">{asset.version ? `v${asset.version}` : '—'}</td>
+              </>
+            )}
             {!isFont && (
               <>
                 <td className="py-2 pr-3 text-muted">{asset.author ?? '—'}</td>
@@ -105,6 +120,7 @@ export function AssetTable({
             <td className="py-2 pr-3">
               {asset.status ? <StatusPill status={asset.status} /> : <span className="text-subtle">—</span>}
             </td>
+            {isFont && <td className="py-2 pr-3 tabular-nums text-muted">{asset.downloadCount.toLocaleString('en-US')}</td>}
             <td className="py-2 pr-3 text-muted">{formatCreatedDate(asset.createdAt)}</td>
             <td className="py-2">
               {/* Hover actions (desktop-only extra, spec §6.2): dim until the row is

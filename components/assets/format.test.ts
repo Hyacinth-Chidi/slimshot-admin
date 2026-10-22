@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCreatedDate, formatDuration, formatBytes } from './format';
+import { formatCreatedDate, formatDownloads, formatDuration, formatBytes } from './format';
 
 describe('formatDuration', () => {
   it('formats whole minutes as m:ss', () => {
@@ -46,5 +46,15 @@ describe('formatBytes', () => {
     [52_428_800, '50 MB'],
   ])('%s bytes reads %s', (bytes, expected) => {
     expect(formatBytes(bytes)).toBe(expected);
+  });
+});
+
+describe('formatDownloads', () => {
+  it.each([
+    [0, '0 downloads'],
+    [1, '1 download'],
+    [1204, '1,204 downloads'],
+  ])('%i reads %s', (count, text) => {
+    expect(formatDownloads(count)).toBe(text);
   });
 });

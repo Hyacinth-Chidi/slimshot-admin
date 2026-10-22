@@ -53,6 +53,9 @@ const BASE_ASSET: Asset = {
   originalUrl: null,
   previewUrl: null,
   keptForGood: false,
+  face: null,
+  version: null,
+  downloadCount: 0,
 };
 
 function noop() {}

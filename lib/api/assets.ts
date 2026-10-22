@@ -26,6 +26,11 @@ export interface Asset {
    * refuses to unpublish or delete it. Always false for sounds.
    */
   keptForGood: boolean;
+  /** A font's family and style as read from the file ("Lato · Bold"); null for sounds. */
+  face: string | null;
+  /** A font's current version; null for sounds. */
+  version: number | null;
+  downloadCount: number;
 }
 
 /** What the server read from a font file, plus the owner's licence note. */
@@ -47,7 +52,6 @@ export interface AssetDetail extends Asset {
   byteSize: number | null;
   format: string | null;
   publishedAt: string | null;
-  downloadCount: number;
   /** Null for every kind but font. */
   font: FontDetail | null;
 }
@@ -122,6 +126,9 @@ function toAsset(row: ServerAsset, activeStatus?: AssetStatus): Asset {
     originalUrl: row.files.original?.url || null,
     previewUrl: row.files.specimen?.url || null,
     keptForGood: Boolean(row.font?.firstPublishedAt),
+    face: row.font ? `${row.font.familyName} · ${row.font.styleName}` : null,
+    version: row.font?.version ?? null,
+    downloadCount: row.stats.downloadCount,
   };
 }
 
@@ -133,7 +140,6 @@ function toDetail(row: ServerAsset): AssetDetail {
     byteSize: original?.byteSize ?? null,
     format: original?.format ?? null,
     publishedAt: row.publishedAt ?? null,
-    downloadCount: row.stats.downloadCount,
     font: row.font ?? null,
   };
 }

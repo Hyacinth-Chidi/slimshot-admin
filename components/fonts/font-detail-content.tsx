@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Download } from 'lucide-react';
 import Link from 'next/link';
-import { formatBytes } from '@/components/assets/format';
+import { formatBytes, formatDownloads } from '@/components/assets/format';
 import { useAssetActions } from '@/components/assets/use-asset-actions';
 import { PageHeader } from '@/components/shell/page-header';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,6 @@ function PreviewPanel({ src, title }: { src: string | null; title: string }) {
 
 function Facts({ asset }: { asset: AssetDetail }) {
   const font = asset.font;
-  const downloads = `${asset.downloadCount} ${asset.downloadCount === 1 ? 'download' : 'downloads'}`;
   const items: [string, string][] = [
     ['Family', font?.familyName ?? '—'],
     ['Style', font?.styleName ?? '—'],
@@ -48,7 +47,7 @@ function Facts({ asset }: { asset: AssetDetail }) {
           <span className="text-subtle">{label}</span> <span className="text-text">{value}</span>
         </li>
       ))}
-      <li>{downloads}</li>
+      <li>{formatDownloads(asset.downloadCount)}</li>
     </ul>
   );
 }

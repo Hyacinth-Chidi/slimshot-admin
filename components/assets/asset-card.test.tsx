@@ -16,6 +16,9 @@ const ASSET: Asset = {
   originalUrl: null,
   previewUrl: null,
   keptForGood: false,
+  face: null,
+  version: null,
+  downloadCount: 0,
 };
 
 function noop() {}
@@ -89,5 +92,14 @@ describe('AssetCard for a font', () => {
     expect(screen.getByRole('link', { name: 'Lato Regular' })).toHaveAttribute('href', '/fonts/f1');
     expect(screen.queryByRole('button', { name: /^Play/ })).toBeNull();
     expect(screen.queryByText('0:00')).toBeNull();
+  });
+
+  it('shows family and style, version and downloads', () => {
+    render(
+      <AssetCard asset={{ ...FONT, face: 'Lato · Bold', version: 3, downloadCount: 1 }} onPublish={noop} onUnpublish={noop} onDelete={noop} />,
+    );
+    expect(screen.getByText('Lato · Bold')).toBeInTheDocument();
+    expect(screen.getByText('v3')).toBeInTheDocument();
+    expect(screen.getByText('1 download')).toBeInTheDocument();
   });
 });

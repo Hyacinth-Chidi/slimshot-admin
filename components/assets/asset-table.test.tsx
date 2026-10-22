@@ -16,6 +16,9 @@ const ASSET: Asset = {
   originalUrl: null,
   previewUrl: null,
   keptForGood: false,
+  face: null,
+  version: null,
+  downloadCount: 0,
 };
 
 describe('AssetTable', () => {
@@ -74,6 +77,24 @@ describe('AssetTable for fonts', () => {
     for (const header of ['Author', 'Duration']) expect(screen.queryByRole('columnheader', { name: header })).toBeNull();
     expect(screen.getByRole('columnheader', { name: 'Font' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Play/ })).toBeNull();
+  });
+
+  it('shows family and style, version and downloads, so renamed faces stay apart', () => {
+    render(
+      <AssetTable
+        kind="font"
+        assets={[{ ...FONT, face: 'Lato · Bold', version: 3, downloadCount: 1204 }]}
+        onPublish={() => {}}
+        onUnpublish={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
+    expect(headers).toEqual(expect.arrayContaining(['Font', 'Family and style', 'Version', 'Status', 'Downloads']));
+    const row = screen.getAllByRole('row')[1];
+    expect(row).toHaveTextContent('Lato · Bold');
+    expect(row).toHaveTextContent('v3');
+    expect(row).toHaveTextContent('1,204');
   });
 
   it('says so when the preview is not drawn yet', () => {

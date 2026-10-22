@@ -49,6 +49,8 @@ function makeAsset(overrides: Partial<AssetDetail> = {}): AssetDetail {
     publishedAt: null,
     previewUrl: null,
     keptForGood: false,
+    face: null,
+    version: null,
     downloadCount: 0,
     font: null,
     ...overrides,
