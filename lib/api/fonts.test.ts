@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setAccessToken } from './client';
-import { fetchFontOrder, fetchLegacyFamilies, reorderFonts, updateFontLicense } from './fonts';
+import { fetchFontOrder, reorderFonts, updateFontLicense } from './fonts';
 
 afterEach(() => {
   setAccessToken(null);
@@ -51,16 +51,5 @@ describe('fonts client', () => {
     expect(init?.method).toBe('PATCH');
     expect(init?.body).toBe('{"license":"OFL 1.1"}');
     expect(fetchMock.mock.calls[1][1]?.body).toBe('{"license":null}');
-  });
-
-  it('reads the legacy checklist', async () => {
-    const rows = [
-      { familyName: 'Montserrat', fontId: 'f9', published: true },
-      { familyName: 'Lato', fontId: null, published: false },
-    ];
-    const fetchMock = stub({ success: true, data: rows });
-
-    await expect(fetchLegacyFamilies()).resolves.toEqual(rows);
-    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/fonts\/legacy-families$/);
   });
 });
