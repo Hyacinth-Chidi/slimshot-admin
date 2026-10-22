@@ -3,21 +3,25 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
-import { NAV_ITEMS } from './nav-items';
+import { isActive } from './nav-items';
+import { useNav } from './use-nav';
 
+/** Phones: the four sections. Each section's pages carry their own tabs. */
 export function BottomNav() {
   const pathname = usePathname();
+  const { sections } = useNav();
 
   return (
     <nav
       data-testid="bottom-nav"
+      aria-label="Sections"
       className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border bg-surface md:hidden"
     >
-      {NAV_ITEMS.map((item) => {
-        const active = pathname === item.href;
+      {sections.map((item) => {
+        const active = item.match.some((prefix) => isActive(prefix, pathname));
         return (
           <Link
-            key={item.href}
+            key={item.label}
             href={item.href}
             data-testid={active ? 'nav-active' : undefined}
             // 44px minimum target: min-h-14 is 56px, comfortably above it.

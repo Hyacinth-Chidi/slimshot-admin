@@ -8,7 +8,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/cn';
 import { useSidebarCollapsed } from '@/lib/use-sidebar-collapsed';
 import { performLogout } from './logout-button';
-import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from './nav-items';
+import { isActive, type NavItem } from './nav-items';
+import { useNav } from './use-nav';
 
 const GRADIENT = 'bg-[linear-gradient(135deg,var(--brand-from)_0%,var(--brand-to)_100%)]';
 
@@ -55,6 +56,7 @@ function SidebarLink({ item, active, collapsed }: { item: NavItem; active: boole
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, toggle] = useSidebarCollapsed();
+  const { groups } = useNav();
 
   // Ctrl+B / Cmd+B, the shortcut most editors and dashboards use — except while
   // typing, where it would steal the keystroke.
@@ -102,14 +104,31 @@ export function Sidebar() {
           </RailTooltip>
         </div>
 
-        <nav className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => (
-            <SidebarLink key={item.href} item={item} active={pathname === item.href} collapsed={collapsed} />
-          ))}
+        <nav className="flex flex-col gap-5" aria-label="Main">
+          {groups
+            .filter((group) => group.items.length > 0)
+            .map((group, i) => (
+              <div key={group.label ?? i} className="flex flex-col gap-1">
+                {group.label &&
+                  (collapsed ? (
+                    // On the icon rail a thin rule stands in for the heading.
+                    <div className="mx-2 border-t border-border" aria-hidden="true" />
+                  ) : (
+                    <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-subtle">{group.label}</p>
+                  ))}
+                {group.items.map((item) => (
+                  <SidebarLink
+                    key={item.href}
+                    item={item}
+                    active={isActive(item.href, pathname)}
+                    collapsed={collapsed}
+                  />
+                ))}
+              </div>
+            ))}
         </nav>
 
         <div className="mt-auto flex flex-col gap-1 pt-4">
-          <SidebarLink item={SETTINGS_ITEM} active={pathname === SETTINGS_ITEM.href} collapsed={collapsed} />
           <RailTooltip label="Log out" show={collapsed}>
             <button
               type="button"

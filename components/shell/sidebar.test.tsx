@@ -1,10 +1,25 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render as rtlRender, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Sidebar } from './sidebar';
 import { SIDEBAR_STORAGE_KEY } from '@/lib/use-sidebar-collapsed';
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/assets' }));
+vi.mock('next/navigation', () => ({ usePathname: () => '/audio' }));
+vi.mock('@/lib/auth/profile', () => ({ useProfile: () => ({ data: { role: 'owner' }, isLoading: false }) }));
+vi.mock('@/lib/api/kinds', () => ({
+  fetchKinds: vi.fn(async () => [{ kind: 'audio', label: 'Audio', extensions: ['.mp3'], fileRoles: [] }]),
+}));
+
+function wrapper({ children }: { children: ReactNode }) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper });
+}
 
 afterEach(() => {
   localStorage.clear();
@@ -18,7 +33,8 @@ describe('Sidebar collapse', () => {
   it('starts expanded with visible labels', () => {
     render(<Sidebar />);
     expect(sidebar()).toHaveAttribute('data-collapsed', 'false');
-    expect(screen.getByText('Assets')).toBeVisible();
+    expect(screen.getByText('Audio')).toBeVisible();
+    expect(screen.getByText('Library')).toBeVisible();
   });
 
   it('collapses to an icon rail and back when the toggle is clicked', async () => {
@@ -29,22 +45,25 @@ describe('Sidebar collapse', () => {
     expect(sidebar()).toHaveAttribute('data-collapsed', 'true');
     expect(sidebar()).toHaveClass('w-16');
     // Labels leave the layout, but every link keeps an accessible name.
-    expect(screen.queryByText('Assets')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Assets' })).toHaveAttribute('href', '/assets');
+    expect(screen.queryByText('Audio')).toBeNull();
+    // Group headings give way to dividers on the rail.
+    expect(screen.queryByText('Library')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Audio' })).toHaveAttribute('href', '/audio');
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /expand sidebar/i }));
     expect(sidebar()).toHaveAttribute('data-collapsed', 'false');
-    expect(screen.getByText('Assets')).toBeVisible();
+    expect(screen.getByText('Audio')).toBeVisible();
   });
 
-  it('keeps Settings reachable, with its name, when collapsed', async () => {
+  it('keeps the System pages reachable, with their names, when collapsed', async () => {
     const user = userEvent.setup();
     render(<Sidebar />);
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    expect(screen.getByRole('link', { name: 'Credits' })).toHaveAttribute('href', '/system/credits');
 
     await user.click(screen.getByRole('button', { name: /collapse sidebar/i }));
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    expect(screen.getByRole('link', { name: 'Credits' })).toHaveAttribute('href', '/system/credits');
+    expect(screen.getByRole('link', { name: 'AI providers' })).toHaveAttribute('href', '/system/providers');
   });
 
   it('remembers the choice across reloads', async () => {
