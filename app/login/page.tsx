@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ApiError } from '@/lib/api/client';
 import { login } from '@/lib/auth/session';
+import { BrandLogo } from '@/components/shell/brand-logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -32,7 +33,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6">
         <div className="mb-6 flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-[linear-gradient(135deg,var(--brand-from)_0%,var(--brand-to)_100%)]" />
+          <BrandLogo />
           <span className="font-semibold">SlimShot</span>
         </div>
 

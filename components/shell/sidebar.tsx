@@ -7,6 +7,7 @@ import { useEffect, type ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/cn';
 import { useSidebarCollapsed } from '@/lib/use-sidebar-collapsed';
+import { BrandLogo } from './brand-logo';
 import { performLogout } from './logout-button';
 import { isActive, type NavItem } from './nav-items';
 import { useNav } from './use-nav';
@@ -87,7 +88,7 @@ export function Sidebar() {
       >
         <div className={cn('mb-8 flex items-center', collapsed ? 'flex-col gap-3' : 'justify-between px-2')}>
           <div className="flex items-center gap-2">
-            <div className={cn('h-8 w-8 shrink-0 rounded-lg', GRADIENT)} />
+            <BrandLogo named={collapsed} />
             {!collapsed && <span className="font-semibold">SlimShot</span>}
           </div>
           <RailTooltip label={toggleLabel} show={collapsed}>

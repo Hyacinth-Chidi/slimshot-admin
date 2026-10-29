@@ -21,5 +21,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  // Pages only. Image files (public/logo.png, the app icons) are left alone:
+  // the login page shows them before a session exists, so redirecting them
+  // to /login would break them there.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif)$).*)'],
 };

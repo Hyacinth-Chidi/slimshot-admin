@@ -35,13 +35,22 @@ describe('proxy', () => {
 });
 
 describe('proxy matcher', () => {
-  it.each(['/', '/assets', '/settings', '/login'])('runs on page %s', (url) => {
+  it.each(['/', '/assets', '/settings', '/login', '/credits/pricing', '/audio/cmh2x9k0f0000abcd', '/fonts/abcpng'])('runs on page %s', (url) => {
     expect(unstable_doesMiddlewareMatch({ config, url })).toBe(true);
   });
 
   // The auth route handlers must be reachable without a session (login,
   // refresh) — a redirect there would make logging in impossible.
-  it.each(['/api/auth/login', '/api/auth/refresh', '/api/auth/logout', '/_next/static/chunk.js', '/favicon.ico'])(
+  it.each([
+    '/api/auth/login',
+    '/api/auth/refresh',
+    '/api/auth/logout',
+    '/_next/static/chunk.js',
+    '/favicon.ico',
+    // Images in public/ and the app icons are shown on /login, before any session exists.
+    '/logo.png',
+    '/apple-icon.png',
+  ])(
     'leaves %s alone',
     (url) => {
       expect(unstable_doesMiddlewareMatch({ config, url })).toBe(false);

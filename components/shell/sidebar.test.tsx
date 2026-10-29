@@ -67,6 +67,18 @@ describe('Sidebar collapse', () => {
     expect(screen.getByRole('link', { name: 'AI providers' })).toHaveAttribute('href', '/system/providers');
   });
 
+  it('shows the SlimShot logo, named for screen readers only when the word is hidden', async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />);
+    const logo = document.querySelector('[data-testid="sidebar"] img');
+    expect(logo).toHaveAttribute('src', '/logo.png');
+    // Expanded, "SlimShot" is written beside it, so the image itself is decorative.
+    expect(logo).toHaveAttribute('alt', '');
+
+    await user.click(screen.getByRole('button', { name: /collapse sidebar/i }));
+    expect(screen.getByRole('img', { name: 'SlimShot' })).toHaveAttribute('src', '/logo.png');
+  });
+
   it('remembers the choice across reloads', async () => {
     const user = userEvent.setup();
     const { unmount } = render(<Sidebar />);
