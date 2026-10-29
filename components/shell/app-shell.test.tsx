@@ -52,7 +52,7 @@ describe('AppShell', () => {
     expect(screen.getAllByTestId('nav-active')).toHaveLength(2);
   });
 
-  it('lays the sidebar out as Overview, Library, People and System', async () => {
+  it('lays the sidebar out as Overview, Library, People, Credits and System', async () => {
     renderShell();
     const sidebar = screen.getByTestId('sidebar');
     await within(sidebar).findByRole('link', { name: 'Audio' });
@@ -60,18 +60,20 @@ describe('AppShell', () => {
       '/',
       '/audio',
       '/users',
+      '/credits/pricing',
+      '/credits/earning',
       '/system/providers',
-      '/system/credits',
+      '/system/security',
       '/system/audit',
     ]);
-    for (const heading of ['Library', 'People', 'System']) {
+    for (const heading of ['Library', 'People', 'Credits', 'System']) {
       expect(within(sidebar).getByText(heading)).toBeInTheDocument();
     }
   });
 
-  it('gives the phone four sections and no separate Settings', () => {
+  it('gives the owner five sections on the phone and no separate Settings', () => {
     renderShell();
-    expect(hrefs(screen.getByTestId('bottom-nav'))).toEqual(['/', '/audio', '/users', '/system/providers']);
+    expect(hrefs(screen.getByTestId('bottom-nav'))).toEqual(['/', '/audio', '/users', '/credits/pricing', '/system/providers']);
     const bar = screen.getByTestId('mobile-top-bar');
     expect(within(bar).queryByRole('link', { name: 'Settings' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Settings' })).toBeNull();

@@ -60,7 +60,7 @@ describe('System > AI providers', () => {
     const tabs = screen.getByRole('navigation', { name: 'System sections' });
     expect(within(tabs).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual([
       '/system/providers',
-      '/system/credits',
+      '/system/security',
       '/system/audit',
     ]);
     expect(within(tabs).getByRole('link', { name: 'AI providers' })).toHaveAttribute('aria-current', 'page');

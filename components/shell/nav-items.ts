@@ -1,4 +1,4 @@
-import { Bot, Coins, LayoutDashboard, Library, ScrollText, Settings2, Users, type LucideIcon } from 'lucide-react';
+import { Bot, Coins, Gift, LayoutDashboard, Library, ScrollText, Settings2, ShieldCheck, Tag, Users, type LucideIcon } from 'lucide-react';
 import type { AdminRole } from '@/lib/auth/permissions';
 import { librarySection } from '@/lib/library/kinds';
 
@@ -16,16 +16,18 @@ export interface NavGroup {
 
 const OVERVIEW: NavItem = { href: '/', label: 'Overview', icon: LayoutDashboard };
 const USERS: NavItem = { href: '/users', label: 'Users', icon: Users };
+const PRICING: NavItem = { href: '/credits/pricing', label: 'Pricing', icon: Tag };
+const EARNING: NavItem = { href: '/credits/earning', label: 'Earning', icon: Gift };
 const PROVIDERS: NavItem = { href: '/system/providers', label: 'AI providers', icon: Bot };
-const CREDITS: NavItem = { href: '/system/credits', label: 'Credits', icon: Coins };
+const SECURITY: NavItem = { href: '/system/security', label: 'Sign-in security', icon: ShieldCheck };
 const AUDIT: NavItem = { href: '/system/audit', label: 'Audit log', icon: ScrollText };
 
-/** Providers and credits are the owner's alone (the server enforces it too). */
+/** Providers, pricing, earning and sign-in security are the owner's alone (the server enforces it too). */
 function systemItems(role: AdminRole | undefined): NavItem[] {
-  return role === 'owner' ? [PROVIDERS, CREDITS, AUDIT] : [AUDIT];
+  return role === 'owner' ? [PROVIDERS, SECURITY, AUDIT] : [AUDIT];
 }
 
-/** The desktop sidebar: Overview, then the Library (one entry per kind), People and System. */
+/** The desktop sidebar: Overview, the Library (one entry per kind), People, Credits (owner) and System. */
 export function navGroups({ kinds, role }: { kinds: string[]; role: AdminRole | undefined }): NavGroup[] {
   const library = kinds.flatMap((kind) => {
     const section = librarySection(kind);
@@ -35,6 +37,7 @@ export function navGroups({ kinds, role }: { kinds: string[]; role: AdminRole | 
     { items: [OVERVIEW] },
     { label: 'Library', items: library },
     { label: 'People', items: [USERS] },
+    ...(role === 'owner' ? [{ label: 'Credits', items: [PRICING, EARNING] }] : []),
     { label: 'System', items: systemItems(role) },
   ];
 }
@@ -50,12 +53,13 @@ export interface MobileSection extends NavItem {
   match: string[];
 }
 
-/** The phone's bottom bar: the four sections, each opening where the role can work. */
+/** The phone's bottom bar: one tab per section the role has, each opening where it can work. */
 export function mobileSections(role: AdminRole | undefined): MobileSection[] {
   return [
     { ...OVERVIEW, match: ['/'] },
     { href: '/audio', label: 'Library', icon: Library, match: ['/audio', '/fonts'] },
     { ...USERS, match: ['/users'] },
+    ...(role === 'owner' ? [{ href: PRICING.href, label: 'Credits', icon: Coins, match: ['/credits'] }] : []),
     { href: systemItems(role)[0].href, label: 'System', icon: Settings2, match: ['/system'] },
   ];
 }

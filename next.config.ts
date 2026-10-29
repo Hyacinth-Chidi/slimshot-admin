@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
       { source: "/categories", destination: "/audio/categories", permanent: false },
       { source: "/settings", destination: "/system/providers", permanent: false },
       { source: "/audit", destination: "/system/audit", permanent: false },
+      // Credits left System for its own sidebar group (Pricing, Earning).
+      { source: "/system/credits", destination: "/credits/pricing", permanent: false },
     ];
   },
 };

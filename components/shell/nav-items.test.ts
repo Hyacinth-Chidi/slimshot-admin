@@ -5,12 +5,22 @@ const shape = (groups: ReturnType<typeof navGroups>) =>
   groups.map((g) => ({ label: g.label ?? null, items: g.items.map((i) => i.href) }));
 
 describe('navGroups', () => {
-  it('groups the dashboard: Overview, Library, People, System', () => {
+  it('groups the dashboard: Overview, Library, People, Credits, System', () => {
     expect(shape(navGroups({ kinds: ['audio'], role: 'owner' }))).toEqual([
       { label: null, items: ['/'] },
       { label: 'Library', items: ['/audio'] },
       { label: 'People', items: ['/users'] },
-      { label: 'System', items: ['/system/providers', '/system/credits', '/system/audit'] },
+      { label: 'Credits', items: ['/credits/pricing', '/credits/earning'] },
+      { label: 'System', items: ['/system/providers', '/system/security', '/system/audit'] },
+    ]);
+  });
+
+  it('gives everyone else no Credits group, and only the audit log under System', () => {
+    expect(shape(navGroups({ kinds: ['audio'], role: 'editor' }))).toEqual([
+      { label: null, items: ['/'] },
+      { label: 'Library', items: ['/audio'] },
+      { label: 'People', items: ['/users'] },
+      { label: 'System', items: ['/system/audit'] },
     ]);
   });
 
@@ -20,13 +30,18 @@ describe('navGroups', () => {
   });
 
   it('shows non-owners only the parts of System they can use', () => {
-    const system = navGroups({ kinds: ['audio'], role: 'admin' })[3];
+    const system = navGroups({ kinds: ['audio'], role: 'admin' }).find((g) => g.label === 'System')!;
     expect(system.items.map((i) => i.label)).toEqual(['Audit log']);
   });
 
   it('names the System items for what they are', () => {
-    const system = navGroups({ kinds: ['audio'], role: 'owner' })[3];
-    expect(system.items.map((i) => i.label)).toEqual(['AI providers', 'Credits', 'Audit log']);
+    const groups = navGroups({ kinds: ['audio'], role: 'owner' });
+    expect(groups.find((g) => g.label === 'Credits')!.items.map((i) => i.label)).toEqual(['Pricing', 'Earning']);
+    expect(groups.find((g) => g.label === 'System')!.items.map((i) => i.label)).toEqual([
+      'AI providers',
+      'Sign-in security',
+      'Audit log',
+    ]);
   });
 });
 
@@ -45,19 +60,22 @@ describe('isActive', () => {
 });
 
 describe('mobileSections', () => {
-  it('keeps four sections on the phone bar, System opening where the role can work', () => {
+  it('gives the owner five sections on the phone bar, Credits among them', () => {
     expect(mobileSections('owner').map((s) => [s.label, s.href])).toEqual([
       ['Overview', '/'],
       ['Library', '/audio'],
       ['Users', '/users'],
+      ['Credits', '/credits/pricing'],
       ['System', '/system/providers'],
     ]);
+    expect(mobileSections('viewer').map((s) => s.label)).toEqual(['Overview', 'Library', 'Users', 'System']);
     expect(mobileSections('viewer').find((s) => s.label === 'System')!.href).toBe('/system/audit');
   });
 
   it('marks Library active on any kind, and System on any system page', () => {
-    const [, library, , system] = mobileSections('owner');
+    const [, library, , credits, system] = mobileSections('owner');
     expect(library.match.some((p) => isActive(p, '/fonts/f1'))).toBe(true);
-    expect(system.match.some((p) => isActive(p, '/system/credits'))).toBe(true);
+    expect(credits.match.some((p) => isActive(p, '/credits/earning'))).toBe(true);
+    expect(system.match.some((p) => isActive(p, '/system/security'))).toBe(true);
   });
 });

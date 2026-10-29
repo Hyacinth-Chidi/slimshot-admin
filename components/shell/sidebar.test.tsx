@@ -56,13 +56,14 @@ describe('Sidebar collapse', () => {
     expect(screen.getByText('Audio')).toBeVisible();
   });
 
-  it('keeps the System pages reachable, with their names, when collapsed', async () => {
+  it('keeps the Credits and System pages reachable, with their names, when collapsed', async () => {
     const user = userEvent.setup();
     render(<Sidebar />);
-    expect(screen.getByRole('link', { name: 'Credits' })).toHaveAttribute('href', '/system/credits');
+    expect(screen.getByRole('link', { name: 'Pricing' })).toHaveAttribute('href', '/credits/pricing');
 
     await user.click(screen.getByRole('button', { name: /collapse sidebar/i }));
-    expect(screen.getByRole('link', { name: 'Credits' })).toHaveAttribute('href', '/system/credits');
+    expect(screen.getByRole('link', { name: 'Pricing' })).toHaveAttribute('href', '/credits/pricing');
+    expect(screen.getByRole('link', { name: 'Earning' })).toHaveAttribute('href', '/credits/earning');
     expect(screen.getByRole('link', { name: 'AI providers' })).toHaveAttribute('href', '/system/providers');
   });
 

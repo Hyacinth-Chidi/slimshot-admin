@@ -11,6 +11,8 @@ describe('old dashboard addresses', () => {
       '/categories': '/audio/categories',
       '/settings': '/system/providers',
       '/audit': '/system/audit',
+      // Credits left System for its own sidebar group.
+      '/system/credits': '/credits/pricing',
     });
     // Temporary: the old addresses may be reused one day.
     expect(redirects.every((r) => r.permanent === false)).toBe(true);
