@@ -2,10 +2,17 @@
 
 import { useSyncExternalStore } from 'react';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface Toast {
   id: number;
   message: string;
   variant: 'default' | 'error' | 'success';
+  /** One button in the toast, e.g. Undo. Using it closes the toast. */
+  action?: ToastAction;
 }
 
 let toasts: Toast[] = [];
@@ -16,14 +23,19 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
-export function toast(message: string, variant: Toast['variant'] = 'default'): void {
-  const item: Toast = { id: nextId++, message, variant };
+export function toast(message: string, variant: Toast['variant'] = 'default', action?: ToastAction): void {
+  const item: Toast = { id: nextId++, message, variant, ...(action ? { action } : {}) };
   toasts = [...toasts, item];
   emit();
   setTimeout(() => {
     toasts = toasts.filter((t) => t.id !== item.id);
     emit();
   }, 5000);
+}
+
+export function dismissToast(id: number): void {
+  toasts = toasts.filter((t) => t.id !== id);
+  emit();
 }
 
 export function useToasts(): Toast[] {

@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/cn';
-import { useToasts } from '@/lib/use-toast';
+import { dismissToast, useToasts } from '@/lib/use-toast';
 
 export function Toaster() {
   const toasts = useToasts();
@@ -20,7 +20,21 @@ export function Toaster() {
             t.variant === 'default' && 'border-border',
           )}
         >
-          {t.message}
+          <div className="flex items-center gap-4">
+            <span>{t.message}</span>
+            {t.action && (
+              <button
+                type="button"
+                className="shrink-0 rounded-md px-2 py-1 font-semibold text-text underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-from)]"
+                onClick={() => {
+                  dismissToast(t.id);
+                  t.action?.onClick();
+                }}
+              >
+                {t.action.label}
+              </button>
+            )}
+          </div>
         </div>
       ))}
     </div>
