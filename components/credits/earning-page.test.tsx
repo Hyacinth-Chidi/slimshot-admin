@@ -81,5 +81,6 @@ describe('EarningPage', () => {
     renderPage();
     await screen.findByRole('region', { name: 'Sign-up bonus' });
     expect(screen.getByRole('button', { name: 'Check balances' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Last 30 days' })).toBeInTheDocument();
   });
 });

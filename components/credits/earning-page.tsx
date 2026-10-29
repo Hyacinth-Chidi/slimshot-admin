@@ -5,6 +5,7 @@ import { BalanceCheck } from '@/components/settings/balance-check';
 import { Button } from '@/components/ui/button';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { fetchCreditSettings, fetchPricingRules } from '@/lib/api/credits';
+import { CreditsBySource } from './credits-by-source';
 import { CreditsHeader } from './credits-header';
 import { SettingCard } from './setting-card';
 import { EARNING_CARDS } from './setting-cards';
@@ -44,6 +45,8 @@ export function EarningPage() {
           </Button>
         </div>
       )}
+
+      <CreditsBySource />
 
       <BalanceCheck />
     </div>
