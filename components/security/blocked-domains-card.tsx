@@ -146,7 +146,7 @@ export function BlockedDomainsCard({ settings }: { settings: CreditSettings }) {
                   aria-label={`Remove ${domain}`}
                   disabled={mutation.isPending}
                   onClick={() => save({ op: 'remove', domain })}
-                  className="grid h-7 w-7 place-items-center rounded-full text-subtle hover:bg-border hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-from)] max-md:h-9 max-md:w-9"
+                  className="grid h-7 w-7 place-items-center rounded-full text-subtle hover:bg-border hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-from)] max-md:h-11 max-md:w-11"
                 >
                   <X size={14} aria-hidden="true" />
                 </button>

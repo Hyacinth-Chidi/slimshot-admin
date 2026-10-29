@@ -25,7 +25,7 @@ export function Toaster() {
             {t.action && (
               <button
                 type="button"
-                className="shrink-0 rounded-md px-2 py-1 font-semibold text-text underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-from)]"
+                className="min-h-11 shrink-0 rounded-md px-3 py-1 font-semibold md:min-h-0 md:px-2 text-text underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-from)]"
                 onClick={() => {
                   dismissToast(t.id);
                   t.action?.onClick();

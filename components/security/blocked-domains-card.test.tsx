@@ -49,6 +49,11 @@ describe('BlockedDomainsCard', () => {
     expect(within(card()).getByRole('button', { name: 'Remove tempmail.dev' })).toBeInTheDocument();
   });
 
+  it('makes each remove button a 44px target on phones', () => {
+    renderCard();
+    expect(within(card()).getByRole('button', { name: 'Remove tempmail.dev' })).toHaveClass('max-md:h-11', 'max-md:w-11');
+  });
+
   it('adds a domain, normalised, and saves the whole list', async () => {
     renderCard();
     await userEvent.type(box(), ' TempMail.com ');

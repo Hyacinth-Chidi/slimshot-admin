@@ -17,6 +17,14 @@ describe('Toaster', () => {
     expect(screen.queryByText('Unblocked tempmail.dev')).toBeNull();
   });
 
+  it('makes the action a 44px target on phones', async () => {
+    render(<Toaster />);
+    act(() => toast('Blocked x.com', 'default', { label: 'Undo', onClick: () => {} }));
+    expect(screen.getByRole('button', { name: 'Undo' })).toHaveClass('min-h-11', 'md:min-h-0');
+    // Toasts live outside React; close this one so the next test starts empty.
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  });
+
   it('shows a plain toast with no button', () => {
     render(<Toaster />);
     act(() => toast('Saved'));
