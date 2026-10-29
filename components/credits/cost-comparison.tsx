@@ -38,7 +38,10 @@ export function CostComparison({
   if (rise !== null && now && next && adRewardCredits !== null) {
     const before = coverage(now, adRewardCredits);
     const after = coverage(next, adRewardCredits);
-    if (before !== after) {
+    if (after === null && before !== null) {
+      const today = before === Infinity ? 'captions of any length' : `${describeCoverage(before)} of captions`;
+      adLine = ` One rewarded ad would no longer cover a caption job; today it pays for ${today}.`;
+    } else if (before !== after) {
       adLine = ` One rewarded ad would pay for ${describeCoverage(after)} of captions instead of ${describeCoverage(before)}.`;
     }
   }

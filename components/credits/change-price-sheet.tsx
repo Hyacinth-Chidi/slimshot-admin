@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,10 +74,22 @@ export function ChangePriceSheet(props: SheetProps) {
   // Escape, the X, the overlay and Cancel all come here: unsaved edits are never dropped silently.
   const requestClose = () => (dirty ? setAskDiscard(true) : close());
 
+  // A reload or closing the tab asks too, while a price is half-made.
+  useEffect(() => {
+    if (!open || !dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [open, dirty]);
+
   return (
     <>
       <Sheet open={open} onOpenChange={(next) => (next ? onOpenChange(true) : requestClose())}>
-        <SheetContent side="right" className="w-full gap-0 p-0 data-[side=right]:sm:max-w-[560px]">
+        {/* data-[side=right]:w-full, not w-full: the base sheet's data-[side=right]:w-3/4 outranks a plain class. */}
+        <SheetContent side="right" className="gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-[560px]">
           {open && <PriceForm {...props} onEdit={() => setDirty(true)} onCancel={requestClose} onDone={close} />}
         </SheetContent>
       </Sheet>

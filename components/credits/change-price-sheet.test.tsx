@@ -213,6 +213,30 @@ describe('ChangePriceSheet', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  it('fills the screen on phones', () => {
+    renderSheet();
+    // The base sheet sets data-[side=right]:w-3/4, which outranks a plain w-full: override it on the same variant.
+    expect(sheet()).toHaveClass('data-[side=right]:w-full');
+    expect(sheet()).not.toHaveClass('w-full');
+  });
+
+  it('guards a reload or closing the tab while a price is half-made', async () => {
+    const add = vi.spyOn(window, 'addEventListener');
+    const remove = vi.spyOn(window, 'removeEventListener');
+    const { onOpenChange } = renderSheet();
+    expect(add.mock.calls.some(([type]) => type === 'beforeunload')).toBe(false);
+
+    await retype('Credits per block', '3');
+    expect(add.mock.calls.some(([type]) => type === 'beforeunload')).toBe(true);
+
+    await userEvent.click(button('Cancel'));
+    await userEvent.click(within(screen.getByRole('alertdialog', { name: 'Discard this price?' })).getByRole('button', { name: 'Discard' }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(remove.mock.calls.some(([type]) => type === 'beforeunload')).toBe(true);
+    add.mockRestore();
+    remove.mockRestore();
+  });
+
   it('adds and removes length bands', async () => {
     renderSheet({ startFrom: V2 });
     await userEvent.click(button('Add band'));

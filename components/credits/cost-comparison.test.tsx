@@ -37,6 +37,14 @@ describe('CostComparison', () => {
     );
   });
 
+  it('says plainly when an ad would no longer cover a caption job', () => {
+    // A minimum of 6 is more than the 5 credits an ad gives.
+    render(<CostComparison now={v3} nowLabel="Now (v3)" next={{ ...v3, minCredits: 6 }} nextLabel="New (v4)" adRewardCredits={5} />);
+    expect(screen.getByRole('status').textContent).toBe(
+      'Clips cost up to 50% more. One rewarded ad would no longer cover a caption job; today it pays for 1 min of captions.',
+    );
+  });
+
   it('leaves out the ad sentence when the ad amount is unknown', () => {
     render(<CostComparison now={v3} nowLabel="Now (v3)" next={v4} nextLabel="New (v4)" adRewardCredits={null} />);
     expect(screen.getByRole('status').textContent).toBe('Clips cost up to 50% more.');
