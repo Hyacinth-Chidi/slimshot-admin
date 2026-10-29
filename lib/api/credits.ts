@@ -59,6 +59,16 @@ export interface CreditSettings {
 
 export type CreditSettingsPatch = Partial<Omit<CreditSettings, 'id' | 'updatedById' | 'updatedAt' | 'lastChanged'>>;
 
+/** The cached settings row every settings screen reads. */
+export const CREDIT_SETTINGS_KEY = ['credits', 'settings'] as const;
+
+/**
+ * Every write to the settings row joins one queue (TanStack mutation scope),
+ * so saves land in the order they were made and the cache always ends on the
+ * newest row. Without it, a slow save's older row could overwrite a newer one.
+ */
+export const CREDIT_SETTINGS_WRITES = { id: 'credit-settings' } as const;
+
 export function fetchCreditSettings(): Promise<CreditSettings> {
   return withRefresh(() => apiFetch<CreditSettings>('/credit-settings'));
 }

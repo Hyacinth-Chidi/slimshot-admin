@@ -6,7 +6,12 @@ import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ApiError } from '@/lib/api/client';
-import { updateCreditSettings, type CreditSettings } from '@/lib/api/credits';
+import {
+  CREDIT_SETTINGS_KEY,
+  CREDIT_SETTINGS_WRITES,
+  updateCreditSettings,
+  type CreditSettings,
+} from '@/lib/api/credits';
 import { toast } from '@/lib/use-toast';
 
 const SEARCH_FROM = 20;
@@ -17,9 +22,21 @@ export function isBlockableDomain(text: string): boolean {
   return DOMAIN.test(text);
 }
 
+type Change = { op: 'add' | 'remove'; domain: string };
+
+const reverse = ({ op, domain }: Change): Change => ({ op: op === 'add' ? 'remove' : 'add', domain });
+
+/** The list after one change, applied to whatever the list is now. */
+function apply(list: string[], { op, domain }: Change): string[] {
+  if (op === 'remove') return list.filter((d) => d !== domain);
+  return list.includes(domain) ? list : [...list, domain];
+}
+
 /**
- * Throwaway-mail domains that email sign-in refuses. Each add or remove saves
- * the whole list at once, and the toast offers Undo.
+ * Throwaway-mail domains that email sign-in refuses. Each add or remove sends
+ * the whole list (the server stores it whole), built at send time from the
+ * newest saved list, never from what this screen showed when the button was
+ * pressed. Undo reverses only its own change, applied to the list as it is then.
  */
 export function BlockedDomainsCard({ settings }: { settings: CreditSettings }) {
   const queryClient = useQueryClient();
@@ -30,18 +47,29 @@ export function BlockedDomainsCard({ settings }: { settings: CreditSettings }) {
 
   const domains = settings.disposableEmailDomains;
   const mutation = useMutation({
-    mutationFn: (list: string[]) => updateCreditSettings({ disposableEmailDomains: list }),
-    onSuccess: (saved) => queryClient.setQueryData(['credits', 'settings'], saved),
+    // Runs after any earlier settings write has landed (shared scope), so the cache holds the newest list.
+    mutationFn: (change: Change) => {
+      const current = queryClient.getQueryData<CreditSettings>(CREDIT_SETTINGS_KEY)?.disposableEmailDomains ?? domains;
+      return updateCreditSettings({ disposableEmailDomains: apply(current, change) });
+    },
+    scope: CREDIT_SETTINGS_WRITES,
+    onSuccess: async (saved) => {
+      await queryClient.cancelQueries({ queryKey: CREDIT_SETTINGS_KEY });
+      queryClient.setQueryData(CREDIT_SETTINGS_KEY, saved);
+    },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 401) return;
       toast(error instanceof Error ? error.message : 'Something went wrong.', 'error');
     },
   });
 
-  const save = (list: string[], message: string) => {
-    const before = domains;
-    mutation.mutate(list, {
-      onSuccess: () => toast(message, 'default', { label: 'Undo', onClick: () => mutation.mutate(before) }),
+  const save = (change: Change) => {
+    mutation.mutate(change, {
+      onSuccess: () =>
+        toast(`${change.op === 'add' ? 'Blocked' : 'Unblocked'} ${change.domain}`, 'default', {
+          label: 'Undo',
+          onClick: () => mutation.mutate(reverse(change)),
+        }),
     });
   };
 
@@ -52,7 +80,7 @@ export function BlockedDomainsCard({ settings }: { settings: CreditSettings }) {
     if (domains.includes(domain)) return setProblem(`${domain} is already blocked`);
     setProblem(null);
     setText('');
-    save([...domains, domain], `Blocked ${domain}`);
+    save({ op: 'add', domain });
   };
 
   const shown = search ? domains.filter((d) => d.includes(search.trim().toLowerCase())) : domains;
@@ -117,7 +145,7 @@ export function BlockedDomainsCard({ settings }: { settings: CreditSettings }) {
                   type="button"
                   aria-label={`Remove ${domain}`}
                   disabled={mutation.isPending}
-                  onClick={() => save(domains.filter((d) => d !== domain), `Unblocked ${domain}`)}
+                  onClick={() => save({ op: 'remove', domain })}
                   className="grid h-7 w-7 place-items-center rounded-full text-subtle hover:bg-border hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-from)] max-md:h-9 max-md:w-9"
                 >
                   <X size={14} aria-hidden="true" />

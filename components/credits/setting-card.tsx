@@ -7,7 +7,13 @@ import { Input } from '@/components/ui/input';
 import type { RuleLike } from '@/components/settings/pricing-format';
 import type { NumericSettingKey } from '@/components/settings/credit-settings-form';
 import { ApiError } from '@/lib/api/client';
-import { updateCreditSettings, type CreditSettings, type CreditSettingsPatch } from '@/lib/api/credits';
+import {
+  CREDIT_SETTINGS_KEY,
+  CREDIT_SETTINGS_WRITES,
+  updateCreditSettings,
+  type CreditSettings,
+  type CreditSettingsPatch,
+} from '@/lib/api/credits';
 import { fieldErrors } from '@/lib/api/field-errors';
 import { cn } from '@/lib/cn';
 import { formatShortDate } from '@/lib/format';
@@ -61,9 +67,12 @@ export function SettingCard({ spec, settings, live }: { spec: SettingCardSpec; s
 
   const mutation = useMutation({
     mutationFn: (patch: CreditSettingsPatch) => updateCreditSettings(patch),
-    onSuccess: (saved) => {
+    scope: CREDIT_SETTINGS_WRITES,
+    onSuccess: async (saved) => {
       setEdits({});
-      queryClient.setQueryData(['credits', 'settings'], saved);
+      // A refetch still in flight would answer with the row from before this save.
+      await queryClient.cancelQueries({ queryKey: CREDIT_SETTINGS_KEY });
+      queryClient.setQueryData(CREDIT_SETTINGS_KEY, saved);
       toast('Saved. The app uses the new values within 30 seconds.');
     },
     onError: (error) => {

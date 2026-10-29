@@ -91,7 +91,10 @@ describe('BlockedDomainsCard', () => {
 
     action!.onClick();
     await vi.waitFor(() => expect(creditsApi.updateCreditSettings).toHaveBeenCalledTimes(2));
-    expect(creditsApi.updateCreditSettings).toHaveBeenLastCalledWith({ disposableEmailDomains: DOMAINS });
+    // Undo re-adds that one domain to the list as it is now (at the end: order never matters).
+    expect(creditsApi.updateCreditSettings).toHaveBeenLastCalledWith({
+      disposableEmailDomains: ['mailinator.com', '10minutemail.com', 'tempmail.dev'],
+    });
   });
 
   it('shows a search box only past 20 domains', async () => {
