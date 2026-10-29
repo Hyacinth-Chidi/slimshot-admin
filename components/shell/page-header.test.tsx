@@ -21,6 +21,11 @@ describe('PageHeader', () => {
     expect(screen.getByRole('button', { name: 'Upload' })).toBeInTheDocument();
   });
 
+  it('shows a subtitle under the title', () => {
+    render(<PageHeader title="Pricing" subtitle="What each paid feature costs in the app." />);
+    expect(screen.getByText('What each paid feature costs in the app.')).toBeInTheDocument();
+  });
+
   it('has no breadcrumb trail when given none', () => {
     render(<PageHeader title="Overview" />);
     expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).toBeNull();
@@ -39,6 +44,18 @@ describe('SectionTabs', () => {
     const nav = screen.getByRole('navigation', { name: 'Audio sections' });
     expect(within(nav).getByRole('link', { name: 'Categories' })).toHaveAttribute('aria-current', 'page');
     expect(within(nav).getByRole('link', { name: 'Sounds' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('hides phone-only tabs from md up', () => {
+    pathname = '/audio';
+    render(<SectionTabs label="Audio sections" items={TABS} phoneOnly />);
+    expect(screen.getByRole('navigation', { name: 'Audio sections' })).toHaveClass('md:hidden');
+  });
+
+  it('shows ordinary tabs at every size', () => {
+    pathname = '/audio';
+    render(<SectionTabs label="Audio sections" items={TABS} />);
+    expect(screen.getByRole('navigation', { name: 'Audio sections' })).not.toHaveClass('md:hidden');
   });
 
   it('marks the first tab on its own page, not on the pages under it', () => {

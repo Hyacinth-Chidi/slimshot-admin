@@ -12,7 +12,17 @@ export interface Crumb {
 }
 
 /** The same top of every page: where you are, the title, and the page's main action on the right. */
-export function PageHeader({ crumbs, title, actions }: { crumbs?: Crumb[]; title: string; actions?: ReactNode }) {
+export function PageHeader({
+  crumbs,
+  title,
+  subtitle,
+  actions,
+}: {
+  crumbs?: Crumb[];
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1">
       {crumbs && crumbs.length > 0 && (
@@ -34,7 +44,10 @@ export function PageHeader({ crumbs, title, actions }: { crumbs?: Crumb[]; title
         </nav>
       )}
       <div className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 truncate text-xl font-semibold text-text">{title}</h1>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-semibold text-text">{title}</h1>
+          {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+        </div>
         {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
       </div>
     </div>
@@ -46,11 +59,14 @@ export interface SectionTab {
   href: string;
 }
 
-/** Tabs that are pages: each is a link, and the current one is marked. */
-export function SectionTabs({ label, items }: { label: string; items: SectionTab[] }) {
+/**
+ * Tabs that are pages: each is a link, and the current one is marked.
+ * `phoneOnly` is for tabs that repeat the sidebar: on desktop the sidebar is enough.
+ */
+export function SectionTabs({ label, items, phoneOnly = false }: { label: string; items: SectionTab[]; phoneOnly?: boolean }) {
   const pathname = usePathname();
   return (
-    <nav aria-label={label} className="flex gap-1 overflow-x-auto border-b border-border">
+    <nav aria-label={label} className={cn('flex gap-1 overflow-x-auto border-b border-border', phoneOnly && 'md:hidden')}>
       {items.map((tab) => {
         const current = pathname === tab.href;
         return (
