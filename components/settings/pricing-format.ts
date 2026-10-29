@@ -112,17 +112,17 @@ export function draftProblems(draft: PriceDraft): string[] {
     return problems;
   }
 
-  if (draft.rows.length + 1 > MAX_TIERS) problems.push(`At most ${MAX_TIERS} tiers, counting "Anything longer".`);
+  if (draft.rows.length + 1 > MAX_TIERS) problems.push(`At most ${MAX_TIERS} bands, counting "Anything longer".`);
   let previous: number | null = null;
   draft.rows.forEach((row, i) => {
     const n = i + 1;
     const seconds = wholeIn(row.upTo, 1, MAX_SECONDS);
     if (seconds === null) {
-      problems.push(`Tier ${n}: seconds must be a whole number from 1 to ${NUMBER.format(MAX_SECONDS)}.`);
+      problems.push(`Band ${n}: seconds must be a whole number from 1 to ${NUMBER.format(MAX_SECONDS)}.`);
     }
-    if (wholeIn(row.credits, 0, MAX_CREDITS) === null) problems.push(creditsProblem(`Tier ${n}`));
+    if (wholeIn(row.credits, 0, MAX_CREDITS) === null) problems.push(creditsProblem(`Band ${n}`));
     if (seconds !== null && previous !== null && seconds <= previous) {
-      problems.push(`Tier ${n} must be longer than tier ${n - 1}.`);
+      problems.push(`Band ${n} must be longer than band ${n - 1}.`);
     }
     if (seconds !== null) previous = seconds;
   });
@@ -179,4 +179,153 @@ export function toNewRule(draft: PriceDraft): NewPricingRule {
   const note = draft.note.trim();
   if (note) rule.note = note;
   return rule;
+}
+
+/** The parts of a pricing rule that set what a clip costs. */
+export type RuleLike = Pick<PricingRule, 'mode' | 'perJobCredits' | 'tiers' | 'blockSeconds' | 'blockCredits' | 'minCredits'>;
+
+/** The clip lengths the dashboard prices to show what a rule means: 15 s, 30 s, 1, 3, 5 and 10 min. */
+export const SAMPLE_SECONDS = [15, 30, 60, 180, 300, 600] as const;
+
+/** What a clip of this length costs: the server's priceFor (pricing.ts), band bounds included. */
+export function priceFor(rule: RuleLike, seconds: number): number {
+  if (rule.mode === 'per_job') return rule.perJobCredits ?? 0;
+  if (rule.mode === 'per_second') {
+    return priceBySecond(seconds, {
+      blockSeconds: rule.blockSeconds ?? 0,
+      blockCredits: rule.blockCredits ?? 0,
+      minCredits: rule.minCredits,
+    });
+  }
+  const band = (rule.tiers ?? []).find((t) => t.upToSeconds === null || seconds <= t.upToSeconds);
+  return band?.credits ?? 0;
+}
+
+/**
+ * The longest clip, in seconds, that `credits` pays for: Infinity when every
+ * length is affordable, null when none is.
+ */
+export function coverage(rule: RuleLike, credits: number): number | null {
+  if (rule.mode === 'per_job') return (rule.perJobCredits ?? 0) <= credits ? Infinity : null;
+  if (rule.mode === 'per_second') {
+    const blockCredits = rule.blockCredits ?? 0;
+    if ((rule.minCredits ?? 0) > credits || blockCredits > credits) return null;
+    if (blockCredits === 0) return Infinity;
+    return Math.floor(credits / blockCredits) * (rule.blockSeconds ?? 0);
+  }
+  let longest: number | null = null;
+  for (const band of rule.tiers ?? []) {
+    if (band.credits > credits) continue;
+    if (band.upToSeconds === null) return Infinity;
+    longest = Math.max(longest ?? 0, band.upToSeconds);
+  }
+  return longest;
+}
+
+/** "25 min", "any length", "nothing". */
+export function describeCoverage(seconds: number | null): string {
+  if (seconds === null) return 'nothing';
+  if (seconds === Infinity) return 'any length';
+  return describeLength(seconds);
+}
+
+/** A block length said in a sentence: "30 seconds", "second", "1 min 30 s". */
+function blockLength(seconds: number): string {
+  if (seconds === 1) return 'second';
+  return seconds < 60 ? `${seconds} seconds` : describeLength(seconds);
+}
+
+/** The price as one plain sentence, for the owner rather than for the server. */
+export function describePrice(rule: RuleLike): string {
+  if (rule.mode === 'per_job') return `${credits(rule.perJobCredits ?? 0)} per clip, any length`;
+  if (rule.mode === 'per_second') {
+    const rate = `${credits(rule.blockCredits ?? 0)} for every ${blockLength(rule.blockSeconds ?? 0)} started`;
+    return rule.minCredits ? `${rate} · never less than ${credits(rule.minCredits)}` : rate;
+  }
+  const bands = rule.tiers ?? [];
+  if (bands.length === 1 && bands[0].upToSeconds === null) return `${credits(bands[0].credits)} per clip, any length`;
+  return bands
+    .map((band, i) => {
+      // The unit is named once, on the first band.
+      const amount = i === 0 ? credits(band.credits) : NUMBER.format(band.credits);
+      return band.upToSeconds === null
+        ? `${amount} for anything longer`
+        : `${amount} up to ${describeLength(band.upToSeconds)}`;
+    })
+    .join(' · ');
+}
+
+const text = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n));
+
+/** A draft filled from a price (or empty, by time used, when there is none). The reason always starts empty. */
+export function ruleToDraft(rule: RuleLike | null): PriceDraft {
+  const empty: PriceDraft = {
+    mode: 'per_second',
+    perJob: '',
+    rows: [{ upTo: '', credits: '' }],
+    longer: '',
+    blockSeconds: '',
+    blockCredits: '',
+    minCredits: '',
+    note: '',
+  };
+  if (!rule) return empty;
+  if (rule.mode === 'per_job') return { ...empty, mode: 'per_job', perJob: text(rule.perJobCredits) };
+  if (rule.mode === 'per_second') {
+    return {
+      ...empty,
+      mode: 'per_second',
+      blockSeconds: text(rule.blockSeconds),
+      blockCredits: text(rule.blockCredits),
+      minCredits: text(rule.minCredits),
+    };
+  }
+  const bands = rule.tiers ?? [];
+  const open = bands.find((b) => b.upToSeconds === null);
+  return {
+    ...empty,
+    mode: 'duration_tiers',
+    rows: bands.filter((b) => b.upToSeconds !== null).map((b) => ({ upTo: text(b.upToSeconds), credits: text(b.credits) })),
+    longer: text(open?.credits),
+  };
+}
+
+/** The price a draft describes, or null while it has problems. */
+export function draftToRule(draft: PriceDraft): RuleLike | null {
+  if (draftProblems(draft).length > 0) return null;
+  const rule = toNewRule(draft);
+  return {
+    mode: rule.mode,
+    perJobCredits: rule.perJobCredits ?? null,
+    tiers: rule.tiers ?? null,
+    blockSeconds: rule.blockSeconds ?? null,
+    blockCredits: rule.blockCredits ?? null,
+    minCredits: rule.minCredits ?? null,
+  };
+}
+
+export interface CostRow {
+  seconds: number;
+  now: number | null;
+  next: number | null;
+}
+
+/** Each sample length priced now and under the new price; a missing price leaves its column empty. */
+export function costRows(now: RuleLike | null, next: RuleLike | null): CostRow[] {
+  return SAMPLE_SECONDS.map((seconds) => ({
+    seconds,
+    now: now ? priceFor(now, seconds) : null,
+    next: next ? priceFor(next, seconds) : null,
+  }));
+}
+
+/** The biggest rise among the rows, as a whole percentage; null when nothing costs more. */
+export function largestIncreasePct(rows: CostRow[]): number | null {
+  let largest: number | null = null;
+  for (const { now, next } of rows) {
+    if (now === null || next === null || now <= 0 || next <= now) continue;
+    const pct = Math.round(((next - now) / now) * 100);
+    largest = Math.max(largest ?? 0, pct);
+  }
+  return largest;
 }

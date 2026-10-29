@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
+  costRows,
+  coverage,
+  describeCoverage,
   describeLength,
+  describePrice,
   describeRule,
   draftProblems,
+  draftToRule,
+  largestIncreasePct,
   previewPrices,
   priceBySecond,
+  priceFor,
+  ruleToDraft,
+  SAMPLE_SECONDS,
   toNewRule,
   type PriceDraft,
+  type RuleLike,
 } from './pricing-format';
 
 const draft = (overrides: Partial<PriceDraft> = {}): PriceDraft => ({
@@ -129,14 +139,14 @@ describe('draftProblems', () => {
 
   it('wants each tier longer than the one before', () => {
     expect(draftProblems(draft({ rows: [{ upTo: '60', credits: '2' }, { upTo: '60', credits: '5' }] }))).toContain(
-      'Tier 2 must be longer than tier 1.',
+      'Band 2 must be longer than band 1.',
     );
   });
 
   it.each([
-    [{ rows: [{ upTo: '0', credits: '2' }] }, 'Tier 1: seconds must be a whole number from 1 to 86,400.'],
-    [{ rows: [{ upTo: '60', credits: '-1' }] }, 'Tier 1: credits must be a whole number from 0 to 100,000.'],
-    [{ rows: [{ upTo: '60', credits: '1.5' }] }, 'Tier 1: credits must be a whole number from 0 to 100,000.'],
+    [{ rows: [{ upTo: '0', credits: '2' }] }, 'Band 1: seconds must be a whole number from 1 to 86,400.'],
+    [{ rows: [{ upTo: '60', credits: '-1' }] }, 'Band 1: credits must be a whole number from 0 to 100,000.'],
+    [{ rows: [{ upTo: '60', credits: '1.5' }] }, 'Band 1: credits must be a whole number from 0 to 100,000.'],
     [{ longer: '' }, 'Anything longer: credits must be a whole number from 0 to 100,000.'],
     [{ mode: 'per_job' as const, perJob: '' }, 'Credits per job must be a whole number from 0 to 100,000.'],
   ])('flags %j', (overrides, problem) => {
@@ -145,7 +155,7 @@ describe('draftProblems', () => {
 
   it('allows at most 50 tiers in all', () => {
     const rows = Array.from({ length: 50 }, (_, i) => ({ upTo: String(i + 1), credits: '1' }));
-    expect(draftProblems(draft({ rows }))).toContain('At most 50 tiers, counting "Anything longer".');
+    expect(draftProblems(draft({ rows }))).toContain('At most 50 bands, counting "Anything longer".');
   });
 
   it('accepts a flat price made only of the open-ended tier', () => {
@@ -176,5 +186,109 @@ describe('toNewRule', () => {
       perJobCredits: 3,
       note: 'October',
     });
+  });
+});
+
+const v3: RuleLike = { mode: 'per_second', blockSeconds: 30, blockCredits: 2, minCredits: 4, perJobCredits: null, tiers: null };
+const v4: RuleLike = { ...v3, blockCredits: 3 };
+const v2: RuleLike = {
+  mode: 'duration_tiers',
+  tiers: [
+    { upToSeconds: 60, credits: 5 },
+    { upToSeconds: 180, credits: 10 },
+    { upToSeconds: null, credits: 20 },
+  ],
+  perJobCredits: null,
+  blockSeconds: null,
+  blockCredits: null,
+  minCredits: null,
+};
+const v1: RuleLike = { mode: 'per_job', perJobCredits: 10, tiers: null, blockSeconds: null, blockCredits: null, minCredits: null };
+
+describe('what a clip costs', () => {
+  it('prices the six sample lengths by the second', () => {
+    expect(SAMPLE_SECONDS.map((s) => priceFor(v3, s))).toEqual([4, 4, 4, 12, 20, 40]);
+    expect(SAMPLE_SECONDS.map((s) => priceFor(v4, s))).toEqual([4, 4, 6, 18, 30, 60]);
+  });
+
+  it('prices by length band, each band including its own length', () => {
+    expect([priceFor(v2, 60), priceFor(v2, 61), priceFor(v2, 600)]).toEqual([5, 10, 20]);
+  });
+
+  it('prices a flat price the same at any length', () => {
+    expect([priceFor(v1, 1), priceFor(v1, 3600)]).toEqual([10, 10]);
+  });
+});
+
+describe('what credits pay for', () => {
+  it('finds the longest clip a number of credits covers', () => {
+    expect([coverage(v3, 5), coverage(v4, 5), coverage(v3, 100), coverage(v3, 3)]).toEqual([60, 30, 1500, null]);
+    expect([coverage(v2, 5), coverage(v2, 20), coverage(v1, 10), coverage(v1, 9)]).toEqual([60, Infinity, Infinity, null]);
+  });
+
+  it('covers any length when blocks are free above the minimum', () => {
+    expect(coverage({ ...v3, blockCredits: 0 }, 4)).toBe(Infinity);
+  });
+
+  it('says it in words', () => {
+    expect(describeCoverage(1500)).toBe('25 min');
+    expect(describeCoverage(Infinity)).toBe('any length');
+    expect(describeCoverage(null)).toBe('nothing');
+  });
+});
+
+describe('describePrice', () => {
+  it('says each kind of price as a plain sentence', () => {
+    expect(describePrice(v3)).toBe('2 credits for every 30 seconds started · never less than 4 credits');
+    expect(describePrice({ ...v3, minCredits: null })).toBe('2 credits for every 30 seconds started');
+    expect(describePrice(v2)).toBe('5 credits up to 1 min · 10 up to 3 min · 20 for anything longer');
+    expect(describePrice(v1)).toBe('10 credits per clip, any length');
+  });
+
+  it('names a block of one second and one credit in the singular', () => {
+    expect(describePrice({ ...v3, blockSeconds: 1, blockCredits: 1, minCredits: null })).toBe('1 credit for every second started');
+  });
+});
+
+describe('comparing two prices', () => {
+  it('finds the largest rise as a percentage', () => {
+    expect(largestIncreasePct(costRows(v3, v4))).toBe(50);
+    expect(largestIncreasePct(costRows(v3, v3))).toBeNull();
+    expect(largestIncreasePct(costRows(v4, v3))).toBeNull();
+  });
+
+  it('leaves Now empty when nothing is live, and New empty while the draft is invalid', () => {
+    expect(costRows(null, v3)[0]).toEqual({ seconds: 15, now: null, next: 4 });
+    expect(costRows(v3, null)[2]).toEqual({ seconds: 60, now: 4, next: null });
+    expect(largestIncreasePct(costRows(null, v3))).toBeNull();
+  });
+});
+
+describe('drafts from rules and back', () => {
+  it('fills a draft from a live price, with no reason', () => {
+    expect(ruleToDraft(v3)).toMatchObject({ mode: 'per_second', blockSeconds: '30', blockCredits: '2', minCredits: '4', note: '' });
+    expect(ruleToDraft({ ...v3, minCredits: null }).minCredits).toBe('');
+  });
+
+  it('fills the bands and "anything longer" from a banded price', () => {
+    expect(ruleToDraft(v2)).toMatchObject({
+      mode: 'duration_tiers',
+      rows: [
+        { upTo: '60', credits: '5' },
+        { upTo: '180', credits: '10' },
+      ],
+      longer: '20',
+    });
+  });
+
+  it('starts empty, by time used, when there is no price', () => {
+    expect(ruleToDraft(null)).toMatchObject({ mode: 'per_second', blockSeconds: '', blockCredits: '', minCredits: '', perJob: '' });
+  });
+
+  it('turns a valid draft back into a price, and an invalid one into nothing', () => {
+    expect(draftToRule(ruleToDraft(v4))).toEqual(v4);
+    expect(draftToRule(ruleToDraft(v2))).toEqual(v2);
+    expect(draftToRule(ruleToDraft(v1))).toEqual(v1);
+    expect(draftToRule({ ...ruleToDraft(v3), blockCredits: '' })).toBeNull();
   });
 });

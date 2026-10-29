@@ -111,7 +111,7 @@ describe('PriceDialog', () => {
     await userEvent.type(screen.getByLabelText('Tier 2 credits'), '3');
     await userEvent.type(screen.getByLabelText('Anything longer credits'), '5');
 
-    expect(screen.getByText('Tier 2 must be longer than tier 1.')).toBeInTheDocument();
+    expect(screen.getByText('Band 2 must be longer than band 1.')).toBeInTheDocument();
     expect(submit()).toBeDisabled();
   });
 
