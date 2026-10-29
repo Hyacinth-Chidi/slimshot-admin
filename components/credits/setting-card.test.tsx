@@ -128,15 +128,49 @@ describe('SettingCard', () => {
     await retype('Credits per ad', '6');
     await userEvent.click(within(card('Rewarded ads')).getByRole('button', { name: 'Save' }));
 
-    expect(await within(card('Rewarded ads')).findByText('adRewardCredits must not be greater than 100000')).toBeInTheDocument();
+    // Under the field, linked to it, and named the way the card names it.
+    const message = await within(card('Rewarded ads')).findByText('Credits per ad must not be greater than 100000');
+    expect(input('Credits per ad')).toHaveAttribute('aria-describedby', message.id);
+    expect(input('Credits per ad')).toHaveAttribute('aria-invalid', 'true');
     expect(input('Credits per ad').value).toBe('6');
     expect(within(card('Rewarded ads')).getByText('Unsaved')).toBeInTheDocument();
+  });
+
+  it('shows a refusal it cannot place on a field as a summary', async () => {
+    vi.mocked(creditsApi.updateCreditSettings).mockRejectedValue(
+      new ApiError(
+        { code: 'VALIDATION_FAILED', message: 'Request validation failed.', details: ['property surprise should not exist'], traceId: 't' },
+        422,
+      ),
+    );
+    setup();
+    await retype('Credits per ad', '6');
+    await userEvent.click(within(card('Rewarded ads')).getByRole('button', { name: 'Save' }));
+    expect(await within(card('Rewarded ads')).findByRole('alert')).toHaveTextContent('property surprise should not exist');
+  });
+
+  it('clears a refused message on Undo', async () => {
+    vi.mocked(creditsApi.updateCreditSettings).mockRejectedValue(
+      new ApiError(
+        { code: 'VALIDATION_FAILED', message: 'Request validation failed.', details: ['adRewardCredits must not be greater than 100000'], traceId: 't' },
+        422,
+      ),
+    );
+    setup();
+    await retype('Credits per ad', '6');
+    await userEvent.click(within(card('Rewarded ads')).getByRole('button', { name: 'Save' }));
+    await within(card('Rewarded ads')).findByText('Credits per ad must not be greater than 100000');
+
+    await userEvent.click(within(card('Rewarded ads')).getByRole('button', { name: 'Undo' }));
+    expect(within(card('Rewarded ads')).queryByText('Credits per ad must not be greater than 100000')).toBeNull();
+    expect(input('Credits per ad')).not.toHaveAttribute('aria-invalid');
   });
 
   it('refuses a value outside its bounds before sending', async () => {
     setup();
     await retype('Ads per day', '5000');
-    expect(within(card('Rewarded ads')).getByText('A whole number from 0 to 1,000.')).toBeInTheDocument();
+    const message = within(card('Rewarded ads')).getByText('Ads per day must be a whole number from 0 to 1,000.');
+    expect(input('Ads per day')).toHaveAttribute('aria-describedby', message.id);
     expect(within(card('Rewarded ads')).getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 

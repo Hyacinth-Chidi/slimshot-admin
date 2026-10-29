@@ -14,7 +14,7 @@ import {
   type CreditSettings,
   type CreditSettingsPatch,
 } from '@/lib/api/credits';
-import { fieldErrors } from '@/lib/api/field-errors';
+import { fieldErrors, validationSummary } from '@/lib/api/field-errors';
 import { cn } from '@/lib/cn';
 import { formatShortDate } from '@/lib/format';
 import { toast } from '@/lib/use-toast';
@@ -110,10 +110,26 @@ export function SettingCard({ spec, settings, live }: { spec: SettingCardSpec; s
   ) as Partial<Record<NumericSettingKey, number>>;
   const hint = spec.hint?.({ values, live }) ?? null;
   const Icon = spec.icon;
-  const errors = [
-    ...invalid.map((f) => ({ key: f.key, text: `A whole number from ${NUMBER.format(f.min)} to ${NUMBER.format(f.max)}.` })),
-    ...fields.filter((f) => refused[f.key] && !invalid.includes(f)).map((f) => ({ key: f.key, text: refused[f.key] })),
-  ];
+  // One message per field, named the way the card names it, shown under the sentence that holds it.
+  const errorFor = (field: Field): string | null => {
+    if (invalid.includes(field)) {
+      return `${field.label} must be a whole number from ${NUMBER.format(field.min)} to ${NUMBER.format(field.max)}.`;
+    }
+    const message = refused[field.key];
+    if (!message) return null;
+    // The server names the property ("adRewardCredits must …"); say it as the card does.
+    return message.split(', ').map((m) => (m.startsWith(field.key) ? field.label + m.slice(field.key.length) : m)).join(' ');
+  };
+  const errorId = (field: Field) => `${headingId}-${field.key}-error`;
+  // A refusal no field here can show (e.g. a field this card doesn't have) still has to be said.
+  const unplaced =
+    mutation.error instanceof ApiError && mutation.error.status === 422 && !fields.some((f) => refused[f.key])
+      ? validationSummary(mutation.error)
+      : null;
+  const undo = () => {
+    setEdits({});
+    mutation.reset();
+  };
 
   return (
     <section
@@ -147,35 +163,51 @@ export function SettingCard({ spec, settings, live }: { spec: SettingCardSpec; s
                     {' '}
                     <Input
                       aria-label={part.label}
-                      aria-invalid={errors.some((e) => e.key === part.key) || undefined}
+                      aria-invalid={errorFor(part) ? true : undefined}
+                      aria-describedby={errorFor(part) ? errorId(part) : undefined}
                       inputMode="numeric"
                       value={shown(part)}
-                      onChange={(e) => setEdits((prev) => ({ ...prev, [part.key]: e.target.value }))}
+                      onChange={(e) => {
+                        // A new value answers the server's refusal; the bounds are checked as you type.
+                        if (mutation.isError) mutation.reset();
+                        setEdits((prev) => ({ ...prev, [part.key]: e.target.value }));
+                      }}
                       className={cn(
                         'inline-block h-11 w-20 text-center align-middle font-semibold tabular-nums md:h-9',
                         changed.includes(part) && 'border-[var(--brand-from)]',
-                        errors.some((e) => e.key === part.key) && 'border-error',
+                        errorFor(part) && 'border-error',
                       )}
                     />
                   </Fragment>
                 ),
               )}
             </p>
+            {sentence.map((part) =>
+              typeof part !== 'string' && errorFor(part) ? (
+                <p
+                  key={part.key}
+                  id={errorId(part)}
+                  // A server refusal arrives after Save, so it is announced; bounds errors aren't, or they'd repeat per keystroke.
+                  role={refused[part.key] && !invalid.includes(part) ? 'alert' : undefined}
+                  className="-mt-1 mb-1 text-sm text-error"
+                >
+                  {errorFor(part)}
+                </p>
+              ) : null,
+            )}
             {i === 0 && hint && <p className="-mt-1 mb-1 text-xs text-subtle">{hint}</p>}
           </Fragment>
         ))}
-        {errors.length > 0 && (
-          <ul role="alert" className="mt-1 space-y-1 text-sm text-error">
-            {errors.map((e) => (
-              <li key={e.key}>{e.text}</li>
-            ))}
-          </ul>
+        {unplaced && (
+          <p role="alert" className="mt-1 text-sm text-error">
+            {unplaced}
+          </p>
         )}
       </div>
 
       <div className="flex min-h-14 items-center justify-between gap-3 border-t border-border px-5 py-3 text-xs text-subtle">
         {dirty ? (
-          <Button variant="ghost" size="sm" onClick={() => setEdits({})} disabled={mutation.isPending}>
+          <Button variant="ghost" size="sm" onClick={undo} disabled={mutation.isPending}>
             Undo
           </Button>
         ) : (
