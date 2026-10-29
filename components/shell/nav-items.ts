@@ -17,12 +17,12 @@ export interface NavGroup {
 const OVERVIEW: NavItem = { href: '/', label: 'Overview', icon: LayoutDashboard };
 const USERS: NavItem = { href: '/users', label: 'Users', icon: Users };
 const PRICING: NavItem = { href: '/credits/pricing', label: 'Pricing', icon: Tag };
-const EARNING: NavItem = { href: '/credits/earning', label: 'Earning', icon: Gift };
+const REWARDS: NavItem = { href: '/credits/rewards', label: 'Rewards', icon: Gift };
 const PROVIDERS: NavItem = { href: '/system/providers', label: 'AI providers', icon: Bot };
 const SECURITY: NavItem = { href: '/system/security', label: 'Sign-in security', icon: ShieldCheck };
 const AUDIT: NavItem = { href: '/system/audit', label: 'Audit log', icon: ScrollText };
 
-/** Providers, pricing, earning and sign-in security are the owner's alone (the server enforces it too). */
+/** Providers, pricing, rewards and sign-in security are the owner's alone (the server enforces it too). */
 function systemItems(role: AdminRole | undefined): NavItem[] {
   return role === 'owner' ? [PROVIDERS, SECURITY, AUDIT] : [AUDIT];
 }
@@ -37,7 +37,7 @@ export function navGroups({ kinds, role }: { kinds: string[]; role: AdminRole | 
     { items: [OVERVIEW] },
     { label: 'Library', items: library },
     { label: 'People', items: [USERS] },
-    ...(role === 'owner' ? [{ label: 'Credits', items: [PRICING, EARNING] }] : []),
+    ...(role === 'owner' ? [{ label: 'Credits', items: [PRICING, REWARDS] }] : []),
     { label: 'System', items: systemItems(role) },
   ];
 }

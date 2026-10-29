@@ -10,7 +10,7 @@ describe('navGroups', () => {
       { label: null, items: ['/'] },
       { label: 'Library', items: ['/audio'] },
       { label: 'People', items: ['/users'] },
-      { label: 'Credits', items: ['/credits/pricing', '/credits/earning'] },
+      { label: 'Credits', items: ['/credits/pricing', '/credits/rewards'] },
       { label: 'System', items: ['/system/providers', '/system/security', '/system/audit'] },
     ]);
   });
@@ -36,7 +36,7 @@ describe('navGroups', () => {
 
   it('names the System items for what they are', () => {
     const groups = navGroups({ kinds: ['audio'], role: 'owner' });
-    expect(groups.find((g) => g.label === 'Credits')!.items.map((i) => i.label)).toEqual(['Pricing', 'Earning']);
+    expect(groups.find((g) => g.label === 'Credits')!.items.map((i) => i.label)).toEqual(['Pricing', 'Rewards']);
     expect(groups.find((g) => g.label === 'System')!.items.map((i) => i.label)).toEqual([
       'AI providers',
       'Sign-in security',
@@ -75,7 +75,7 @@ describe('mobileSections', () => {
   it('marks Library active on any kind, and System on any system page', () => {
     const [, library, , credits, system] = mobileSections('owner');
     expect(library.match.some((p) => isActive(p, '/fonts/f1'))).toBe(true);
-    expect(credits.match.some((p) => isActive(p, '/credits/earning'))).toBe(true);
+    expect(credits.match.some((p) => isActive(p, '/credits/rewards'))).toBe(true);
     expect(system.match.some((p) => isActive(p, '/system/security'))).toBe(true);
   });
 });

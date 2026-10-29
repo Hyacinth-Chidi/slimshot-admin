@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EARNING_CARDS, SIGN_IN_CODES_CARD } from './setting-cards';
+import { REWARD_CARDS, SIGN_IN_CODES_CARD } from './setting-cards';
 
 const NUMERIC_SETTINGS = [
   'signupBonusCredits',
@@ -19,14 +19,14 @@ const NUMERIC_SETTINGS = [
 
 describe('setting cards', () => {
   it('put every numeric credit setting on exactly one card', () => {
-    const keys = [...EARNING_CARDS, SIGN_IN_CODES_CARD].flatMap((card) =>
+    const keys = [...REWARD_CARDS, SIGN_IN_CODES_CARD].flatMap((card) =>
       card.sentences.flat().flatMap((part) => (typeof part === 'string' ? [] : [part.key])),
     );
     expect([...keys].sort()).toEqual([...NUMERIC_SETTINGS].sort());
   });
 
   it("use the server's bounds", () => {
-    const parts = [...EARNING_CARDS, SIGN_IN_CODES_CARD].flatMap((card) =>
+    const parts = [...REWARD_CARDS, SIGN_IN_CODES_CARD].flatMap((card) =>
       card.sentences.flat().filter((p) => typeof p !== 'string'),
     );
     const bounds = Object.fromEntries(parts.map((p) => [p.key, [p.min, p.max]]));

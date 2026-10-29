@@ -5,7 +5,7 @@ import { PageHeader, SectionTabs } from '@/components/shell/page-header';
 
 const TABS = [
   { label: 'Pricing', href: '/credits/pricing' },
-  { label: 'Earning', href: '/credits/earning' },
+  { label: 'Rewards', href: '/credits/rewards' },
 ];
 
 /** The top of a Credits page. The tabs repeat the sidebar, so they show on phones only. */

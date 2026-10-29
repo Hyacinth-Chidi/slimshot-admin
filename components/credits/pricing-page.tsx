@@ -155,8 +155,8 @@ export function PricingPage() {
                       <span>
                         {`${adSentence(live, settingsQuery.data.adRewardCredits)} ${bonusSentence(live, settingsQuery.data.signupBonusCredits)}`}
                       </span>{' '}
-                      <Link href="/credits/earning" className="text-[#D8B4FE] underline-offset-2 hover:underline">
-                        Change what users earn →
+                      <Link href="/credits/rewards" className="text-[#D8B4FE] underline-offset-2 hover:underline">
+                        Change the rewards →
                       </Link>
                     </p>
                   </div>

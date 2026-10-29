@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace System › Credits (Rules/Pricing tabs) with a Credits sidebar group (Pricing, Earning) and a System › Sign-in security page, as approved in the mockup, and fix the System pages' hydration error.
+**Goal:** Replace System › Credits (Rules/Pricing tabs) with a Credits sidebar group (Pricing, Rewards) and a System › Sign-in security page, as approved in the mockup, and fix the System pages' hydration error.
 
 **Architecture:** New owner-only pages under `app/(dashboard)/credits/*` and `app/(dashboard)/system/security`, built from small components in `components/credits/` and `components/security/`. Price arithmetic stays in `components/settings/pricing-format.ts`, which already mirrors the server's formula, and is extended rather than duplicated. One generic `SettingCard` renders every sentence-style settings card and saves only its own changed fields. The navigation switch and the redirect from `/system/credits` land last, so the branch is navigable after every task.
 
@@ -27,9 +27,9 @@
 
 ## Review Focus
 
-1. **Two Earning cards edited, one saved**: the other card keeps its unsaved values and stays dirty after the saved settings come back. → Task 8 test.
+1. **Two Rewards cards edited, one saved**: the other card keeps its unsaved values and stays dirty after the saved settings come back. → Task 8 test.
 2. **A card save refused with 422 on one field**: the message shows under that field, the card stays dirty with the typed value, and nothing else on the page changes. → Task 8 test.
-3. **No live price** (no rules, or none active): Pricing shows the warning and **Set a price**; the sheet opens in "By time used" with empty fields; Now column shows "—" with no rise callout; the sign-up hint on Earning leaves out the "≈ … of captions" line. → Tasks 4, 7, 8 tests.
+3. **No live price** (no rules, or none active): Pricing shows the warning and **Set a price**; the sheet opens in "By time used" with empty fields; Now column shows "—" with no rise callout; the sign-up hint on Rewards leaves out the "≈ … of captions" line. → Tasks 4, 7, 8 tests.
 4. **A half-typed price** (an empty or invalid field): the New column shows "—", no callout, **Make vN live…** and **Save for later** are disabled, and the problems list says why. → Task 5 test.
 5. **Leaving with unsaved edits**: closing the sheet (X, Escape, overlay click) with changes asks first; a dirty settings card registers `beforeunload`. → Tasks 5, 8 tests.
 
@@ -74,7 +74,7 @@ expect(formatDate('not a date', 'UTC')).toBe('—');
   - `useMounted(): boolean`: `false` on the server and during hydration, `true` after (`useSyncExternalStore` with server snapshot `false`).
   - `SectionTabs` gains `phoneOnly?: boolean` (adds `md:hidden`).
   - `SystemHeader({ title, subtitle? })`: owner tabs AI providers `/system/providers`, Sign-in security `/system/security`, Audit log `/system/audit`, `phoneOnly`, rendered only when `useMounted()` and the role is owner.
-  - `CreditsHeader({ title, subtitle?, actions? })`: crumbs "Credits", tabs Pricing `/credits/pricing`, Earning `/credits/earning`, `phoneOnly`.
+  - `CreditsHeader({ title, subtitle?, actions? })`: crumbs "Credits", tabs Pricing `/credits/pricing`, Rewards `/credits/rewards`, `phoneOnly`.
   - `PageHeader` gains `subtitle?: string` (muted line under the title).
 
 - [ ] **Step 1: Write the failing tests**
@@ -253,7 +253,7 @@ it('asks before discarding edits', ...)                         // edit, press E
 Content (spec §7.1, exact):
 - Live card heading `Auto captions` + pill `Live`; meta `Version {n} · live since {formatDate(activatedAt)} · set by {createdBy.email}` (omit the "set by" part when `createdBy` is missing).
 - `describePrice(live)`, then "What a clip costs" with the six `SAMPLE_SECONDS` lengths and `{price} cr`.
-- Callout: `One rewarded ad ({adRewardCredits} credits) pays for up to {describeCoverage(coverage(live, adRewardCredits))} of captions. The {signupBonusCredits}-credit sign-up bonus covers {describeCoverage(coverage(live, signupBonusCredits))}.` + link **Change what users earn →** to `/credits/earning`. "pays for up to any length" reads `pays for captions of any length`.
+- Callout: `One rewarded ad ({adRewardCredits} credits) pays for up to {describeCoverage(coverage(live, adRewardCredits))} of captions. The {signupBonusCredits}-credit sign-up bonus covers {describeCoverage(coverage(live, signupBonusCredits))}.` + link **Change the rewards →** to `/credits/rewards`. "pays for up to any length" reads `pays for captions of any length`.
 - Footer: `Last 30 days: {spent} credits charged · {granted} refunded for failed jobs` from rows of type `feature_charge` (spent) and `feature_refund` (granted).
 - No live price: warning `No price is live, so Auto captions is off in the app.`; no cost grid or callout.
 - History table: Version (pill `Live` on the live one), Price (`describePrice`), Reason (`note` or "—"), Made live (`formatDate(activatedAt)` or `Never live`), and a `⋯` menu: `Make live…` / `Make live again…` (not on the live row) → `MakeLiveDialog`; `Start a new price from this` → `ChangePriceSheet` with `startFrom`.
@@ -279,10 +279,10 @@ it('starts a new price from a history version', ...)                 // menu ite
 
 ---
 
-### Task 8: `SettingCard` and Credits › Earning
+### Task 8: `SettingCard` and Credits › Rewards
 
 **Files:**
-- Create: `components/credits/setting-card.tsx`, `components/credits/setting-card.test.tsx`, `components/credits/setting-cards.ts`, `components/credits/earning-page.tsx`, `components/credits/earning-page.test.tsx`, `app/(dashboard)/credits/earning/page.tsx`
+- Create: `components/credits/setting-card.tsx`, `components/credits/setting-card.test.tsx`, `components/credits/setting-cards.ts`, `components/credits/rewards-page.tsx`, `components/credits/rewards-page.test.tsx`, `app/(dashboard)/credits/rewards/page.tsx`
 
 **Interfaces:**
 - Consumes: `updateCreditSettings`, `fetchCreditSettings`, `fetchPricingRules` (live price for hints); `parseField` and `NumericSettingKey` (`components/settings/credit-settings-form.ts`); `fieldErrors` (`lib/api/field-errors.ts`); `coverage`, `describeCoverage` (Task 3); `formatShortDate` (Task 1); `BalanceCheck`.
@@ -291,7 +291,7 @@ it('starts a new price from a history version', ...)                 // menu ite
   - `export interface HintContext { values: Partial<Record<NumericSettingKey, number>>; live: RuleLike | null }`
   - `export interface SettingCardSpec { id: string; title: string; icon: LucideIcon; sentences: SentencePart[][]; hint?: (ctx: HintContext) => string | null }`
   - `export function SettingCard(props: { spec: SettingCardSpec; settings: CreditSettings; live: RuleLike | null })`
-  - `setting-cards.ts`: `EARNING_CARDS: SettingCardSpec[]` (`signup`, `ads`, `referrals`) and `SIGN_IN_CODES_CARD: SettingCardSpec`, with the exact sentences of spec §7.3/§7.4 and the bounds of `UpdateCreditSettingsDto` (as in `CREDIT_FIELD_GROUPS`).
+  - `setting-cards.ts`: `REWARD_CARDS: SettingCardSpec[]` (`signup`, `ads`, `referrals`) and `SIGN_IN_CODES_CARD: SettingCardSpec`, with the exact sentences of spec §7.3/§7.4 and the bounds of `UpdateCreditSettingsDto` (as in `CREDIT_FIELD_GROUPS`).
   - Hints: sign-up `≈ {describeCoverage(coverage(live, signup))} of captions at today's price.` (null when `live` is null); ads `Up to {reward × cap} credits a day per user.`
 
 Card behaviour:
@@ -302,7 +302,7 @@ Card behaviour:
 - While dirty, a `beforeunload` listener is registered; it is removed when clean or unmounted.
 - 422: `fieldErrors(error)[key]` shown under that input; the card stays dirty.
 
-Earning page: `CreditsHeader` (title "Earning", subtitle "How users get credits. Each card saves on its own."), `OwnerOnly what="earning"`, the three cards (grid of 3 at `lg`, stacked below), then the chart slot (Task 9), then `BalanceCheck`. Skeleton: three card-shaped blocks.
+Rewards page: `CreditsHeader` (title "Rewards", subtitle "Free credits users get from the sign-up bonus, ads and referrals. Each card saves on its own."), `OwnerOnly what="rewards"`, the three cards (grid of 3 at `lg`, stacked below), then the chart slot (Task 9), then `BalanceCheck`. Skeleton: three card-shaped blocks.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -316,23 +316,23 @@ it('says "Never changed" when none of its fields has', ...)
 it('keeps its own edits when other settings change', ...)       // rerender with new settings object (signupBonusCredits changed) → ads input still 6, still dirty
 it('shows a refused field\'s message under it and stays dirty', ...) // 422 details → message under 'Credits per ad'; value 6 kept
 it('guards leaving while dirty', ...)                           // spy addEventListener('beforeunload') after edit; removed after Undo
-// earning-page.test.tsx
-it('shows the three earning cards with their hints', ...)       // '≈ 25 min of captions at today\'s price.', 'Up to 50 credits a day per user.'
+// rewards-page.test.tsx
+it('shows the three reward cards with their hints', ...)       // '≈ 25 min of captions at today\'s price.', 'Up to 50 credits a day per user.'
 it('leaves out the captions hint when no price is live', ...)
 ```
 
-- [ ] **Step 2: Run** `npx vitest run components/credits/setting-card.test.tsx components/credits/earning-page.test.tsx`. Expected: FAIL.
+- [ ] **Step 2: Run** `npx vitest run components/credits/setting-card.test.tsx components/credits/rewards-page.test.tsx`. Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run** the same command. Expected: PASS.
-- [ ] **Step 5: Commit** `feat(credits): an Earning page where each rule reads as a sentence and saves on its own`
+- [ ] **Step 5: Commit** `feat(credits): an Rewards page where each rule reads as a sentence and saves on its own`
 
 ---
 
-### Task 9: Credits-by-source chart on Earning
+### Task 9: Credits-by-source chart on Rewards
 
 **Files:**
 - Create: `components/credits/credits-by-source.tsx`, `components/credits/credits-by-source.test.tsx`
-- Modify: `components/credits/earning-page.tsx`
+- Modify: `components/credits/rewards-page.tsx`
 
 **Before writing it, load the `dataviz` skill** and follow it for colour, marks and the accessible summary.
 
@@ -390,7 +390,7 @@ it('shows a search box only past 20 domains', ...)
 
 **Interfaces:**
 - Produces:
-  - `navGroups` for an owner: `[Overview] · Library · People [/users] · Credits [/credits/pricing "Pricing" (Tag), /credits/earning "Earning" (Gift)] · System [/system/providers, /system/security "Sign-in security" (ShieldCheck), /system/audit]`. For anyone else: no Credits group; System `[/system/audit]`.
+  - `navGroups` for an owner: `[Overview] · Library · People [/users] · Credits [/credits/pricing "Pricing" (Tag), /credits/rewards "Rewards" (Gift)] · System [/system/providers, /system/security "Sign-in security" (ShieldCheck), /system/audit]`. For anyone else: no Credits group; System `[/system/audit]`.
   - `mobileSections`: owner `Overview /, Library /audio, Users /users, Credits /credits/pricing (match ['/credits']), System /system/providers`; others `Overview, Library, Users, System /system/audit`.
   - Redirect `{ source: '/system/credits', destination: '/credits/pricing', permanent: false }`.
 
@@ -407,6 +407,6 @@ it('shows a search box only past 20 domains', ...)
 Done by the controller, not a subagent.
 
 - [ ] **Step 1:** `npm run build`. Expected: exit 0.
-- [ ] **Step 2:** Run the dev server and the stand-in API harness (updated with `createdBy`, `lastChanged`) and screenshot, at 1440×900 and 390×844: `/credits/pricing`, the Change price sheet (clean and with credits 2→3), the Make live dialog, `/credits/earning` (clean and with one card dirty), `/system/security`, `/system/providers`, `/system/audit`, and `/system/credits` (must land on `/credits/pricing`).
+- [ ] **Step 2:** Run the dev server and the stand-in API harness (updated with `createdBy`, `lastChanged`) and screenshot, at 1440×900 and 390×844: `/credits/pricing`, the Change price sheet (clean and with credits 2→3), the Make live dialog, `/credits/rewards` (clean and with one card dirty), `/system/security`, `/system/providers`, `/system/audit`, and `/system/credits` (must land on `/credits/pricing`).
 - [ ] **Step 3:** Capture console errors on every page above. Expected: no hydration error, no React key warnings.
 - [ ] **Step 4:** Compare each screenshot with mockup screens 1–4 and list any differences for the owner.

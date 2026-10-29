@@ -8,17 +8,24 @@ import { fetchCreditSettings, fetchPricingRules } from '@/lib/api/credits';
 import { CreditsBySource } from './credits-by-source';
 import { CreditsHeader } from './credits-header';
 import { SettingCard } from './setting-card';
-import { EARNING_CARDS } from './setting-cards';
+import { REWARD_CARDS } from './setting-cards';
 
-/** Credits › Earning: how users get credits, one card per way, each saving on its own. */
-export function EarningPage() {
+/**
+ * Credits › Rewards: the free credits users get (sign-up bonus, ads, referrals),
+ * one card per way, each saving on its own. Not "Earnings": that name is kept
+ * for revenue, once payments exist.
+ */
+export function RewardsPage() {
   const settingsQuery = useQuery({ queryKey: ['credits', 'settings'], queryFn: fetchCreditSettings });
   const rulesQuery = useQuery({ queryKey: ['pricing', 'auto_captions'], queryFn: () => fetchPricingRules('auto_captions') });
   const live = rulesQuery.data?.find((r) => r.isActive) ?? null;
 
   return (
     <div className="flex flex-col gap-6">
-      <CreditsHeader title="Earning" subtitle="How users get credits. Each card saves on its own." />
+      <CreditsHeader
+        title="Rewards"
+        subtitle="Free credits users get from the sign-up bonus, ads and referrals. Each card saves on its own."
+      />
 
       {settingsQuery.isLoading ? (
         <LoadingRegion label="Loading credit settings" className="grid gap-4 lg:grid-cols-3">
@@ -33,7 +40,7 @@ export function EarningPage() {
         </LoadingRegion>
       ) : settingsQuery.data ? (
         <div className="grid items-stretch gap-4 lg:grid-cols-3">
-          {EARNING_CARDS.map((spec) => (
+          {REWARD_CARDS.map((spec) => (
             <SettingCard key={spec.id} spec={spec} settings={settingsQuery.data} live={live} />
           ))}
         </div>

@@ -3,9 +3,9 @@ import { render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CreditSettings, PricingRule } from '@/lib/api/credits';
 import * as creditsApi from '@/lib/api/credits';
-import { EarningPage } from './earning-page';
+import { RewardsPage } from './rewards-page';
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/credits/earning' }));
+vi.mock('next/navigation', () => ({ usePathname: () => '/credits/rewards' }));
 vi.mock('@/lib/api/credits', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api/credits')>('@/lib/api/credits');
   return { ...actual, fetchCreditSettings: vi.fn(), fetchPricingRules: vi.fn(), fetchCreditStats: vi.fn() };
@@ -43,7 +43,7 @@ function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <EarningPage />
+      <RewardsPage />
     </QueryClientProvider>,
   );
 }
@@ -58,11 +58,13 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-describe('EarningPage', () => {
-  it('shows the three earning cards with their hints', async () => {
+describe('RewardsPage', () => {
+  it('shows the three reward cards with their hints', async () => {
     renderPage();
-    expect(screen.getByRole('heading', { level: 1, name: 'Earning' })).toBeInTheDocument();
-    expect(screen.getByText('How users get credits. Each card saves on its own.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Rewards' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Free credits users get from the sign-up bonus, ads and referrals. Each card saves on its own.'),
+    ).toBeInTheDocument();
 
     const signup = await screen.findByRole('region', { name: 'Sign-up bonus' });
     expect(await within(signup).findByText("≈ 25 min of captions at today's price.")).toBeInTheDocument();

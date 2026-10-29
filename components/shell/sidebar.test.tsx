@@ -63,7 +63,7 @@ describe('Sidebar collapse', () => {
 
     await user.click(screen.getByRole('button', { name: /collapse sidebar/i }));
     expect(screen.getByRole('link', { name: 'Pricing' })).toHaveAttribute('href', '/credits/pricing');
-    expect(screen.getByRole('link', { name: 'Earning' })).toHaveAttribute('href', '/credits/earning');
+    expect(screen.getByRole('link', { name: 'Rewards' })).toHaveAttribute('href', '/credits/rewards');
     expect(screen.getByRole('link', { name: 'AI providers' })).toHaveAttribute('href', '/system/providers');
   });
 

@@ -122,7 +122,7 @@ describe('PricingPage', () => {
         'One rewarded ad (5 credits) pays for up to 1 min of captions. The 100-credit sign-up bonus covers 25 min.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Change what users earn →' })).toHaveAttribute('href', '/credits/earning');
+    expect(screen.getByRole('link', { name: 'Change the rewards →' })).toHaveAttribute('href', '/credits/rewards');
   });
 
   it('sums the last 30 days of charges and refunds', async () => {

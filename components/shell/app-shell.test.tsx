@@ -61,7 +61,7 @@ describe('AppShell', () => {
       '/audio',
       '/users',
       '/credits/pricing',
-      '/credits/earning',
+      '/credits/rewards',
       '/system/providers',
       '/system/security',
       '/system/audit',

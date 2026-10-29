@@ -9,7 +9,7 @@ import type { CreditSettings } from '@/lib/api/credits';
 import * as creditsApi from '@/lib/api/credits';
 import { toast } from '@/lib/use-toast';
 import { SettingCard } from './setting-card';
-import { EARNING_CARDS } from './setting-cards';
+import { REWARD_CARDS } from './setting-cards';
 
 vi.mock('@/lib/api/credits', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api/credits')>('@/lib/api/credits');
@@ -44,8 +44,8 @@ const SETTINGS: CreditSettings = {
   },
 };
 
-const ADS = EARNING_CARDS.find((c) => c.id === 'ads')!;
-const SIGNUP = EARNING_CARDS.find((c) => c.id === 'signup')!;
+const ADS = REWARD_CARDS.find((c) => c.id === 'ads')!;
+const SIGNUP = REWARD_CARDS.find((c) => c.id === 'signup')!;
 
 function setup(spec = ADS, settings = SETTINGS) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

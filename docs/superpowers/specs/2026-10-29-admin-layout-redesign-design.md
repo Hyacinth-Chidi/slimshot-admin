@@ -26,7 +26,7 @@ reads as unprofessional is the arrangement:
 
 ## 2. Goals
 
-1. Credits get their own sidebar group with two pages, **Pricing** and **Earning**, each readable
+1. Credits get their own sidebar group with two pages, **Pricing** and **Rewards**, each readable
    at a glance by someone who did not build the system.
 2. Changing a price starts from the live price, shows exactly what changes before anything is
    saved, and makes "goes live" a deliberate, confirmed step.
@@ -46,7 +46,7 @@ refunds are calculated; server-drawn waveforms; per-field change history for cre
 
 **Anti-goals (failure even if it "works"):**
 
-- A save that sends fields the person didn't touch. Each Earning or Sign-in security card sends
+- A save that sends fields the person didn't touch. Each Rewards or Sign-in security card sends
   **only its own changed fields** (the server's `PUT /credit-settings` accepts a partial body), so
   two people editing different cards can't overwrite each other.
 - A price going live without the person seeing what it does to real clip lengths first.
@@ -68,7 +68,7 @@ refunds are calculated; server-drawn waveforms; per-field change history for cre
 - Test-first: Vitest + Testing Library (admin), Jest (server). Server additions must keep
   `npm run typecheck`, `npm run lint` and `npm test` green.
 - Owner-only areas stay owner-only in the UI (the server enforces it regardless):
-  Credits › Pricing, Credits › Earning, System › AI providers and System › Sign-in security
+  Credits › Pricing, Credits › Rewards, System › AI providers and System › Sign-in security
   need `credits.manage` / `providers.manage`, which only the owner has.
 - Commits: conventional, plain-English, one `Co-Authored-By` trailer.
 
@@ -81,7 +81,7 @@ Sidebar (desktop):
 | — | Overview |
 | Library | Audio, Fonts |
 | People | Users |
-| Credits (owner only) | Pricing, Earning |
+| Credits (owner only) | Pricing, Rewards |
 | System | AI providers (owner), Sign-in security (owner), Audit log |
 
 Routes and redirects (redirects in `next.config.ts`, query strings carried over, not permanent):
@@ -89,12 +89,16 @@ Routes and redirects (redirects in `next.config.ts`, query strings carried over,
 | New route | Replaces |
 |---|---|
 | `/credits/pricing` | `/system/credits` (Pricing tab) |
-| `/credits/earning` | `/system/credits` (Rules tab, credit fields) |
+| `/credits/rewards` | `/system/credits` (Rules tab, credit fields) |
 | `/system/security` | `/system/credits` (Rules tab, sign-in fields and domains) |
 
 `/system/credits` redirects to `/credits/pricing`. Existing redirects stay.
 
-**Section tabs** that repeat sidebar items (Credits: Pricing | Earning; System: AI providers |
+**Naming (owner, 2026-10-29):** the page of free credits users get is **Rewards**, not
+"Earning". "Earnings" is kept for the owner's revenue, once payments exist; it will be its own
+page then.
+
+**Section tabs** that repeat sidebar items (Credits: Pricing | Rewards; System: AI providers |
 Sign-in security | Audit log) show **on phones only** (`md:hidden`), where there is no sidebar.
 Tabs that lead to pages the sidebar doesn't list stay visible at every size: Audio's Sounds |
 Categories and Fonts' Fonts | Order.
@@ -145,7 +149,7 @@ primary action **Change price**.
   existing pricing helpers (`components/settings/pricing-format.ts`), never re-implemented.
 - **Callout**: what one rewarded ad (`adRewardCredits`) and the sign-up bonus
   (`signupBonusCredits`) pay for at this price, e.g. "One rewarded ad (5 credits) pays for up to
-  1 min of captions. The 100-credit sign-up bonus covers 25 min." with a link to Earning. "Pays
+  1 min of captions. The 100-credit sign-up bonus covers 25 min." with a link to Rewards. "Pays
   for up to X" is the longest clip whose cost ≤ the credits.
 - Footer: "Last 30 days: 1,515 credits charged · 32 refunded for failed jobs" from
   `GET /stats/credits?days=30` (`feature_charge` spent, `feature_refund` granted).
@@ -186,10 +190,10 @@ A shadcn **Sheet** from the right, 560px on desktop, full width on phones.
 - Validation as today (`draftProblems`); server 422 `details.problems` shown in the sheet.
   Closing the sheet with edits asks first.
 
-### 7.3 Credits › Earning (`/credits/earning`)
+### 7.3 Credits › Rewards (`/credits/rewards`)
 
-Header: crumbs "Credits", title "Earning", subtitle "How users get credits. Each card saves on
-its own." Each card's footer says when one of **its** fields last changed and by whom ("Changed 27
+Header: crumbs "Credits", title "Rewards", subtitle "Free credits users get from the sign-up
+bonus, ads and referrals. Each card saves on its own." Each card's footer says when one of **its** fields last changed and by whom ("Changed 27
 Oct by owner@slimshot.dev"), from `lastChanged` (§9); a card whose fields never changed says
 "Never changed".
 
@@ -218,10 +222,10 @@ existing **Balance check** card.
 Header: crumbs "System", title "Sign-in security", subtitle "Limits on email sign-in codes, to stop
 abuse."
 
-- **Sign-in codes** card (footer "Changed … by …" as on Earning): "A code allows [5] wrong tries. Users wait [60] seconds before asking for
+- **Sign-in codes** card (footer "Changed … by …" as on Rewards): "A code allows [5] wrong tries. Users wait [60] seconds before asking for
   another." and "Each hour, at most [5] codes per email, [10] per phone and [20] per network."
   (`otpMaxAttempts`, `otpResendCooldownSeconds`, `otpPerEmailPerHour`, `otpPerDevicePerHour`,
-  `otpPerIpPerHour`.) Same per-card save as Earning.
+  `otpPerIpPerHour`.) Same per-card save as Rewards.
 - **Blocked email domains** card: "Email sign-in is refused for these throwaway-mail services."
   An input + **Add**, then the domains as removable chips, with a count. Each add or remove saves
   at once (sends the whole `disposableEmailDomains` list) and toasts with **Undo**. Domains are
@@ -312,7 +316,7 @@ Each phase ends green (tests, typecheck, lint) and with desktop + phone screensh
 changed page for the owner.
 
 0. **Server additions** (§9).
-1. **Credits**: navigation and routes, Pricing, Change price, Earning, Sign-in security, the
+1. **Credits**: navigation and routes, Pricing, Change price, Rewards, Sign-in security, the
    hydration fix.
 2. **Page pattern**: `PageHeader` additions, Sound, Font and User pages (merge `feat/sound-player`).
 3. **Lists and consistency**: list columns and chips, durations, Audit log, Categories, dates,

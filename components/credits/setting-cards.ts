@@ -24,8 +24,8 @@ export interface SettingCardSpec {
 
 const NUMBER = new Intl.NumberFormat('en-GB');
 
-/** The settings that decide how users get credits (spec §7.3). */
-export const EARNING_CARDS: SettingCardSpec[] = [
+/** The free credits users get: Credits › Rewards (spec §7.3). */
+export const REWARD_CARDS: SettingCardSpec[] = [
   {
     id: 'signup',
     title: 'Sign-up bonus',
