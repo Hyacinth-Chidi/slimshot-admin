@@ -159,29 +159,33 @@ export function CreditsBySource() {
               )}
             </div>
 
-            <table className="sr-only">
-              <caption>Credits given each day, by source</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Day</th>
-                  {SOURCES.map((s) => (
-                    <th key={s.key} scope="col">
-                      {s.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {days.map((day) => (
-                  <tr key={day.date}>
-                    <th scope="row">{dayLabel(day.date)}</th>
+            {/* sr-only on a div, not the table: a table can't shrink below its rows' height,
+                so it would leave an invisible ~770px box below the page and the window would scroll into it. */}
+            <div className="sr-only">
+              <table>
+                <caption>Credits given each day, by source</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Day</th>
                     {SOURCES.map((s) => (
-                      <td key={s.key}>{NUMBER.format(day[s.key])}</td>
+                      <th key={s.key} scope="col">
+                        {s.label}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {days.map((day) => (
+                    <tr key={day.date}>
+                      <th scope="row">{dayLabel(day.date)}</th>
+                      {SOURCES.map((s) => (
+                        <td key={s.key}>{NUMBER.format(day[s.key])}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>

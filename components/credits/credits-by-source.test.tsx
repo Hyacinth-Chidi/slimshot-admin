@@ -67,6 +67,17 @@ describe('CreditsBySource', () => {
     expect(within(table).getAllByRole('row')).toHaveLength(31);
   });
 
+  it('hides its data table in a box that can shrink, so it adds no empty scroll below the page', async () => {
+    // A <table> can't be squeezed below its rows' height, so sr-only on the table
+    // itself leaves an invisible ~770px box hanging below the last card, and the
+    // whole window scrolls into it (the sidebar slides away with it).
+    renderChart();
+    const table = await screen.findByRole('table', { name: 'Credits given each day, by source' });
+    expect(table).not.toHaveClass('sr-only');
+    expect(table.parentElement?.tagName).toBe('DIV');
+    expect(table.parentElement).toHaveClass('sr-only');
+  });
+
   it('reads out a day on focus, values first', async () => {
     renderChart();
     await screen.findByRole('list', { name: 'Sources' });
