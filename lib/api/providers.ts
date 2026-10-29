@@ -6,7 +6,7 @@ import { withRefresh } from '@/lib/auth/session';
  * (slimshot_server/src/modules/admin/admin-providers.controller.ts). No call
  * here ever receives an API key back: the server only says whether one is saved.
  */
-export type ProviderKind = 'deepgram' | 'elevenlabs';
+export type ProviderKind = 'deepgram' | 'elevenlabs' | 'xai';
 export type ProviderCapability = 'speech_to_text';
 
 export interface ProviderStatus {
@@ -25,6 +25,7 @@ export interface KeyCheck {
 export const PROVIDER_LABELS: Record<ProviderKind, string> = {
   deepgram: 'Deepgram',
   elevenlabs: 'ElevenLabs',
+  xai: 'xAI',
 };
 
 export function providersQueryKey(capability: ProviderCapability) {

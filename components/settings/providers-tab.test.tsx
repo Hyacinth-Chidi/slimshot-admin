@@ -42,6 +42,17 @@ describe('ProvidersTab', () => {
     expect(screen.queryByText(/Auto caption is off/)).toBeNull();
   });
 
+  it('shows xAI as a third provider, ready for a key', async () => {
+    vi.mocked(providersApi.fetchProviders).mockResolvedValue([
+      { provider: 'deepgram', capability: 'speech_to_text', configured: true, active: true, updatedAt: null },
+      { provider: 'elevenlabs', capability: 'speech_to_text', configured: false, active: false, updatedAt: null },
+      { provider: 'xai', capability: 'speech_to_text', configured: false, active: false, updatedAt: null },
+    ]);
+    renderTab();
+    expect(await screen.findByRole('heading', { name: 'xAI' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Add key' })).toHaveLength(2);
+  });
+
   it('says so when no provider is active', async () => {
     vi.mocked(providersApi.fetchProviders).mockResolvedValue([
       { provider: 'deepgram', capability: 'speech_to_text', configured: false, active: false, updatedAt: null },
