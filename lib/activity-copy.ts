@@ -25,6 +25,12 @@ const COPY: Record<string, ActivityCopy> = {
   'pricing.rule.activated': { text: 'Activated a caption price', tone: 'default' },
   'credits.settings.updated': { text: 'Changed the credit settings', tone: 'default' },
   'credits.reconcile.mismatch': { text: "Found a balance that doesn't match its history", tone: 'error' },
+  'backup.created': { text: 'Made a backup', tone: 'default' },
+  'backup.failed': { text: 'A backup failed', tone: 'error' },
+  'backup.deleted': { text: 'Deleted a backup', tone: 'default' },
+  'backup.downloaded': { text: 'Downloaded a backup', tone: 'default' },
+  'backup.restore_command': { text: 'Copied a restore command', tone: 'default' },
+  'backup.settings.updated': { text: 'Changed the backup schedule', tone: 'default' },
 };
 
 /**

@@ -64,6 +64,7 @@ describe('AppShell', () => {
       '/credits/rewards',
       '/system/providers',
       '/system/security',
+      '/system/backups',
       '/system/audit',
     ]);
     for (const heading of ['Library', 'People', 'Credits', 'System']) {

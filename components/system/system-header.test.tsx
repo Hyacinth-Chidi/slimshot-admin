@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { SystemHeader } from './system-header';
@@ -13,10 +14,10 @@ vi.mock('@/lib/auth/profile', async () => {
 
 const OWNER = { id: 'a1', email: 'owner@slimshot.dev', name: 'Owner', role: 'owner' };
 
-function wrap(client: QueryClient) {
+function wrap(client: QueryClient, actions?: ReactNode) {
   return (
     <QueryClientProvider client={client}>
-      <SystemHeader title="Audit log" />
+      <SystemHeader title="Audit log" actions={actions} />
     </QueryClientProvider>
   );
 }
@@ -32,7 +33,7 @@ describe('SystemHeader', () => {
     expect(renderToString(wrap(warm))).toBe(cold);
   });
 
-  it('shows the owner the three System tabs once mounted, on phones only', async () => {
+  it('shows the owner the four System tabs once mounted, on phones only', async () => {
     const client = new QueryClient();
     client.setQueryData(['auth', 'me'], OWNER);
     render(wrap(client));
@@ -41,9 +42,15 @@ describe('SystemHeader', () => {
     expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual([
       'AI providers',
       'Sign-in security',
+      'Backups',
       'Audit log',
     ]);
     expect(nav).toHaveClass('md:hidden');
+  });
+
+  it("puts the page's actions in the header", () => {
+    render(wrap(new QueryClient(), <button type="button">Back up now</button>));
+    expect(screen.getByRole('button', { name: 'Back up now' })).toBeInTheDocument();
   });
 
   it('shows no tabs to anyone else', async () => {

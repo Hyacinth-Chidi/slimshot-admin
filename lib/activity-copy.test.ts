@@ -30,6 +30,20 @@ describe('describeActivity', () => {
     expect(describeActivity(action)).toEqual({ text, tone: 'default' });
   });
 
+  it.each([
+    ['backup.created', 'Made a backup'],
+    ['backup.deleted', 'Deleted a backup'],
+    ['backup.downloaded', 'Downloaded a backup'],
+    ['backup.restore_command', 'Copied a restore command'],
+    ['backup.settings.updated', 'Changed the backup schedule'],
+  ])('describes the backup action %s as "%s"', (action, text) => {
+    expect(describeActivity(action)).toEqual({ text, tone: 'default' });
+  });
+
+  it('marks a failed backup as an error, since the database may be going unprotected', () => {
+    expect(describeActivity('backup.failed')).toEqual({ text: 'A backup failed', tone: 'error' });
+  });
+
   it('marks a balance mismatch as an error, since the books no longer balance', () => {
     expect(describeActivity('credits.reconcile.mismatch')).toEqual({
       text: "Found a balance that doesn't match its history",

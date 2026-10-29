@@ -11,7 +11,7 @@ describe('navGroups', () => {
       { label: 'Library', items: ['/audio'] },
       { label: 'People', items: ['/users'] },
       { label: 'Credits', items: ['/credits/pricing', '/credits/rewards'] },
-      { label: 'System', items: ['/system/providers', '/system/security', '/system/audit'] },
+      { label: 'System', items: ['/system/providers', '/system/security', '/system/backups', '/system/audit'] },
     ]);
   });
 
@@ -40,6 +40,7 @@ describe('navGroups', () => {
     expect(groups.find((g) => g.label === 'System')!.items.map((i) => i.label)).toEqual([
       'AI providers',
       'Sign-in security',
+      'Backups',
       'Audit log',
     ]);
   });
