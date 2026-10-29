@@ -9,3 +9,10 @@ export interface ApiErrorBody {
 export type ApiEnvelope<T> =
   | { success: true; data: T }
   | { success: false; error: ApiErrorBody };
+
+/** How the server names an admin: who set a price, who changed a setting, who did something. */
+export interface AdminRef {
+  id: string;
+  email: string;
+  name: string;
+}

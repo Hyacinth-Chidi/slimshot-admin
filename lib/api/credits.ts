@@ -1,5 +1,6 @@
 import { apiFetch } from './client';
 import { withRefresh } from '@/lib/auth/session';
+import type { AdminRef } from './types';
 
 /**
  * Wraps the server's credit routes: settings, Auto caption pricing, the
@@ -52,9 +53,11 @@ export interface CreditSettings {
   otpPerIpPerHour: number;
   updatedById: string | null;
   updatedAt: string;
+  /** When each field last changed, and who changed it; a field never changed has no key. Older servers omit it. */
+  lastChanged?: Partial<Record<keyof CreditSettingsPatch, { at: string; by: AdminRef | null }>>;
 }
 
-export type CreditSettingsPatch = Partial<Omit<CreditSettings, 'id' | 'updatedById' | 'updatedAt'>>;
+export type CreditSettingsPatch = Partial<Omit<CreditSettings, 'id' | 'updatedById' | 'updatedAt' | 'lastChanged'>>;
 
 export function fetchCreditSettings(): Promise<CreditSettings> {
   return withRefresh(() => apiFetch<CreditSettings>('/credit-settings'));
@@ -89,6 +92,8 @@ export interface PricingRule {
   isActive: boolean;
   note: string | null;
   createdById: string;
+  /** Who created this version; null once that admin is gone. Older servers omit it. */
+  createdBy?: AdminRef | null;
   createdAt: string;
   activatedAt: string | null;
 }
