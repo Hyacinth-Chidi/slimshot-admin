@@ -121,6 +121,8 @@ describe('Sidebar sections', () => {
     render(<Sidebar />);
     const menu = screen.getByRole('navigation', { name: 'Main' });
     expect(menu).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto');
+    // It scrolls, but shows no scrollbar.
+    expect(menu).toHaveClass('[scrollbar-width:none]', '[&::-webkit-scrollbar]:hidden');
     expect(sidebar()).toHaveClass('sticky', 'top-0', 'h-screen');
   });
 });

@@ -163,8 +163,9 @@ export function Sidebar() {
 
         {/* The menu scrolls on its own when the window is too short for it, so the
             sidebar never grows past the screen and moves with the page. The padding
-            keeps focus rings inside the scroll area, which would clip them. */}
-        <nav ref={navRef} className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1 py-1" aria-label="Main">
+            keeps focus rings inside the scroll area, which would clip them. It scrolls
+            by wheel, trackpad or keyboard, with no scrollbar showing. */}
+        <nav ref={navRef} className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Main">
           {groups
             .filter((group) => group.items.length > 0)
             .map((group, i) =>
