@@ -62,6 +62,7 @@ describe('System > AI providers', () => {
       '/system/providers',
       '/system/security',
       '/system/backups',
+      '/system/notifications',
       '/system/audit',
     ]);
     expect(within(tabs).getByRole('link', { name: 'AI providers' })).toHaveAttribute('aria-current', 'page');

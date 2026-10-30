@@ -36,6 +36,7 @@ describe('describeActivity', () => {
     ['backup.downloaded', 'Downloaded a backup'],
     ['backup.restore_command', 'Copied a restore command'],
     ['backup.settings.updated', 'Changed the backup schedule'],
+    ['push.sent', 'Sent a notification'],
   ])('describes the backup action %s as "%s"', (action, text) => {
     expect(describeActivity(action)).toEqual({ text, tone: 'default' });
   });

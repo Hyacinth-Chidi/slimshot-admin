@@ -33,7 +33,7 @@ describe('SystemHeader', () => {
     expect(renderToString(wrap(warm))).toBe(cold);
   });
 
-  it('shows the owner the four System tabs once mounted, on phones only', async () => {
+  it('shows the owner the five System tabs once mounted, on phones only', async () => {
     const client = new QueryClient();
     client.setQueryData(['auth', 'me'], OWNER);
     render(wrap(client));
@@ -43,6 +43,7 @@ describe('SystemHeader', () => {
       'AI providers',
       'Sign-in security',
       'Backups',
+      'Notifications',
       'Audit log',
     ]);
     expect(nav).toHaveClass('md:hidden');

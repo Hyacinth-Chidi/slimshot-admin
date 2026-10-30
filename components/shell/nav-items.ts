@@ -1,4 +1,4 @@
-import { Bot, Coins, DatabaseBackup, Gift, LayoutDashboard, Library, ScrollText, Settings2, ShieldCheck, Tag, Users, type LucideIcon } from 'lucide-react';
+import { Bell, Bot, Coins, DatabaseBackup, Gift, LayoutDashboard, Library, ScrollText, Settings2, ShieldCheck, Tag, Users, type LucideIcon } from 'lucide-react';
 import type { AdminRole } from '@/lib/auth/permissions';
 import { librarySection } from '@/lib/library/kinds';
 
@@ -23,11 +23,12 @@ const REWARDS: NavItem = { href: '/credits/rewards', label: 'Rewards', icon: Gif
 const PROVIDERS: NavItem = { href: '/system/providers', label: 'AI providers', icon: Bot };
 const SECURITY: NavItem = { href: '/system/security', label: 'Sign-in security', icon: ShieldCheck };
 const BACKUPS: NavItem = { href: '/system/backups', label: 'Backups', icon: DatabaseBackup };
+const NOTIFICATIONS: NavItem = { href: '/system/notifications', label: 'Notifications', icon: Bell };
 const AUDIT: NavItem = { href: '/system/audit', label: 'Audit log', icon: ScrollText };
 
 /** Providers, pricing, rewards, sign-in security and backups are the owner's alone (the server enforces it too). */
 function systemItems(role: AdminRole | undefined): NavItem[] {
-  return role === 'owner' ? [PROVIDERS, SECURITY, BACKUPS, AUDIT] : [AUDIT];
+  return role === 'owner' ? [PROVIDERS, SECURITY, BACKUPS, NOTIFICATIONS, AUDIT] : [AUDIT];
 }
 
 /** The desktop sidebar: Overview, the Library (one entry per kind), People, Credits (owner) and System. */

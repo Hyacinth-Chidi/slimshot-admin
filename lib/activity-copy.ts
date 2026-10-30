@@ -31,6 +31,7 @@ const COPY: Record<string, ActivityCopy> = {
   'backup.downloaded': { text: 'Downloaded a backup', tone: 'default' },
   'backup.restore_command': { text: 'Copied a restore command', tone: 'default' },
   'backup.settings.updated': { text: 'Changed the backup schedule', tone: 'default' },
+  'push.sent': { text: 'Sent a notification', tone: 'default' },
 };
 
 /**

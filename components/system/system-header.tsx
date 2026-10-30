@@ -9,6 +9,7 @@ const OWNER_TABS = [
   { label: 'AI providers', href: '/system/providers' },
   { label: 'Sign-in security', href: '/system/security' },
   { label: 'Backups', href: '/system/backups' },
+  { label: 'Notifications', href: '/system/notifications' },
   { label: 'Audit log', href: '/system/audit' },
 ];
 
