@@ -28,6 +28,8 @@ const SETTINGS = {
   otpPerEmailPerHour: 5,
   otpPerDevicePerHour: 10,
   otpPerIpPerHour: 20,
+  dailyRewardEnabled: true,
+  dailyRewardCredits: 5,
   updatedById: null,
   updatedAt: '2026-10-27T10:00:00Z',
   lastChanged: {},
@@ -59,17 +61,21 @@ afterEach(() => {
 });
 
 describe('RewardsPage', () => {
-  it('shows the three reward cards with their hints', async () => {
+  it('shows the four reward cards with their hints', async () => {
     renderPage();
     expect(screen.getByRole('heading', { level: 1, name: 'Rewards' })).toBeInTheDocument();
     expect(
-      screen.getByText('Free credits users get from the sign-up bonus, ads and referrals. Each card saves on its own.'),
+      screen.getByText('Free credits users get from the sign-up bonus, ads, referrals and daily claims. Each card saves on its own.'),
     ).toBeInTheDocument();
 
     const signup = await screen.findByRole('region', { name: 'Sign-up bonus' });
     expect(await within(signup).findByText("≈ 25 min of captions at today's price.")).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Rewarded ads' })).getByText('Up to 50 credits a day per user.')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Referrals' })).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Daily credits' })).getByRole('switch', { name: 'Give daily credits' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
   });
 
   it('leaves out the captions hint when no price is live', async () => {

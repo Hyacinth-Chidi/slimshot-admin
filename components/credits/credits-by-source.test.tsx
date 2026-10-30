@@ -26,6 +26,7 @@ beforeEach(() => {
     { day: today, type: 'signup_bonus', granted: 2300, spent: 0 },
     { day: today, type: 'referral_inviter', granted: 200, spent: 0 },
     { day: today, type: 'referral_invitee', granted: 125, spent: 0 },
+    { day: today, type: 'daily_reward', granted: 60, spent: 0 },
     // Not a way users earn: left out of this chart.
     { day: today, type: 'feature_refund', granted: 32, spent: 0 },
     { day: today, type: 'feature_charge', granted: 0, spent: 1515 },
@@ -44,6 +45,7 @@ describe('CreditsBySource', () => {
       'Ads 910',
       'Sign-up 2,300',
       'Referrals 325',
+      'Daily 60',
     ]);
     expect(creditsApi.fetchCreditStats).toHaveBeenCalledWith(30);
   });
@@ -57,7 +59,7 @@ describe('CreditsBySource', () => {
   it('says the totals in words for screen readers', async () => {
     renderChart();
     expect(
-      await screen.findByText('Over the last 30 days users got 910 credits from ads, 2,300 from sign-up bonuses and 325 from referrals.'),
+      await screen.findByText('Over the last 30 days users got 910 credits from ads, 2,300 from sign-up bonuses, 325 from referrals and 60 from daily credits.'),
     ).toBeInTheDocument();
   });
 

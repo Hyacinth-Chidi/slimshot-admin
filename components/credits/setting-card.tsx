@@ -37,7 +37,7 @@ function parse(field: Field, raw: string): number | null {
 }
 
 /** "Changed 27 Oct by owner@slimshot.dev" from the newest change among the card's fields. */
-function changedLine(settings: CreditSettings, keys: NumericSettingKey[]): string | null {
+export function changedLine(settings: CreditSettings, keys: Array<keyof CreditSettingsPatch>): string | null {
   if (!settings.lastChanged) return null;
   const newest = keys
     .map((key) => settings.lastChanged?.[key])

@@ -11,15 +11,16 @@ const DAYS = 30;
 const NUMBER = new Intl.NumberFormat('en-GB');
 
 /**
- * Three distinct hues, not shades of one: these are identities, not amounts.
+ * Four distinct hues, not shades of one: these are identities, not amounts.
  * Ads keep the dashboard's chart purple. Validated with the dataviz palette
- * check against --surface (#18181B), all pairs: CVD ΔE ≥ 8.4, normal ≥ 19.8,
+ * check against --surface (#18181B), all pairs: CVD ΔE ≥ 8.4, normal ≥ 16.1,
  * every hue ≥ 3:1. Orange is left out: elsewhere it means credits spent.
  */
 const SOURCES = [
   { key: 'ads', label: 'Ads', color: '#A855F7', types: ['rewarded_ad'] },
   { key: 'signup', label: 'Sign-up', color: '#199e70', types: ['signup_bonus'] },
   { key: 'referrals', label: 'Referrals', color: '#c98500', types: ['referral_inviter', 'referral_invitee'] },
+  { key: 'daily', label: 'Daily', color: '#2F9AD6', types: ['daily_reward'] },
 ] as const;
 
 type SourceKey = (typeof SOURCES)[number]['key'];
@@ -92,7 +93,7 @@ export function CreditsBySource() {
         ) : (
           <>
             <p className="sr-only">
-              {`Over the last 30 days users got ${NUMBER.format(totals.ads)} credits from ads, ${NUMBER.format(totals.signup)} from sign-up bonuses and ${NUMBER.format(totals.referrals)} from referrals.`}
+              {`Over the last 30 days users got ${NUMBER.format(totals.ads)} credits from ads, ${NUMBER.format(totals.signup)} from sign-up bonuses, ${NUMBER.format(totals.referrals)} from referrals and ${NUMBER.format(totals.daily)} from daily credits.`}
             </p>
 
             <div className="relative">

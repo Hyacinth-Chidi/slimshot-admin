@@ -1,6 +1,9 @@
 import type { CreditSettingsPatch } from '@/lib/api/credits';
 
-export type NumericSettingKey = Exclude<keyof CreditSettingsPatch, 'disposableEmailDomains'>;
+/** The settings whose values are numbers (not the domain list, nor on/off switches). */
+export type NumericSettingKey = {
+  [K in keyof CreditSettingsPatch]-?: NonNullable<CreditSettingsPatch[K]> extends number ? K : never;
+}[keyof CreditSettingsPatch];
 
 export interface CreditField {
   key: NumericSettingKey;

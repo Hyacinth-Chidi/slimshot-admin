@@ -16,7 +16,8 @@ export type CreditTxType =
   | 'feature_refund'
   | 'admin_adjustment'
   | 'account_deleted'
-  | 'purchase';
+  | 'purchase'
+  | 'daily_reward';
 
 export const LEDGER_LABELS: Record<CreditTxType, string> = {
   signup_bonus: 'Signup bonus',
@@ -28,6 +29,7 @@ export const LEDGER_LABELS: Record<CreditTxType, string> = {
   admin_adjustment: 'Adjustment by an admin',
   account_deleted: 'Forfeited on deletion',
   purchase: 'Purchase',
+  daily_reward: 'Daily credits',
 };
 
 /** Unknown types show their code: the server can add one before the dashboard learns its name. */
@@ -51,6 +53,9 @@ export interface CreditSettings {
   otpPerEmailPerHour: number;
   otpPerDevicePerHour: number;
   otpPerIpPerHour: number;
+  /** Daily credits. A server from before them sends neither, and the dashboard then hides their card. */
+  dailyRewardEnabled?: boolean;
+  dailyRewardCredits?: number;
   updatedById: string | null;
   updatedAt: string;
   /** When each field last changed, and who changed it; a field never changed has no key. Older servers omit it. */
