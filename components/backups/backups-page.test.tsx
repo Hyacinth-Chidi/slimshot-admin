@@ -179,6 +179,47 @@ describe('BackupsPage', () => {
     await vi.waitFor(() => expect(toast).toHaveBeenCalledWith('Backup failed.', 'error'));
   });
 
+  it('keeps the page, and its unsaved edits, when a later read fails', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(backupsApi.fetchBackups)
+      .mockResolvedValueOnce(overview({}, { running: true }))
+      .mockRejectedValue(new Error('The server is restarting.'));
+    setup();
+
+    const toggle = await screen.findByRole('switch', { name: 'Back up automatically' });
+    await userEvent.click(toggle);
+    await vi.advanceTimersByTimeAsync(3_000);
+    await vi.waitFor(() => expect(backupsApi.fetchBackups).toHaveBeenCalledTimes(2));
+
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Back up automatically' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.queryByText(/Could not load the backups/)).toBeNull();
+  });
+
+  it('offers a retry when the backups never loaded', async () => {
+    vi.mocked(backupsApi.fetchBackups).mockRejectedValueOnce(new Error('The server is unreachable.')).mockResolvedValue(overview());
+    setup();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Could not load the backups.');
+    await userEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
+
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+  });
+
+  it('follows the backup that is already running when Back up now is refused', async () => {
+    vi.mocked(backupsApi.fetchBackups).mockResolvedValueOnce(overview()).mockResolvedValue(overview({}, { running: true }));
+    vi.mocked(backupsApi.startBackup).mockRejectedValue(
+      new ApiError({ code: 'CONFLICT', message: 'A backup is already running.', traceId: 't' }, 409),
+    );
+    setup();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Back up now' }));
+
+    await vi.waitFor(() => expect(backupsApi.fetchBackups).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole('button', { name: 'Backing up…' })).toBeDisabled();
+  });
+
   it('tells anyone but the owner, and never asks for backups', async () => {
     setup('admin');
     expect(await screen.findByText('Only the owner can manage backups.')).toBeInTheDocument();

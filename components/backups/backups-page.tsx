@@ -70,6 +70,9 @@ function BackUpNowButton() {
     onError: (error) => {
       if (error instanceof ApiError && error.status === 401) return;
       toast(error instanceof Error ? error.message : 'Something went wrong.', 'error');
+      // A 409 means one is already running (another tab, or the 03:15 run): read it, so the
+      // page follows that backup to the end. Any other refusal may mean the server changed too.
+      void queryClient.invalidateQueries({ queryKey: BACKUPS_KEY });
     },
   });
 
@@ -98,10 +101,18 @@ function BackupsContent() {
   }, [data]);
 
   if (query.isPending) return <BackupsSkeleton />;
-  if (query.isError) {
-    return <p className="text-sm text-error">Could not load the backups: {query.error.message}</p>;
+  // A failed refetch keeps the last answer on screen (and any unsaved edits); only a page
+  // that never loaded shows the error.
+  if (!data) {
+    return (
+      <div role="alert" className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4 md:p-6">
+        <p className="text-sm text-muted">Could not load the backups.</p>
+        <Button variant="secondary" size="sm" onClick={() => void query.refetch()}>
+          Retry
+        </Button>
+      </div>
+    );
   }
-  if (!data) return null;
 
   if (!data.configured) {
     return (
@@ -130,7 +141,7 @@ function BackupsContent() {
       {data.status.lastRunOk === false && (
         <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
           <TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <p className="break-words">{`The last backup failed: ${data.status.lastRunError ?? 'no reason was recorded.'}`}</p>
+          <p className="wrap-break-word">{`The last backup failed: ${data.status.lastRunError ?? 'no reason was recorded.'}`}</p>
         </div>
       )}
 
