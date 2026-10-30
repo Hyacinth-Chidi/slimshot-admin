@@ -5,8 +5,10 @@ import type { ReactElement, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Sidebar } from './sidebar';
 import { SIDEBAR_STORAGE_KEY } from '@/lib/use-sidebar-collapsed';
+import { OPEN_SECTIONS_KEY } from '@/lib/use-open-sections';
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/audio' }));
+let currentPath = '/audio';
+vi.mock('next/navigation', () => ({ usePathname: () => currentPath }));
 vi.mock('@/lib/auth/profile', () => ({ useProfile: () => ({ data: { role: 'owner' }, isLoading: false }) }));
 vi.mock('@/lib/api/kinds', () => ({
   fetchKinds: vi.fn(async () => [{ kind: 'audio', label: 'Audio', extensions: ['.mp3'], fileRoles: [] }]),
@@ -23,11 +25,105 @@ function render(ui: ReactElement) {
 
 afterEach(() => {
   localStorage.clear();
+  currentPath = '/audio';
 });
 
 function sidebar() {
   return screen.getByTestId('sidebar');
 }
+
+// Before the collapse tests: their last one leaves the rail collapsed in memory.
+describe('Sidebar sections', () => {
+  const systemHeading = () => screen.getByRole('button', { name: 'System' });
+
+  it('folds System at first, and leaves the other sections open with no fold', () => {
+    render(<Sidebar />);
+    expect(systemHeading()).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('link', { name: 'Backups' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Audio' })).toBeInTheDocument();
+    for (const heading of ['Library', 'People', 'Credits']) {
+      expect(screen.queryByRole('button', { name: heading })).toBeNull();
+      expect(screen.getByText(heading)).toBeInTheDocument();
+    }
+  });
+
+  it('unfolds and folds System when its heading is clicked', async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />);
+
+    await user.click(systemHeading());
+    expect(systemHeading()).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'Backups' })).toHaveAttribute('href', '/system/backups');
+    expect(screen.getByRole('link', { name: 'Audit log' })).toBeInTheDocument();
+
+    await user.click(systemHeading());
+    expect(systemHeading()).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('link', { name: 'Backups' })).toBeNull();
+  });
+
+  it('brings the unfolded pages into view, for a window too short to show them', async () => {
+    const user = userEvent.setup();
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    render(<Sidebar />);
+
+    scroll.mockClear(); // the menu also scrolls to the current page when it mounts
+    await user.click(systemHeading());
+
+    await vi.waitFor(() =>
+      expect(scroll.mock.contexts.some((el) => (el as Element).textContent?.includes('Backups'))).toBe(true),
+    );
+    expect(scroll).toHaveBeenCalledWith({ block: 'nearest' });
+    scroll.mockRestore();
+  });
+
+  it('remembers an unfolded System across reloads', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<Sidebar />);
+    await user.click(systemHeading());
+    expect(JSON.parse(localStorage.getItem(OPEN_SECTIONS_KEY) ?? '[]')).toEqual(['System']);
+    unmount();
+
+    render(<Sidebar />);
+    expect(systemHeading()).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('opens System by itself on its own pages, so the current page shows', () => {
+    currentPath = '/system/backups';
+    render(<Sidebar />);
+    expect(systemHeading()).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('nav-active')).toHaveAttribute('href', '/system/backups');
+  });
+
+  it('scrolls the menu to the current page, so a short window never hides it', async () => {
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    currentPath = '/system/backups';
+    render(<Sidebar />);
+
+    await vi.waitFor(() => expect(scroll).toHaveBeenCalledWith({ block: 'nearest' }));
+    expect(scroll.mock.contexts).toContain(screen.getByTestId('nav-active'));
+    scroll.mockRestore();
+  });
+
+  it('can be folded on its own page, and opens again on the next System page', async () => {
+    const user = userEvent.setup();
+    currentPath = '/system/backups';
+    const { rerender } = render(<Sidebar />);
+
+    await user.click(systemHeading());
+    expect(systemHeading()).toHaveAttribute('aria-expanded', 'false');
+
+    currentPath = '/system/audit';
+    rerender(<Sidebar />);
+    expect(systemHeading()).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('puts the menu in its own scroll area between the pinned logo and Log out', () => {
+    render(<Sidebar />);
+    const menu = screen.getByRole('navigation', { name: 'Main' });
+    expect(menu).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto');
+    expect(sidebar()).toHaveClass('sticky', 'top-0', 'h-screen');
+  });
+});
 
 describe('Sidebar collapse', () => {
   it('starts expanded with visible labels', () => {

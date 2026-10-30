@@ -12,6 +12,8 @@ export interface NavGroup {
   /** Shown as a small heading above the group; the first group has none. */
   label?: string;
   items: NavItem[];
+  /** Its heading folds and unfolds the group. Turn it on for any group that grows long. */
+  foldable?: boolean;
 }
 
 const OVERVIEW: NavItem = { href: '/', label: 'Overview', icon: LayoutDashboard };
@@ -39,7 +41,7 @@ export function navGroups({ kinds, role }: { kinds: string[]; role: AdminRole | 
     { label: 'Library', items: library },
     { label: 'People', items: [USERS] },
     ...(role === 'owner' ? [{ label: 'Credits', items: [PRICING, REWARDS] }] : []),
-    { label: 'System', items: systemItems(role) },
+    { label: 'System', items: systemItems(role), foldable: true },
   ];
 }
 

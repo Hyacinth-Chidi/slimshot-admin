@@ -1,7 +1,8 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './app-shell';
 
 let role = 'owner';
@@ -27,6 +28,11 @@ function renderShell() {
 }
 
 const hrefs = (el: HTMLElement) => [...el.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+
+// The sidebar remembers folded sections in this browser; each test starts fresh.
+afterEach(() => {
+  localStorage.clear();
+});
 
 describe('AppShell', () => {
   it('renders both the sidebar and the bottom nav, each responsibility-scoped', () => {
@@ -56,6 +62,9 @@ describe('AppShell', () => {
     renderShell();
     const sidebar = screen.getByTestId('sidebar');
     await within(sidebar).findByRole('link', { name: 'Audio' });
+    // System starts folded away from its own pages.
+    expect(hrefs(sidebar)).toEqual(['/', '/audio', '/users', '/credits/pricing', '/credits/rewards']);
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'System' }));
     expect(hrefs(sidebar)).toEqual([
       '/',
       '/audio',
@@ -88,6 +97,7 @@ describe('AppShell', () => {
       await within(sidebar).findByRole('link', { name: 'Audio' });
       expect(within(sidebar).queryByRole('link', { name: 'AI providers' })).toBeNull();
       expect(within(sidebar).queryByRole('link', { name: 'Credits' })).toBeNull();
+      await userEvent.click(within(sidebar).getByRole('button', { name: 'System' }));
       expect(within(sidebar).getByRole('link', { name: 'Audit log' })).toBeInTheDocument();
       expect(within(screen.getByTestId('bottom-nav')).getByRole('link', { name: 'System' })).toHaveAttribute(
         'href',

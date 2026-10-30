@@ -46,6 +46,19 @@ describe('navGroups', () => {
   });
 });
 
+describe('foldable sections', () => {
+  it('lets only System fold, for now', () => {
+    const folds = navGroups({ kinds: ['audio'], role: 'owner' }).map((g) => [g.label ?? null, g.foldable === true]);
+    expect(folds).toEqual([
+      [null, false],
+      ['Library', false],
+      ['People', false],
+      ['Credits', false],
+      ['System', true],
+    ]);
+  });
+});
+
 describe('isActive', () => {
   it('matches a section and everything under it', () => {
     expect(isActive('/audio', '/audio')).toBe(true);
