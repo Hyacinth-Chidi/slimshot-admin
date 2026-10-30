@@ -126,7 +126,7 @@ function RowMenu({
           <MoreHorizontal className="size-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="min-w-60">
         <DropdownMenuItem onSelect={onDownload}>Download</DropdownMenuItem>
         <DropdownMenuItem onSelect={onRestore}>Copy restore command…</DropdownMenuItem>
         {/* The reason sits in the item itself: a tooltip never opens on a disabled item, or on a phone. */}
@@ -219,8 +219,8 @@ function RestoreBody({
           <p className="text-xs text-subtle">Valid for 1 hour. Run it in the server&apos;s folder on the VPS.</p>
           <p className="text-sm text-muted">
             Restoring replaces everything written since this backup; the script asks you to type RESTORE and saves a
-            safety copy first. To try it safely first, put <code className="font-mono text-text">--check</code> after{' '}
-            <code className="font-mono text-text">restore-db.sh</code>.
+            safety copy first. To try it safely first, put <code className="font-mono whitespace-nowrap text-text">--check</code> after{' '}
+            <code className="font-mono whitespace-nowrap text-text">restore-db.sh</code>.
           </p>
         </div>
       ) : null}
