@@ -68,7 +68,7 @@ describe('ledgerLabel', () => {
   it('names known entry types and shows unknown ones as their code', () => {
     expect(ledgerLabel('rewarded_ad')).toBe('Rewarded ad');
     expect(ledgerLabel('feature_refund')).toBe('Auto caption refund');
-    expect(ledgerLabel('daily_reward')).toBe('Daily credits');
+    expect(ledgerLabel('daily_reward')).toBe('Claimed credits');
     expect(ledgerLabel('new_thing')).toBe('new_thing');
   });
 });

@@ -29,7 +29,7 @@ export const LEDGER_LABELS: Record<CreditTxType, string> = {
   admin_adjustment: 'Adjustment by an admin',
   account_deleted: 'Forfeited on deletion',
   purchase: 'Purchase',
-  daily_reward: 'Daily credits',
+  daily_reward: 'Claimed credits',
 };
 
 /** Unknown types show their code: the server can add one before the dashboard learns its name. */
@@ -53,9 +53,11 @@ export interface CreditSettings {
   otpPerEmailPerHour: number;
   otpPerDevicePerHour: number;
   otpPerIpPerHour: number;
-  /** Daily credits. A server from before them sends neither, and the dashboard then hides their card. */
+  /** Credit claims. A server from before them sends none of these, and the dashboard then hides their card. */
   dailyRewardEnabled?: boolean;
   dailyRewardCredits?: number;
+  /** How often a user can claim: every 1, 7 or 30 days. */
+  dailyRewardIntervalDays?: 1 | 7 | 30;
   updatedById: string | null;
   updatedAt: string;
   /** When each field last changed, and who changed it; a field never changed has no key. Older servers omit it. */

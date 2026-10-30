@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CalendarCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { ApiError } from '@/lib/api/client';
 import {
@@ -18,8 +19,15 @@ import { cn } from '@/lib/cn';
 import { toast } from '@/lib/use-toast';
 import { changedLine } from './setting-card';
 
+type Interval = 1 | 7 | 30;
+
 const MAX = 100_000;
-const INVALID = 'Credits per day must be a whole number from 1 to 100,000.';
+const INVALID = 'Credits per claim must be a whole number from 1 to 100,000.';
+const INTERVALS: { value: Interval; label: string }[] = [
+  { value: 1, label: 'Every day' },
+  { value: 7, label: 'Every week' },
+  { value: 30, label: 'Every month' },
+];
 
 /** A whole number from 1 to 100,000, or null. */
 function parseCredits(raw: string): number | null {
@@ -30,28 +38,31 @@ function parseCredits(raw: string): number | null {
 }
 
 /**
- * Daily credits: whether users can claim them, and how many, once every 24 hours.
- * Built like the other Rewards cards: edits kept apart from the saved settings,
- * only what changed is sent, in the shared settings write queue.
+ * Credit claims: whether users can claim credits, how many, and how often (every
+ * day, week or month). Built like the other Rewards cards: edits kept apart from
+ * the saved settings, only what changed is sent, in the shared settings write queue.
  */
 export function DailyCreditsCard({ settings }: { settings: CreditSettings }) {
   const queryClient = useQueryClient();
   const headingId = useId();
   const switchId = useId();
   const errorId = useId();
-  const [edits, setEdits] = useState<{ enabled?: boolean; credits?: string }>({});
+  const [edits, setEdits] = useState<{ enabled?: boolean; credits?: string; days?: Interval }>({});
 
   const savedEnabled = settings.dailyRewardEnabled ?? false;
   const savedCredits = settings.dailyRewardCredits ?? 5;
+  const savedDays = settings.dailyRewardIntervalDays ?? 1;
   const enabled = edits.enabled ?? savedEnabled;
   const creditsText = edits.credits ?? String(savedCredits);
   const credits = parseCredits(creditsText);
+  const days = edits.days ?? savedDays;
 
   const patch: CreditSettingsPatch = {
     ...(enabled !== savedEnabled ? { dailyRewardEnabled: enabled } : {}),
     ...(credits !== null && credits !== savedCredits ? { dailyRewardCredits: credits } : {}),
+    ...(days !== savedDays ? { dailyRewardIntervalDays: days } : {}),
   };
-  const dirty = enabled !== savedEnabled || creditsText !== String(savedCredits);
+  const dirty = enabled !== savedEnabled || creditsText !== String(savedCredits) || days !== savedDays;
 
   const mutation = useMutation({
     mutationFn: (changes: CreditSettingsPatch) => updateCreditSettings(changes),
@@ -80,7 +91,7 @@ export function DailyCreditsCard({ settings }: { settings: CreditSettings }) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  // A server from before daily credits has nothing to set here.
+  // A server from before credit claims has nothing to set here.
   if (settings.dailyRewardEnabled === undefined) return null;
 
   return (
@@ -94,7 +105,7 @@ export function DailyCreditsCard({ settings }: { settings: CreditSettings }) {
       <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
         <h2 id={headingId} className="flex items-center gap-2 text-[15px] font-semibold text-text">
           <CalendarCheck size={16} aria-hidden="true" />
-          Daily credits
+          Credit claims
         </h2>
         {dirty && (
           <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
@@ -106,7 +117,7 @@ export function DailyCreditsCard({ settings }: { settings: CreditSettings }) {
       <div className="flex flex-1 flex-col gap-2 px-5 py-4">
         <div className="flex items-center justify-between gap-4">
           <label htmlFor={switchId} className="text-[15px] text-text">
-            Give daily credits
+            Let users claim credits
           </label>
           <Switch
             id={switchId}
@@ -117,7 +128,7 @@ export function DailyCreditsCard({ settings }: { settings: CreditSettings }) {
         <p className={cn('text-[15px] leading-[2.6]', enabled ? 'text-text' : 'text-subtle')}>
           Each user can claim{' '}
           <Input
-            aria-label="Credits per day"
+            aria-label="Credits per claim"
             aria-invalid={credits === null ? true : undefined}
             aria-describedby={credits === null ? errorId : undefined}
             inputMode="numeric"
@@ -129,13 +140,31 @@ export function DailyCreditsCard({ settings }: { settings: CreditSettings }) {
               credits === null && 'border-error',
             )}
           />{' '}
-          credits once every 24 hours.
+          credits.
         </p>
         {credits === null && (
           <p id={errorId} className="-mt-1 text-sm text-error">
             {INVALID}
           </p>
         )}
+        <div className="flex items-center justify-between gap-4">
+          <span className={cn('text-[15px]', enabled ? 'text-text' : 'text-subtle')}>How often</span>
+          <Select value={String(days)} onValueChange={(v) => setEdits((prev) => ({ ...prev, days: Number(v) as Interval }))}>
+            <SelectTrigger aria-label="How often" className={cn('w-40', days !== savedDays && 'border-[var(--brand-from)]')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {INTERVALS.map((option) => (
+                <SelectItem key={option.value} value={String(option.value)}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <p className="mt-1 text-xs text-subtle">
+          Unclaimed credits don’t build up: someone who skips a turn gets nothing extra.
+        </p>
       </div>
 
       <div className="flex min-h-14 items-center justify-between gap-3 border-t border-border px-5 py-3 text-xs text-subtle">
@@ -152,7 +181,7 @@ export function DailyCreditsCard({ settings }: { settings: CreditSettings }) {
             Undo
           </Button>
         ) : (
-          <span>{changedLine(settings, ['dailyRewardEnabled', 'dailyRewardCredits'])}</span>
+          <span>{changedLine(settings, ['dailyRewardEnabled', 'dailyRewardCredits', 'dailyRewardIntervalDays'])}</span>
         )}
         <Button
           variant={dirty ? 'primary' : 'secondary'}

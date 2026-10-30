@@ -12,7 +12,7 @@ import { SettingCard } from './setting-card';
 import { REWARD_CARDS } from './setting-cards';
 
 /**
- * Credits › Rewards: the free credits users get (sign-up bonus, ads, referrals, daily claims),
+ * Credits › Rewards: the free credits users get (sign-up bonus, ads, referrals, claims),
  * one card per way, each saving on its own. Not "Earnings": that name is kept
  * for revenue, once payments exist.
  */
@@ -25,7 +25,7 @@ export function RewardsPage() {
     <div className="flex flex-col gap-6">
       <CreditsHeader
         title="Rewards"
-        subtitle="Free credits users get from the sign-up bonus, ads, referrals and daily claims. Each card saves on its own."
+        subtitle="Free credits users get from the sign-up bonus, ads, referrals and claims. Each card saves on its own."
       />
 
       {settingsQuery.isLoading ? (

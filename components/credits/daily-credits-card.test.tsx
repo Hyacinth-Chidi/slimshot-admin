@@ -39,6 +39,7 @@ const SETTINGS = {
   otpPerIpPerHour: 20,
   dailyRewardEnabled: false,
   dailyRewardCredits: 5,
+  dailyRewardIntervalDays: 1,
   updatedById: 'a1',
   updatedAt: '2026-10-27T10:00:00Z',
   lastChanged: {},
@@ -52,8 +53,8 @@ function setup(settings: CreditSettings = SETTINGS) {
   return { client };
 }
 
-const toggle = () => screen.getByRole('switch', { name: 'Give daily credits' });
-const amount = () => screen.getByLabelText('Credits per day') as HTMLInputElement;
+const toggle = () => screen.getByRole('switch', { name: 'Let users claim credits' });
+const amount = () => screen.getByLabelText('Credits per claim') as HTMLInputElement;
 const save = () => screen.getByRole('button', { name: 'Save' });
 
 async function retype(value: string) {
@@ -64,10 +65,10 @@ async function retype(value: string) {
 describe('DailyCreditsCard', () => {
   it('shows the saved values, switched off, with nothing to save', () => {
     setup();
-    expect(screen.getByRole('region', { name: 'Daily credits' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Credit claims' })).toBeInTheDocument();
     expect(toggle()).toHaveAttribute('aria-checked', 'false');
     expect(amount()).toHaveValue('5');
-    expect(screen.getByText(/claim/)).toHaveTextContent('Each user can claim credits once every 24 hours.');
+    expect(screen.getByText(/Each user can claim/)).toHaveTextContent('Each user can claim credits.');
     expect(save()).toBeDisabled();
     expect(screen.getByText('Never changed')).toBeInTheDocument();
   });
@@ -98,8 +99,25 @@ describe('DailyCreditsCard', () => {
   it.each(['0', '2.5', 'abc', '100001', ''])('refuses %j as an amount, saying why', async (value) => {
     setup();
     await retype(value);
-    expect(screen.getByText('Credits per day must be a whole number from 1 to 100,000.')).toBeInTheDocument();
+    expect(screen.getByText('Credits per claim must be a whole number from 1 to 100,000.')).toBeInTheDocument();
     expect(save()).toBeDisabled();
+  });
+
+  it('says unclaimed credits never build up', () => {
+    setup();
+    expect(screen.getByText('Unclaimed credits don’t build up: someone who skips a turn gets nothing extra.')).toBeInTheDocument();
+  });
+
+  it('changes how often, sending only that', async () => {
+    setup();
+    vi.mocked(creditsApi.updateCreditSettings).mockResolvedValue({ ...SETTINGS, dailyRewardIntervalDays: 7 });
+
+    expect(screen.getByRole('combobox', { name: 'How often' })).toHaveTextContent('Every day');
+    await userEvent.click(screen.getByRole('combobox', { name: 'How often' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Every week' }));
+    await userEvent.click(save());
+
+    expect(creditsApi.updateCreditSettings).toHaveBeenCalledWith({ dailyRewardIntervalDays: 7 });
   });
 
   it('puts the saved values back on Undo', async () => {
@@ -119,14 +137,15 @@ describe('DailyCreditsCard', () => {
       lastChanged: {
         dailyRewardEnabled: { at: '2026-10-20T10:00:00Z', by: OWNER },
         dailyRewardCredits: { at: '2026-10-27T10:00:00Z', by: OWNER },
+        dailyRewardIntervalDays: { at: '2026-10-21T10:00:00Z', by: OWNER },
       },
     });
     expect(screen.getByText(`Changed ${formatShortDate('2026-10-27T10:00:00Z')} by owner@slimshot.dev`)).toBeInTheDocument();
   });
 
   it('shows nothing while the server is older than daily credits', () => {
-    const { dailyRewardEnabled: _on, dailyRewardCredits: _credits, ...older } = SETTINGS;
+    const { dailyRewardEnabled: _on, dailyRewardCredits: _credits, dailyRewardIntervalDays: _days, ...older } = SETTINGS;
     setup(older);
-    expect(screen.queryByRole('region', { name: 'Daily credits' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Credit claims' })).toBeNull();
   });
 });

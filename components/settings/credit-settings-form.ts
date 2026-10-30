@@ -1,8 +1,8 @@
 import type { CreditSettingsPatch } from '@/lib/api/credits';
 
-/** The settings whose values are numbers (not the domain list, nor on/off switches). */
+/** The settings that take any number (not the domain list, switches, or fixed choices like 1, 7 or 30). */
 export type NumericSettingKey = {
-  [K in keyof CreditSettingsPatch]-?: NonNullable<CreditSettingsPatch[K]> extends number ? K : never;
+  [K in keyof CreditSettingsPatch]-?: number extends NonNullable<CreditSettingsPatch[K]> ? K : never;
 }[keyof CreditSettingsPatch];
 
 export interface CreditField {

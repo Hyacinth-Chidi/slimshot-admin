@@ -20,7 +20,7 @@ const SOURCES = [
   { key: 'ads', label: 'Ads', color: '#A855F7', types: ['rewarded_ad'] },
   { key: 'signup', label: 'Sign-up', color: '#199e70', types: ['signup_bonus'] },
   { key: 'referrals', label: 'Referrals', color: '#c98500', types: ['referral_inviter', 'referral_invitee'] },
-  { key: 'daily', label: 'Daily', color: '#2F9AD6', types: ['daily_reward'] },
+  { key: 'daily', label: 'Claims', color: '#2F9AD6', types: ['daily_reward'] },
 ] as const;
 
 type SourceKey = (typeof SOURCES)[number]['key'];
@@ -93,7 +93,7 @@ export function CreditsBySource() {
         ) : (
           <>
             <p className="sr-only">
-              {`Over the last 30 days users got ${NUMBER.format(totals.ads)} credits from ads, ${NUMBER.format(totals.signup)} from sign-up bonuses, ${NUMBER.format(totals.referrals)} from referrals and ${NUMBER.format(totals.daily)} from daily credits.`}
+              {`Over the last 30 days users got ${NUMBER.format(totals.ads)} credits from ads, ${NUMBER.format(totals.signup)} from sign-up bonuses, ${NUMBER.format(totals.referrals)} from referrals and ${NUMBER.format(totals.daily)} from claims.`}
             </p>
 
             <div className="relative">

@@ -45,7 +45,7 @@ describe('CreditsBySource', () => {
       'Ads 910',
       'Sign-up 2,300',
       'Referrals 325',
-      'Daily 60',
+      'Claims 60',
     ]);
     expect(creditsApi.fetchCreditStats).toHaveBeenCalledWith(30);
   });
@@ -59,7 +59,7 @@ describe('CreditsBySource', () => {
   it('says the totals in words for screen readers', async () => {
     renderChart();
     expect(
-      await screen.findByText('Over the last 30 days users got 910 credits from ads, 2,300 from sign-up bonuses, 325 from referrals and 60 from daily credits.'),
+      await screen.findByText('Over the last 30 days users got 910 credits from ads, 2,300 from sign-up bonuses, 325 from referrals and 60 from claims.'),
     ).toBeInTheDocument();
   });
 
