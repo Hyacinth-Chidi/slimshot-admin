@@ -7,7 +7,7 @@ import { withRefresh } from '@/lib/auth/session';
  * here ever receives an API key back: the server only says whether one is saved.
  */
 export type ProviderKind = 'deepgram' | 'elevenlabs' | 'xai';
-export type ProviderCapability = 'speech_to_text';
+export type ProviderCapability = 'speech_to_text' | 'text_to_speech';
 
 export interface ProviderStatus {
   provider: ProviderKind;

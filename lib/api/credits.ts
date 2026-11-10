@@ -86,8 +86,8 @@ export function updateCreditSettings(patch: CreditSettingsPatch): Promise<Credit
   );
 }
 
-export type CreditFeature = 'auto_captions';
-export type PricingMode = 'per_job' | 'duration_tiers' | 'per_second';
+export type CreditFeature = 'auto_captions' | 'text_to_speech';
+export type PricingMode = 'per_job' | 'duration_tiers' | 'per_second' | 'per_characters';
 
 export interface PriceTier {
   /** Inclusive upper bound in seconds; `null` only on the last, open-ended tier. */
@@ -104,6 +104,8 @@ export interface PricingRule {
   tiers: PriceTier[] | null;
   /** per_second: credits per started block of this many seconds, never below minCredits. */
   blockSeconds: number | null;
+  /** per_characters: credits per started block of this many characters, never below minCredits. Older servers omit it. */
+  blockCharacters?: number | null;
   blockCredits: number | null;
   minCredits: number | null;
   isActive: boolean;
@@ -121,6 +123,7 @@ export interface NewPricingRule {
   perJobCredits?: number;
   tiers?: PriceTier[];
   blockSeconds?: number;
+  blockCharacters?: number;
   blockCredits?: number;
   minCredits?: number;
   note?: string;
