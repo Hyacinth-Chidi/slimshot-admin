@@ -11,20 +11,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import {
   coverage,
   describeCoverage,
-  describeLength,
   describePrice,
+  FEATURE_PRICING,
   priceFor,
-  SAMPLE_SECONDS,
+  type FeaturePricing,
   type RuleLike,
 } from '@/components/settings/pricing-format';
 import {
   fetchCreditSettings,
   fetchCreditStats,
   fetchPricingRules,
+  type CreditFeature,
   type CreditStatsRow,
   type PricingRule,
 } from '@/lib/api/credits';
@@ -36,22 +38,28 @@ import { MakeLiveDialog } from './make-live-dialog';
 const NUMBER = new Intl.NumberFormat('en-GB');
 const STATS_DAYS = 30;
 
+const FEATURE_OPTIONS = (Object.keys(FEATURE_PRICING) as CreditFeature[]).map((feature) => ({
+  value: feature,
+  label: FEATURE_PRICING[feature].name,
+}));
+
 /** "pays for up to 1 min of captions", or the any-length / none forms. */
-function adSentence(rule: RuleLike, credits: number): string {
+function adSentence(rule: RuleLike, credits: number, profile: FeaturePricing): string {
   const covers = coverage(rule, credits);
-  if (covers === Infinity) return `One rewarded ad (${credits} credits) pays for captions of any length.`;
-  if (covers === null) return `One rewarded ad (${credits} credits) doesn't cover a caption job.`;
-  return `One rewarded ad (${credits} credits) pays for up to ${describeCoverage(covers)} of captions.`;
+  if (covers === Infinity) return `One rewarded ad (${credits} credits) pays for ${profile.covered} of any length.`;
+  if (covers === null) return `One rewarded ad (${credits} credits) doesn't cover ${profile.aJob}.`;
+  return `One rewarded ad (${credits} credits) pays for up to ${describeCoverage(covers, profile.describeAmount)} of ${profile.covered}.`;
 }
 
-function bonusSentence(rule: RuleLike, credits: number): string {
+function bonusSentence(rule: RuleLike, credits: number, profile: FeaturePricing): string {
   const covers = coverage(rule, credits);
-  if (covers === Infinity) return `The ${credits}-credit sign-up bonus covers captions of any length.`;
-  if (covers === null) return `The ${credits}-credit sign-up bonus doesn't cover a caption job.`;
-  return `The ${credits}-credit sign-up bonus covers ${describeCoverage(covers)}.`;
+  if (covers === Infinity) return `The ${credits}-credit sign-up bonus covers ${profile.covered} of any length.`;
+  if (covers === null) return `The ${credits}-credit sign-up bonus doesn't cover ${profile.aJob}.`;
+  return `The ${credits}-credit sign-up bonus covers ${describeCoverage(covers, profile.describeAmount)}.`;
 }
 
-function captionTotals(rows: CreditStatsRow[]): { charged: number; refunded: number } {
+/** Every paid feature's charges and refunds: the stats are kept by type, not by feature. */
+function paidTotals(rows: CreditStatsRow[]): { charged: number; refunded: number } {
   let charged = 0;
   let refunded = 0;
   for (const row of rows) {
@@ -61,9 +69,11 @@ function captionTotals(rows: CreditStatsRow[]): { charged: number; refunded: num
   return { charged, refunded };
 }
 
-/** Credits › Pricing: what Auto captions costs, in words, and every price it has had. */
+/** Credits › Pricing: what each paid feature costs, in words, and every price it has had. */
 export function PricingPage() {
-  const rulesQuery = useQuery({ queryKey: ['pricing', 'auto_captions'], queryFn: () => fetchPricingRules('auto_captions') });
+  const [feature, setFeature] = useState<CreditFeature>('auto_captions');
+  const profile = FEATURE_PRICING[feature];
+  const rulesQuery = useQuery({ queryKey: ['pricing', feature], queryFn: () => fetchPricingRules(feature) });
   const settingsQuery = useQuery({ queryKey: ['credits', 'settings'], queryFn: fetchCreditSettings });
   const statsQuery = useQuery({ queryKey: ['stats', 'credits', STATS_DAYS], queryFn: () => fetchCreditStats(STATS_DAYS) });
 
@@ -89,6 +99,18 @@ export function PricingPage() {
         }
       />
 
+      <SegmentedControl
+        label="Feature"
+        options={FEATURE_OPTIONS}
+        value={feature}
+        onChange={(next) => {
+          setFeature(next);
+          // A version belongs to its feature: nothing chosen on one is carried to the other.
+          setSheet({ open: false, startFrom: null });
+          setConfirming(null);
+        }}
+      />
+
       {rulesQuery.isLoading ? (
         <PricingSkeleton />
       ) : rulesQuery.isLoadingError ? (
@@ -104,7 +126,7 @@ export function PricingPage() {
             <div className="border-b border-border px-4 py-4 md:px-6">
               <div className="flex items-center gap-2">
                 <h2 id="live-price" className="text-[15px] font-semibold text-text">
-                  Auto captions
+                  {profile.name}
                 </h2>
                 {live && (
                   <span className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
@@ -127,21 +149,21 @@ export function PricingPage() {
 
             {live ? (
               <div className="flex flex-col gap-4 px-4 py-5 md:px-6">
-                <p className="text-[17px] font-medium text-text">{describePrice(live)}</p>
+                <p className="text-[17px] font-medium text-text">{describePrice(live, feature)}</p>
                 <div>
-                  <p className="mb-2 text-xs text-subtle">What a clip costs</p>
+                  <p className="mb-2 text-xs text-subtle">{`What a ${profile.job} costs`}</p>
                   <ul
-                    aria-label="What a clip costs"
+                    aria-label={`What a ${profile.job} costs`}
                     className="grid grid-cols-3 overflow-hidden rounded-xl border border-border md:grid-cols-6"
                   >
-                    {SAMPLE_SECONDS.map((seconds) => (
+                    {profile.samples.map((amount) => (
                       <li
-                        key={seconds}
+                        key={amount}
                         className="flex flex-col items-center gap-1 border-border px-2 py-3 not-last:border-r max-md:[&:nth-child(3)]:border-r-0 max-md:[&:nth-child(-n+3)]:border-b"
                       >
-                        <span className="text-xs text-muted">{describeLength(seconds)}</span>
+                        <span className="text-center text-xs text-muted">{profile.describeAmount(amount)}</span>
                         <span className="text-xl font-semibold tabular-nums text-text">
-                          {NUMBER.format(priceFor(live, seconds))}
+                          {NUMBER.format(priceFor(live, amount))}
                           <small className="ml-0.5 text-[11px] font-normal text-subtle"> cr</small>
                         </span>
                       </li>
@@ -153,7 +175,7 @@ export function PricingPage() {
                     <Scale size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
                     <p>
                       <span>
-                        {`${adSentence(live, settingsQuery.data.adRewardCredits)} ${bonusSentence(live, settingsQuery.data.signupBonusCredits)}`}
+                        {`${adSentence(live, settingsQuery.data.adRewardCredits, profile)} ${bonusSentence(live, settingsQuery.data.signupBonusCredits, profile)}`}
                       </span>{' '}
                       <Link href="/credits/rewards" className="text-[#D8B4FE] underline-offset-2 hover:underline">
                         Change the rewards →
@@ -165,7 +187,7 @@ export function PricingPage() {
             ) : (
               <div className="flex items-start gap-2.5 px-4 py-5 text-sm text-warning md:px-6">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-                <p>No price is live, so Auto captions is off in the app.</p>
+                <p>{`No price is live, so ${profile.name} is off in the app.`}</p>
               </div>
             )}
 
@@ -173,8 +195,8 @@ export function PricingPage() {
               {statsQuery.data ? (
                 <span>
                   {(() => {
-                    const { charged, refunded } = captionTotals(statsQuery.data);
-                    return `Last 30 days: ${NUMBER.format(charged)} credits charged · ${NUMBER.format(refunded)} refunded for failed jobs`;
+                    const { charged, refunded } = paidTotals(statsQuery.data);
+                    return `Last 30 days, all paid features: ${NUMBER.format(charged)} credits charged · ${NUMBER.format(refunded)} refunded for failed jobs`;
                   })()}
                 </span>
               ) : (
@@ -224,7 +246,7 @@ export function PricingPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-text">{describePrice(rule)}</td>
+                        <td className="px-4 py-3 text-text">{describePrice(rule, feature)}</td>
                         <td className="hidden px-4 py-3 text-muted md:table-cell">{rule.note || '—'}</td>
                         <td className="hidden whitespace-nowrap px-4 py-3 text-muted md:table-cell">
                           {rule.activatedAt ? formatDate(rule.activatedAt) : 'Never live'}
@@ -259,6 +281,7 @@ export function PricingPage() {
       )}
 
       <ChangePriceSheet
+        feature={feature}
         open={sheet.open}
         onOpenChange={(open) => setSheet((prev) => ({ ...prev, open }))}
         live={live}

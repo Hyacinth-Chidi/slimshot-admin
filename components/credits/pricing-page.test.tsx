@@ -127,7 +127,9 @@ describe('PricingPage', () => {
 
   it('sums the last 30 days of charges and refunds', async () => {
     renderPage();
-    expect(await screen.findByText('Last 30 days: 1,515 credits charged · 32 refunded for failed jobs')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Last 30 days, all paid features: 1,515 credits charged · 32 refunded for failed jobs'),
+    ).toBeInTheDocument();
     expect(creditsApi.fetchCreditStats).toHaveBeenCalledWith(30);
   });
 
@@ -190,5 +192,66 @@ describe('PricingPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Change price' }));
     const sheet = await screen.findByRole('dialog', { name: 'Change the Auto captions price' });
     expect(within(sheet).getByText(/Filled in with the live price \(v3\)/)).toBeInTheDocument();
+  });
+});
+
+describe('PricingPage with text to speech', () => {
+  const TTS = rule({
+    id: 't1',
+    feature: 'text_to_speech',
+    version: 1,
+    mode: 'per_characters',
+    blockSeconds: null,
+    blockCharacters: 200,
+    blockCredits: 1,
+    minCredits: 2,
+    note: 'Launch',
+  });
+
+  it('switches between Auto captions and Text to speech, each with its own versions', async () => {
+    vi.mocked(creditsApi.fetchPricingRules).mockImplementation(async (feature) =>
+      feature === 'text_to_speech' ? [TTS] : [V3, V2, V1],
+    );
+    renderPage();
+    await liveCard();
+    expect(screen.getByRole('radio', { name: 'Auto captions' })).toHaveAttribute('aria-checked', 'true');
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Text to speech' }));
+
+    const card = await screen.findByRole('region', { name: 'Text to speech' });
+    expect(creditsApi.fetchPricingRules).toHaveBeenCalledWith('text_to_speech');
+    expect(within(card).getByText('1 credit per 200 characters, at least 2')).toBeInTheDocument();
+    const costs = within(card).getByRole('list', { name: 'What a request costs' });
+    expect(within(costs).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      '100 characters2 cr',
+      '300 characters2 cr',
+      '1,000 characters5 cr',
+      '2,000 characters10 cr',
+      '5,000 characters25 cr',
+      '20,000 characters100 cr',
+    ]);
+    expect(
+      await within(card).findByText(
+        'One rewarded ad (5 credits) pays for up to 1,000 characters of voice. The 100-credit sign-up bonus covers 20,000 characters.',
+      ),
+    ).toBeInTheDocument();
+    const rows = within(screen.getByRole('table', { name: 'Price history' })).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveTextContent('Launch');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Change price' }));
+    expect(await screen.findByRole('dialog', { name: 'Change the Text to speech price' })).toBeInTheDocument();
+  });
+
+  it('says text to speech is off in the app while it has no live price', async () => {
+    vi.mocked(creditsApi.fetchPricingRules).mockImplementation(async (feature) =>
+      feature === 'text_to_speech' ? [] : [V3],
+    );
+    renderPage();
+    await liveCard();
+    await userEvent.click(screen.getByRole('radio', { name: 'Text to speech' }));
+
+    expect(await screen.findByText('No price is live, so Text to speech is off in the app.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set a price' })).toBeInTheDocument();
   });
 });

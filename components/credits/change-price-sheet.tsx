@@ -18,22 +18,17 @@ import {
   describePrice,
   draftProblems,
   draftToRule,
+  FEATURE_PRICING,
   MAX_TIERS,
   ruleToDraft,
   toNewRule,
   type PriceDraft,
 } from '@/components/settings/pricing-format';
 import { ApiError } from '@/lib/api/client';
-import { activatePricingRule, createPricingRule, type PricingMode, type PricingRule } from '@/lib/api/credits';
+import { activatePricingRule, createPricingRule, type CreditFeature, type PricingRule } from '@/lib/api/credits';
 import { cn } from '@/lib/cn';
 import { toast } from '@/lib/use-toast';
 import { CostComparison } from './cost-comparison';
-
-const MODES: Array<{ mode: PricingMode; title: string; explain: string }> = [
-  { mode: 'per_second', title: 'By time used', explain: 'A price for every block of seconds started.' },
-  { mode: 'duration_tiers', title: 'By length band', explain: 'A set price for clips up to a length.' },
-  { mode: 'per_job', title: 'Flat per job', explain: 'The same price for any clip.' },
-];
 
 /** Edited inputs are marked with the brand colour as a border, never the gradient. */
 const EDITED = 'border-[var(--brand-from)]';
@@ -48,6 +43,8 @@ function serverProblems(error: unknown): string[] {
 interface SheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The feature being priced; its versions, modes and sizes. */
+  feature?: CreditFeature;
   /** The price in force now: what the draft is compared against. */
   live: PricingRule | null;
   /** A history version to start from instead of the live price. */
@@ -57,9 +54,9 @@ interface SheetProps {
 }
 
 /**
- * Change the Auto captions price in a side panel. It starts from the live
- * price (or a chosen version), compares every change against what is live
- * now, and only makes the new version live after a confirm.
+ * Change a feature's price in a side panel. It starts from the live price (or
+ * a chosen version), compares every change against what is live now, and only
+ * makes the new version live after a confirm.
  */
 export function ChangePriceSheet(props: SheetProps) {
   const { open, onOpenChange } = props;
@@ -115,6 +112,7 @@ export function ChangePriceSheet(props: SheetProps) {
 }
 
 function PriceForm({
+  feature = 'auto_captions',
   live,
   startFrom,
   nextVersion,
@@ -124,14 +122,15 @@ function PriceForm({
   onDone,
 }: SheetProps & { onEdit: () => void; onCancel: () => void; onDone: () => void }) {
   const queryClient = useQueryClient();
+  const profile = FEATURE_PRICING[feature];
   const start = startFrom ?? live;
-  const [initial] = useState<PriceDraft>(() => ruleToDraft(start));
+  const [initial] = useState<PriceDraft>(() => ruleToDraft(start, feature));
   const [draft, setDraft] = useState<PriceDraft>(initial);
   const [confirming, setConfirming] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async (vars: { activate: boolean }) => {
-      const created = await createPricingRule(toNewRule(draft));
+      const created = await createPricingRule(toNewRule(draft, feature));
       if (vars.activate) await activatePricingRule(created.id);
       return { version: created.version, activated: vars.activate };
     },
@@ -156,7 +155,7 @@ function PriceForm({
   const setRow = (index: number, patch: Partial<PriceDraft['rows'][number]>) =>
     update({ rows: draft.rows.map((row, i) => (i === index ? { ...row, ...patch } : row)) });
 
-  const next = draftToRule(draft);
+  const next = draftToRule(draft, feature);
   const problems = draftProblems(draft);
   const refused = serverProblems(mutation.error);
   const canSave = next !== null && !mutation.isPending;
@@ -174,7 +173,7 @@ function PriceForm({
     <div className="flex h-full flex-col">
       <SheetHeader className="border-b border-border px-6 pt-5 pb-4 pr-14">
         <SheetTitle className="text-lg font-semibold">
-          {live ? 'Change the Auto captions price' : 'Set the Auto captions price'}
+          {`${live ? 'Change' : 'Set'} the ${profile.name} price`}
         </SheetTitle>
         <SheetDescription>{subtitle}</SheetDescription>
       </SheetHeader>
@@ -182,8 +181,8 @@ function PriceForm({
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
         <fieldset>
           <legend className="mb-2 text-xs text-subtle">How to charge</legend>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {MODES.map(({ mode, title, explain }) => (
+          <div className={cn('grid gap-2', profile.modes.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3')}>
+            {profile.modes.map(({ mode, title, explain }) => (
               <button
                 key={mode}
                 type="button"
@@ -231,17 +230,46 @@ function PriceForm({
             />
             credits a job.
           </p>
+        ) : draft.mode === 'per_characters' ? (
+          <p className="text-[15px] leading-[3] text-text">
+            Charge
+            <Input
+              aria-label="Credits per block"
+              inputMode="numeric"
+              className={cn(inline, edited('blockCredits'))}
+              value={draft.blockCredits}
+              onChange={(e) => update({ blockCredits: e.target.value })}
+            />
+            credits for every
+            <Input
+              aria-label="Block size in characters"
+              inputMode="numeric"
+              className={cn(inline, edited('blockCharacters'))}
+              value={draft.blockCharacters}
+              onChange={(e) => update({ blockCharacters: e.target.value })}
+            />
+            characters started, and never less than
+            <Input
+              aria-label="Minimum credits per request"
+              inputMode="numeric"
+              placeholder="0"
+              className={cn(inline, edited('minCredits'))}
+              value={draft.minCredits}
+              onChange={(e) => update({ minCredits: e.target.value })}
+            />
+            credits a request.
+          </p>
         ) : draft.mode === 'per_job' ? (
           <p className="text-[15px] leading-[3] text-text">
             Charge
             <Input
-              aria-label="Credits per clip"
+              aria-label={`Credits per ${profile.job}`}
               inputMode="numeric"
               className={cn(inline, edited('perJob'))}
               value={draft.perJob}
               onChange={(e) => update({ perJob: e.target.value })}
             />
-            credits for every clip.
+            {`credits for every ${profile.job}.`}
           </p>
         ) : (
           <div className="flex flex-col gap-2 text-[15px] text-text">
@@ -316,6 +344,7 @@ function PriceForm({
         ) : null}
 
         <CostComparison
+          feature={feature}
           now={live}
           nowLabel={live ? `Now (v${live.version})` : 'Now'}
           next={next}
@@ -351,7 +380,9 @@ function PriceForm({
           <DialogHeader>
             <DialogTitle>{`Make v${nextVersion} live?`}</DialogTitle>
             <DialogDescription>
-              {next ? `New caption jobs will cost ${describePrice(next)}. Jobs already charged keep their price.` : ''}
+              {next
+                ? `${profile.newJobs} will cost ${describePrice(next, feature)}. Jobs already charged keep their price.`
+                : ''}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

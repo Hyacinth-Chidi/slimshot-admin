@@ -254,3 +254,42 @@ describe('ChangePriceSheet', () => {
     expect(creditsApi.createPricingRule).toHaveBeenCalledWith({ feature: 'auto_captions', mode: 'per_job', perJobCredits: 10 });
   });
 });
+
+describe('ChangePriceSheet for text to speech', () => {
+  const ttsSheet = () => screen.getByRole('dialog', { name: /Text to speech price/ });
+
+  it('text to speech offers per job and per characters only', () => {
+    renderSheet({ feature: 'text_to_speech', live: null, nextVersion: 1 });
+    const modes = within(ttsSheet()).getByRole('group', { name: 'How to charge' });
+
+    expect(within(modes).getByRole('button', { name: /^By characters/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(modes).getByRole('button', { name: /^Flat per request/ })).toBeInTheDocument();
+    expect(within(modes).queryByRole('button', { name: /^By time used/ })).toBeNull();
+    expect(within(modes).queryByRole('button', { name: /^By length band/ })).toBeNull();
+  });
+
+  it('saves a per-characters price for text to speech', async () => {
+    vi.mocked(creditsApi.createPricingRule).mockResolvedValue(
+      rule({ id: 't1', feature: 'text_to_speech', version: 1, mode: 'per_characters', isActive: false }),
+    );
+    renderSheet({ feature: 'text_to_speech', live: null, nextVersion: 1 });
+    const sheet = ttsSheet();
+
+    await userEvent.type(within(sheet).getByLabelText('Credits per block'), '1');
+    await userEvent.type(within(sheet).getByLabelText('Block size in characters'), '200');
+    await userEvent.type(within(sheet).getByLabelText('Minimum credits per request'), '2');
+    const costs = within(sheet).getByRole('table', { name: 'What requests will cost' });
+    expect(within(costs).getByRole('row', { name: /^1,000 characters / })).toHaveTextContent('5');
+
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save for later' }));
+
+    expect(creditsApi.createPricingRule).toHaveBeenCalledWith({
+      feature: 'text_to_speech',
+      mode: 'per_characters',
+      blockCharacters: 200,
+      blockCredits: 1,
+      minCredits: 2,
+    });
+    expect(creditsApi.activatePricingRule).not.toHaveBeenCalled();
+  });
+});

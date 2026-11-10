@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   costRows,
   coverage,
+  describeCharacters,
   describeCoverage,
   describeLength,
   describePrice,
@@ -13,6 +14,7 @@ import {
   priceBySecond,
   priceFor,
   ruleToDraft,
+  SAMPLE_CHARACTERS,
   SAMPLE_SECONDS,
   toNewRule,
   type PriceDraft,
@@ -25,6 +27,7 @@ const draft = (overrides: Partial<PriceDraft> = {}): PriceDraft => ({
   rows: [{ upTo: '60', credits: '2' }],
   longer: '5',
   blockSeconds: '',
+  blockCharacters: '',
   blockCredits: '',
   minCredits: '',
   note: '',
@@ -258,8 +261,8 @@ describe('comparing two prices', () => {
   });
 
   it('leaves Now empty when nothing is live, and New empty while the draft is invalid', () => {
-    expect(costRows(null, v3)[0]).toEqual({ seconds: 15, now: null, next: 4 });
-    expect(costRows(v3, null)[2]).toEqual({ seconds: 60, now: 4, next: null });
+    expect(costRows(null, v3)[0]).toEqual({ amount: 15, now: null, next: 4 });
+    expect(costRows(v3, null)[2]).toEqual({ amount: 60, now: 4, next: null });
     expect(largestIncreasePct(costRows(null, v3))).toBeNull();
   });
 });
@@ -290,5 +293,86 @@ describe('drafts from rules and back', () => {
     expect(draftToRule(ruleToDraft(v2))).toEqual(v2);
     expect(draftToRule(ruleToDraft(v1))).toEqual(v1);
     expect(draftToRule({ ...ruleToDraft(v3), blockCredits: '' })).toBeNull();
+  });
+});
+
+describe('text to speech pricing', () => {
+  const perChars: RuleLike = {
+    mode: 'per_characters',
+    perJobCredits: null,
+    tiers: null,
+    blockSeconds: null,
+    blockCharacters: 200,
+    blockCredits: 1,
+    minCredits: 2,
+  };
+  const flat: RuleLike = { mode: 'per_job', perJobCredits: 4, tiers: null, blockSeconds: null, blockCredits: null, minCredits: null };
+
+  it("describes a per-characters rule as '1 credit per 200 characters, at least 2'", () => {
+    expect(describePrice(perChars, 'text_to_speech')).toBe('1 credit per 200 characters, at least 2');
+    expect(describePrice({ ...perChars, minCredits: null }, 'text_to_speech')).toBe('1 credit per 200 characters');
+    expect(describePrice({ ...perChars, blockCharacters: 1, blockCredits: 3, minCredits: null }, 'text_to_speech')).toBe(
+      '3 credits per character',
+    );
+    expect(describePrice(flat, 'text_to_speech')).toBe('4 credits per request, any length');
+    expect(describeRule({ version: 2, ...perChars })).toBe('v2 · 1 credit per 200 characters · at least 2 credits');
+  });
+
+  it('prices characters as the server does: every started block, never below the minimum', () => {
+    expect(priceFor(perChars, 12)).toBe(2);
+    expect(priceFor(perChars, 400)).toBe(2);
+    expect(priceFor(perChars, 401)).toBe(3);
+    expect(priceFor({ ...perChars, minCredits: null }, 12)).toBe(1);
+    expect(priceFor({ ...perChars, minCredits: null }, 2000)).toBe(10);
+  });
+
+  it('says how many characters a number of credits covers', () => {
+    expect(coverage(perChars, 5)).toBe(1000);
+    expect(coverage(perChars, 1)).toBeNull();
+    expect(coverage({ ...perChars, blockCredits: 0, minCredits: null }, 0)).toBe(Infinity);
+    expect(describeCharacters(1)).toBe('1 character');
+    expect(describeCoverage(20000, describeCharacters)).toBe('20,000 characters');
+    expect(describeCoverage(null, describeCharacters)).toBe('nothing');
+  });
+
+  it('prices a request at sample sizes in characters', () => {
+    expect(SAMPLE_CHARACTERS).toEqual([100, 300, 1000, 2000, 5000, 20000]);
+    expect(costRows(null, perChars, SAMPLE_CHARACTERS)[0]).toEqual({ amount: 100, now: null, next: 2 });
+    expect(costRows(null, perChars, SAMPLE_CHARACTERS)[5]).toEqual({ amount: 20000, now: null, next: 100 });
+  });
+
+  it('starts a new text-to-speech price by characters, and saves it for text to speech', () => {
+    const empty = ruleToDraft(null, 'text_to_speech');
+    expect(empty).toMatchObject({ mode: 'per_characters', blockCharacters: '', blockCredits: '', minCredits: '' });
+
+    const filled = { ...empty, blockCharacters: '200', blockCredits: '1', minCredits: '2', note: '  launch  ' };
+    expect(draftProblems(filled)).toEqual([]);
+    expect(toNewRule(filled, 'text_to_speech')).toEqual({
+      feature: 'text_to_speech',
+      mode: 'per_characters',
+      blockCharacters: 200,
+      blockCredits: 1,
+      minCredits: 2,
+      note: 'launch',
+    });
+    expect(toNewRule({ ...filled, mode: 'per_job', perJob: '3' }, 'text_to_speech')).toEqual({
+      feature: 'text_to_speech',
+      mode: 'per_job',
+      perJobCredits: 3,
+      note: 'launch',
+    });
+    expect(draftToRule(ruleToDraft(perChars, 'text_to_speech'), 'text_to_speech')).toEqual(perChars);
+  });
+
+  it('checks a per-characters draft as the server does', () => {
+    const bad = { ...ruleToDraft(null, 'text_to_speech'), blockCharacters: '0' };
+    expect(draftProblems(bad)).toEqual([
+      'Block size must be a whole number of characters from 1 to 100,000.',
+      'Credits per block must be a whole number from 0 to 100,000.',
+    ]);
+    expect(draftProblems({ ...bad, blockCharacters: '100001', blockCredits: '1', minCredits: 'x' })).toEqual([
+      'Block size must be a whole number of characters from 1 to 100,000.',
+      'The minimum must be empty or a whole number from 0 to 100,000.',
+    ]);
   });
 });

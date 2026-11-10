@@ -34,7 +34,8 @@ export function MakeLiveDialog({
   const mutation = useMutation({
     mutationFn: (target: PricingRule) => activatePricingRule(target.id),
     onSuccess: (rules, target) => {
-      queryClient.setQueryData(['pricing', 'auto_captions'], rules);
+      // The answer is the feature's whole list: it replaces that feature's prices only.
+      queryClient.setQueryData(['pricing', target.feature], rules);
       toast(`Price v${target.version} is live`);
       onClose();
     },
@@ -57,6 +58,7 @@ export function MakeLiveDialog({
               <DialogDescription>Jobs already charged keep their price.</DialogDescription>
             </DialogHeader>
             <CostComparison
+              feature={rule.feature}
               now={live}
               nowLabel={live ? `Now (v${live.version})` : 'Now'}
               next={rule}

@@ -67,3 +67,45 @@ describe('CostComparison', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 });
+
+describe('CostComparison for text to speech', () => {
+  const tts: RuleLike = {
+    mode: 'per_characters',
+    perJobCredits: null,
+    tiers: null,
+    blockSeconds: null,
+    blockCharacters: 200,
+    blockCredits: 1,
+    minCredits: 2,
+  };
+
+  it('prices requests at sample sizes in characters', () => {
+    render(<CostComparison feature="text_to_speech" now={null} nowLabel="Now" next={tts} nextLabel="New (v1)" adRewardCredits={5} />);
+    const table = screen.getByRole('table', { name: 'What requests will cost' });
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Request', 'Now', 'New (v1)']);
+    expect(within(table).getAllByRole('rowheader').map((h) => h.textContent)).toEqual([
+      '100 characters',
+      '300 characters',
+      '1,000 characters',
+      '2,000 characters',
+      '5,000 characters',
+      '20,000 characters',
+    ]);
+  });
+
+  it('says plainly when an ad would no longer cover a voice request', () => {
+    render(
+      <CostComparison
+        feature="text_to_speech"
+        now={tts}
+        nowLabel="Now (v1)"
+        next={{ ...tts, minCredits: 6 }}
+        nextLabel="New (v2)"
+        adRewardCredits={5}
+      />,
+    );
+    expect(screen.getByRole('status').textContent).toBe(
+      'Requests cost up to 200% more. One rewarded ad would no longer cover a voice request; today it pays for 1,000 characters of voice.',
+    );
+  });
+});

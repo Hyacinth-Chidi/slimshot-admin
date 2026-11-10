@@ -100,3 +100,36 @@ describe('MakeLiveDialog', () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe('MakeLiveDialog for text to speech', () => {
+  it('prices requests in characters and stores the list as the text-to-speech prices', async () => {
+    const live = rule({
+      id: 't1',
+      feature: 'text_to_speech',
+      version: 1,
+      mode: 'per_characters',
+      blockSeconds: null,
+      blockCharacters: 200,
+      blockCredits: 1,
+      minCredits: 2,
+    });
+    const next = rule({ ...live, id: 't2', version: 2, blockCredits: 2, isActive: false, activatedAt: null });
+    const rules = [{ ...next, isActive: true }, { ...live, isActive: false }];
+    vi.mocked(creditsApi.activatePricingRule).mockResolvedValue(rules);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const setData = vi.spyOn(client, 'setQueryData');
+    render(
+      <QueryClientProvider client={client}>
+        <MakeLiveDialog rule={next} live={live} adRewardCredits={5} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    );
+
+    const dialog = screen.getByRole('alertdialog', { name: 'Make v2 live?' });
+    const table = within(dialog).getByRole('table', { name: 'What requests will cost' });
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Request', 'Now (v1)', 'v2']);
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Requests cost up to 100% more.');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Make live' }));
+    expect(setData).toHaveBeenCalledWith(['pricing', 'text_to_speech'], rules);
+  });
+});
