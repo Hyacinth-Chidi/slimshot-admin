@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { useState, type ReactNode } from 'react';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +9,7 @@ import { fetchProviders, providersQueryKey, type ProviderCapability } from '@/li
 import { ProviderCard } from './provider-card';
 
 /** What each capability is for, as the section says it. */
-const CAPABILITIES: Record<ProviderCapability, { switchLabel: string; heading: string; explain: string; tool: string }> = {
+const CAPABILITIES: Record<ProviderCapability, { switchLabel: string; heading: string; explain: ReactNode; tool: string }> = {
   speech_to_text: {
     switchLabel: 'Speech to text',
     heading: 'Auto caption',
@@ -18,8 +19,16 @@ const CAPABILITIES: Record<ProviderCapability, { switchLabel: string; heading: s
   text_to_speech: {
     switchLabel: 'Text to speech',
     heading: 'Text to speech',
-    explain:
-      "Voices made from the texts on the timeline, used by the app's Text to speech tool. Only one provider can be active; the voices it offers are on the Voices page.",
+    explain: (
+      <>
+        Voices made from the texts on the timeline, used by the app&apos;s Text to speech tool. Only one provider can
+        be active; the voices it offers are on the{' '}
+        <Link href="/voices" className="text-text underline-offset-2 hover:underline">
+          Voices page
+        </Link>
+        .
+      </>
+    ),
     tool: 'Text to speech',
   },
 };

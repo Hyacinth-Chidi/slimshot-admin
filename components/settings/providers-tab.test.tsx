@@ -113,3 +113,15 @@ describe('ProvidersTab for text to speech', () => {
     expect(providersApi.saveProviderKey).toHaveBeenCalledWith('xai', 'text_to_speech', 'xai-key-123456');
   });
 });
+
+describe('ProvidersTab and the Voices page', () => {
+  it('points from Text to speech to the Voices page', async () => {
+    vi.mocked(providersApi.fetchProviders).mockResolvedValue([]);
+    renderTab();
+    expect(screen.queryByRole('link', { name: 'Voices page' })).toBeNull();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Text to speech' }));
+
+    expect(await screen.findByRole('link', { name: 'Voices page' })).toHaveAttribute('href', '/voices');
+  });
+});

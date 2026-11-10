@@ -1,4 +1,4 @@
-import { Bell, Bot, Coins, DatabaseBackup, Gift, LayoutDashboard, Library, ScrollText, Settings2, ShieldCheck, Tag, Users, type LucideIcon } from 'lucide-react';
+import { Bell, Bot, Coins, DatabaseBackup, Gift, LayoutDashboard, Library, ScrollText, Settings2, ShieldCheck, Speech, Tag, Users, type LucideIcon } from 'lucide-react';
 import type { AdminRole } from '@/lib/auth/permissions';
 import { librarySection } from '@/lib/library/kinds';
 
@@ -25,6 +25,8 @@ const SECURITY: NavItem = { href: '/system/security', label: 'Sign-in security',
 const BACKUPS: NavItem = { href: '/system/backups', label: 'Backups', icon: DatabaseBackup };
 const NOTIFICATIONS: NavItem = { href: '/system/notifications', label: 'Notifications', icon: Bell };
 const AUDIT: NavItem = { href: '/system/audit', label: 'Audit log', icon: ScrollText };
+/** Not an asset kind: the provider's voices, the owner's alone (providers.manage). */
+const VOICES: NavItem = { href: '/voices', label: 'Voices', icon: Speech };
 
 /** Providers, pricing, rewards, sign-in security and backups are the owner's alone (the server enforces it too). */
 function systemItems(role: AdminRole | undefined): NavItem[] {
@@ -39,7 +41,7 @@ export function navGroups({ kinds, role }: { kinds: string[]; role: AdminRole | 
   });
   return [
     { items: [OVERVIEW] },
-    { label: 'Library', items: library },
+    { label: 'Library', items: role === 'owner' ? [...library, VOICES] : library },
     { label: 'People', items: [USERS] },
     ...(role === 'owner' ? [{ label: 'Credits', items: [PRICING, REWARDS] }] : []),
     { label: 'System', items: systemItems(role), foldable: true },
@@ -61,7 +63,7 @@ export interface MobileSection extends NavItem {
 export function mobileSections(role: AdminRole | undefined): MobileSection[] {
   return [
     { ...OVERVIEW, match: ['/'] },
-    { href: '/audio', label: 'Library', icon: Library, match: ['/audio', '/fonts'] },
+    { href: '/audio', label: 'Library', icon: Library, match: ['/audio', '/fonts', '/voices'] },
     { ...USERS, match: ['/users'] },
     ...(role === 'owner' ? [{ href: PRICING.href, label: 'Credits', icon: Coins, match: ['/credits'] }] : []),
     { href: systemItems(role)[0].href, label: 'System', icon: Settings2, match: ['/system'] },

@@ -63,11 +63,12 @@ describe('AppShell', () => {
     const sidebar = screen.getByTestId('sidebar');
     await within(sidebar).findByRole('link', { name: 'Audio' });
     // System starts folded away from its own pages.
-    expect(hrefs(sidebar)).toEqual(['/', '/audio', '/users', '/credits/pricing', '/credits/rewards']);
+    expect(hrefs(sidebar)).toEqual(['/', '/audio', '/voices', '/users', '/credits/pricing', '/credits/rewards']);
     await userEvent.click(within(sidebar).getByRole('button', { name: 'System' }));
     expect(hrefs(sidebar)).toEqual([
       '/',
       '/audio',
+      '/voices',
       '/users',
       '/credits/pricing',
       '/credits/rewards',

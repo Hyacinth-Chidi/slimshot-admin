@@ -8,7 +8,7 @@ describe('navGroups', () => {
   it('groups the dashboard: Overview, Library, People, Credits, System', () => {
     expect(shape(navGroups({ kinds: ['audio'], role: 'owner' }))).toEqual([
       { label: null, items: ['/'] },
-      { label: 'Library', items: ['/audio'] },
+      { label: 'Library', items: ['/audio', '/voices'] },
       { label: 'People', items: ['/users'] },
       { label: 'Credits', items: ['/credits/pricing', '/credits/rewards'] },
       { label: 'System', items: ['/system/providers', '/system/security', '/system/backups', '/system/notifications', '/system/audit'] },
@@ -25,7 +25,7 @@ describe('navGroups', () => {
   });
 
   it('lists every kind the server has, in its order, and only those with pages', () => {
-    const library = navGroups({ kinds: ['audio', 'template', 'font'], role: 'owner' })[1];
+    const library = navGroups({ kinds: ['audio', 'template', 'font'], role: 'editor' })[1];
     expect(library.items.map((i) => i.label)).toEqual(['Audio', 'Fonts']);
   });
 
@@ -90,7 +90,22 @@ describe('mobileSections', () => {
   it('marks Library active on any kind, and System on any system page', () => {
     const [, library, , credits, system] = mobileSections('owner');
     expect(library.match.some((p) => isActive(p, '/fonts/f1'))).toBe(true);
+    expect(library.match.some((p) => isActive(p, '/voices'))).toBe(true);
     expect(credits.match.some((p) => isActive(p, '/credits/rewards'))).toBe(true);
     expect(system.match.some((p) => isActive(p, '/system/security'))).toBe(true);
+  });
+});
+
+describe('Voices', () => {
+  it("gives the owner Voices after the Library's kinds, and no one else", () => {
+    const library = (role: 'owner' | 'admin' | 'editor') =>
+      navGroups({ kinds: ['audio', 'font'], role })[1].items.map((i) => [i.label, i.href]);
+    expect(library('owner')).toEqual([
+      ['Audio', '/audio'],
+      ['Fonts', '/fonts'],
+      ['Voices', '/voices'],
+    ]);
+    expect(library('admin').map(([label]) => label)).toEqual(['Audio', 'Fonts']);
+    expect(library('editor').map(([label]) => label)).toEqual(['Audio', 'Fonts']);
   });
 });
