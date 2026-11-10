@@ -1,29 +1,56 @@
 'use client';
 
+import { useState } from 'react';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
-import { fetchProviders, providersQueryKey } from '@/lib/api/providers';
+import { fetchProviders, providersQueryKey, type ProviderCapability } from '@/lib/api/providers';
 import { ProviderCard } from './provider-card';
 
-const CAPABILITY = 'speech_to_text' as const;
+/** What each capability is for, as the section says it. */
+const CAPABILITIES: Record<ProviderCapability, { switchLabel: string; heading: string; explain: string; tool: string }> = {
+  speech_to_text: {
+    switchLabel: 'Speech to text',
+    heading: 'Auto caption',
+    explain: "Speech to text with word timings, used by the app's Auto caption tool. Only one provider can be active.",
+    tool: 'Auto caption',
+  },
+  text_to_speech: {
+    switchLabel: 'Text to speech',
+    heading: 'Text to speech',
+    explain:
+      "Voices made from the texts on the timeline, used by the app's Text to speech tool. Only one provider can be active; the voices it offers are on the Voices page.",
+    tool: 'Text to speech',
+  },
+};
 
+const CAPABILITY_OPTIONS = (Object.keys(CAPABILITIES) as ProviderCapability[]).map((capability) => ({
+  value: capability,
+  label: CAPABILITIES[capability].switchLabel,
+}));
+
+/**
+ * The provider keys, one capability at a time. A key is kept per provider and
+ * capability, and every card acts on the capability the server listed it under.
+ */
 export function ProvidersTab() {
+  const [capability, setCapability] = useState<ProviderCapability>('speech_to_text');
+  const shown = CAPABILITIES[capability];
   const query = useQuery({
-    queryKey: providersQueryKey(CAPABILITY),
-    queryFn: () => fetchProviders(CAPABILITY),
+    queryKey: providersQueryKey(capability),
+    queryFn: () => fetchProviders(capability),
   });
   const providers = query.data;
 
   return (
-    <section aria-labelledby="auto-caption-heading" className="flex flex-col gap-4">
+    <section aria-labelledby="providers-heading" className="flex flex-col gap-4">
+      <SegmentedControl label="Capability" options={CAPABILITY_OPTIONS} value={capability} onChange={setCapability} />
+
       <div>
-        <h2 id="auto-caption-heading" className="text-base font-semibold text-text">
-          Auto caption
+        <h2 id="providers-heading" className="text-base font-semibold text-text">
+          {shown.heading}
         </h2>
-        <p className="mt-1 text-sm text-muted">
-          Speech to text with word timings, used by the app&apos;s Auto caption tool. Only one provider can be
-          active.
-        </p>
+        <p className="mt-1 text-sm text-muted">{shown.explain}</p>
       </div>
 
       {query.isLoading ? (
@@ -47,13 +74,13 @@ export function ProvidersTab() {
       {providers ? (
         <div className="grid gap-3 md:grid-cols-2 md:gap-4">
           {providers.map((status) => (
-            <ProviderCard key={status.provider} status={status} />
+            <ProviderCard key={`${status.capability}:${status.provider}`} status={status} />
           ))}
         </div>
       ) : null}
 
       {providers && !providers.some((p) => p.active) ? (
-        <p className="text-sm text-warning">No provider is active, so Auto caption is off in the app.</p>
+        <p className="text-sm text-warning">{`No provider is active, so ${shown.tool} is off in the app.`}</p>
       ) : null}
     </section>
   );
