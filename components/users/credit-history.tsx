@@ -63,7 +63,7 @@ export function CreditHistory({ userId }: { userId: string }) {
           {entries.map((entry) => (
             <li key={entry.id} className="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
               <div className="min-w-0">
-                <p className="truncate text-sm text-text">{ledgerLabel(entry.type)}</p>
+                <p className="truncate text-sm text-text">{ledgerLabel(entry.type, entry.feature)}</p>
                 <p className="text-xs text-subtle">{formatDateTime(entry.createdAt)}</p>
               </div>
               <div className="shrink-0 text-right">

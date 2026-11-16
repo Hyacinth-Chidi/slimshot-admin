@@ -31,6 +31,12 @@ export interface LedgerEntry {
   amount: number;
   balanceAfter: number;
   createdAt: string;
+  /**
+   * The paid feature a `feature_charge` or `feature_refund` was for
+   * (`auto_captions`, `text_to_speech`); null on every other entry. A server
+   * older than the field sends none.
+   */
+  feature?: string | null;
 }
 
 export interface Page<T> {

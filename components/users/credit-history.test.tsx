@@ -27,8 +27,15 @@ describe('CreditHistory', () => {
   it('labels each entry, signs its amount and shows the balance after it', async () => {
     vi.mocked(usersApi.fetchUserLedger).mockResolvedValue({
       items: [
-        { id: 't2', type: 'feature_charge', amount: -3, balanceAfter: 122, createdAt: '2026-10-04T10:00:00Z' },
-        { id: 't1', type: 'rewarded_ad', amount: 5, balanceAfter: 125, createdAt: '2026-10-03T10:00:00Z' },
+        {
+          id: 't2',
+          type: 'feature_charge',
+          amount: -3,
+          balanceAfter: 122,
+          createdAt: '2026-10-04T10:00:00Z',
+          feature: 'auto_captions',
+        },
+        { id: 't1', type: 'rewarded_ad', amount: 5, balanceAfter: 125, createdAt: '2026-10-03T10:00:00Z', feature: null },
       ],
       nextCursor: null,
     });
@@ -40,6 +47,37 @@ describe('CreditHistory', () => {
     expect(screen.getByText('−3')).not.toHaveClass('text-success');
     expect(screen.getByText('Balance 125')).toBeInTheDocument();
     expect(usersApi.fetchUserLedger).toHaveBeenCalledWith('u1', { cursor: undefined, limit: 20 });
+  });
+
+  // A Text to speech charge and its refund read as Auto caption before the
+  // server said which feature an entry was for.
+  it('names a Text to speech charge and refund as Text to speech, not Auto caption', async () => {
+    vi.mocked(usersApi.fetchUserLedger).mockResolvedValue({
+      items: [
+        {
+          id: 't2',
+          type: 'feature_refund',
+          amount: 20,
+          balanceAfter: 125,
+          createdAt: '2026-10-04T10:01:00Z',
+          feature: 'text_to_speech',
+        },
+        {
+          id: 't1',
+          type: 'feature_charge',
+          amount: -20,
+          balanceAfter: 105,
+          createdAt: '2026-10-04T10:00:00Z',
+          feature: 'text_to_speech',
+        },
+      ],
+      nextCursor: null,
+    });
+    renderHistory();
+
+    expect(await screen.findByText('Text to speech')).toBeInTheDocument();
+    expect(screen.getByText('Text to speech refund')).toBeInTheDocument();
+    expect(screen.queryByText(/Auto caption/)).toBeNull();
   });
 
   it('says the history could not be loaded instead of claiming it is empty', async () => {

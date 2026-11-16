@@ -67,9 +67,26 @@ describe('credits API', () => {
 describe('ledgerLabel', () => {
   it('names known entry types and shows unknown ones as their code', () => {
     expect(ledgerLabel('rewarded_ad')).toBe('Rewarded ad');
-    expect(ledgerLabel('feature_refund')).toBe('Auto caption refund');
     expect(ledgerLabel('daily_reward')).toBe('Claimed credits');
     expect(ledgerLabel('new_thing')).toBe('new_thing');
+  });
+
+  // Every charge read as Auto caption, Text to speech's included: the entry
+  // said a feature was paid for, never which.
+  it('names a charge or a refund by the feature it was for', () => {
+    expect(ledgerLabel('feature_charge', 'auto_captions')).toBe('Auto caption');
+    expect(ledgerLabel('feature_charge', 'text_to_speech')).toBe('Text to speech');
+    expect(ledgerLabel('feature_refund', 'auto_captions')).toBe('Auto caption refund');
+    expect(ledgerLabel('feature_refund', 'text_to_speech')).toBe('Text to speech refund');
+  });
+
+  it('names no feature it was not told, or does not know', () => {
+    // Stats are kept by type, so a day's charges are every paid feature's.
+    expect(ledgerLabel('feature_charge')).toBe('Paid feature');
+    expect(ledgerLabel('feature_refund', null)).toBe('Paid feature refund');
+    expect(ledgerLabel('feature_charge', 'something_new')).toBe('Paid feature');
+    // A feature on any other entry changes nothing.
+    expect(ledgerLabel('rewarded_ad', 'text_to_speech')).toBe('Rewarded ad');
   });
 });
 

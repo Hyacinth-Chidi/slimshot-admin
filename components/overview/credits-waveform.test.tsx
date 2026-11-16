@@ -60,7 +60,9 @@ describe('CreditsWaveform', () => {
     const readout = screen.getByTestId('credits-readout');
     expect(readout).toHaveTextContent('granted 10 · spent 4');
     expect(readout).toHaveTextContent('Rewarded ad');
-    expect(readout).toHaveTextContent('Auto caption');
+    // A day's charges are every paid feature's: the stats are kept by type.
+    expect(readout).toHaveTextContent('Paid feature');
+    expect(readout).not.toHaveTextContent('Auto caption');
   });
 
   it('hides its data table in a box that can shrink, so it adds no empty scroll below the page', () => {

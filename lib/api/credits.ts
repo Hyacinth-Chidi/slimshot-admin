@@ -24,16 +24,34 @@ export const LEDGER_LABELS: Record<CreditTxType, string> = {
   referral_inviter: 'Referral reward (invited someone)',
   referral_invitee: 'Referral bonus (was invited)',
   rewarded_ad: 'Rewarded ad',
-  feature_charge: 'Auto caption',
-  feature_refund: 'Auto caption refund',
+  // Which feature, when the entry says: FEATURE_LABELS. Stats are kept by
+  // type, so a day's charges there are every paid feature's.
+  feature_charge: 'Paid feature',
+  feature_refund: 'Paid feature refund',
   admin_adjustment: 'Adjustment by an admin',
   account_deleted: 'Forfeited on deletion',
   purchase: 'Purchase',
   daily_reward: 'Claimed credits',
 };
 
-/** Unknown types show their code: the server can add one before the dashboard learns its name. */
-export function ledgerLabel(type: string): string {
+/** A charge or refund named by the feature it was for. */
+const FEATURE_LABELS: Record<CreditFeature, { charge: string; refund: string }> = {
+  auto_captions: { charge: 'Auto caption', refund: 'Auto caption refund' },
+  text_to_speech: { charge: 'Text to speech', refund: 'Text to speech refund' },
+};
+
+/**
+ * An entry's name. A charge or refund is named by its [feature] — every
+ * charge used to read Auto caption, Text to speech's included — and without
+ * one, or with one the dashboard does not know yet, as a paid feature's.
+ * Unknown types show their code: the server can add one before the
+ * dashboard learns its name.
+ */
+export function ledgerLabel(type: string, feature?: string | null): string {
+  if (feature && (type === 'feature_charge' || type === 'feature_refund')) {
+    const named = FEATURE_LABELS[feature as CreditFeature];
+    if (named) return type === 'feature_charge' ? named.charge : named.refund;
+  }
   return LEDGER_LABELS[type as CreditTxType] ?? type;
 }
 
