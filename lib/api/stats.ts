@@ -10,14 +10,23 @@ export interface StatsSummary {
   byKind: Record<string, number>;
 }
 
-/** Verified against the live API: there is no publishedCount/processingCount. */
+/** Verified against the live API: there is no publishedCount. */
 export function tileCounts(s: StatsSummary) {
   return {
     total: s.totalAssets,
     published: s.byStatus.published ?? 0,
-    processing: s.byStatus.processing ?? 0,
     failed: s.failedCount,
   };
+}
+
+/** The accounts that exist, deleted ones left out, and how many were made in the window's UTC days. */
+export interface UserStats {
+  total: number;
+  newInPeriod: number;
+}
+
+export function fetchUserStats(days: number): Promise<UserStats> {
+  return withRefresh(() => apiFetch<UserStats>(`/stats/users?days=${days}`));
 }
 
 export interface UploadPoint {

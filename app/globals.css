@@ -41,6 +41,7 @@
      stays in the text tokens. */
   --accent-violet: #A78BFA;
   --accent-emerald: #34D399;
+  --accent-sky: #38BDF8;
   --accent-amber: #FBBF24;
   --accent-rose: #FB7185;
 }
@@ -62,6 +63,7 @@
   --color-chart-spent-active: var(--chart-spent-active);
   --color-accent-violet: var(--accent-violet);
   --color-accent-emerald: var(--accent-emerald);
+  --color-accent-sky: var(--accent-sky);
   --color-accent-amber: var(--accent-amber);
   --color-accent-rose: var(--accent-rose);
 }

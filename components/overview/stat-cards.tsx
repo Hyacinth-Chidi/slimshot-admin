@@ -1,4 +1,4 @@
-import { CircleAlert, Hourglass, Library, Radio, type LucideIcon } from 'lucide-react';
+import { Coins, Library, Radio, Users, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
@@ -6,9 +6,21 @@ import { cn } from '@/lib/cn';
 export interface OverviewStats {
   total: number;
   published: number;
-  processing: number;
   failed: number;
   totalBytes: number;
+}
+
+/** The accounts that exist, deleted ones left out, and how many joined in the last 7 days. */
+export interface OverviewUsers {
+  total: number;
+  thisWeek: number;
+}
+
+/** Credits used on paid features and free credits handed out, over the last [days] days. */
+export interface OverviewCredits {
+  spent: number;
+  given: number;
+  days: number;
 }
 
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -32,9 +44,8 @@ function figure(n: number | undefined): string {
 const ACCENTS = {
   violet: { chip: 'bg-accent-violet/15 text-accent-violet', fill: 'bg-accent-violet' },
   emerald: { chip: 'bg-accent-emerald/15 text-accent-emerald', fill: 'bg-accent-emerald' },
+  sky: { chip: 'bg-accent-sky/15 text-accent-sky', fill: 'bg-accent-sky' },
   amber: { chip: 'bg-accent-amber/15 text-accent-amber', fill: 'bg-accent-amber' },
-  rose: { chip: 'bg-accent-rose/15 text-accent-rose', fill: 'bg-accent-rose' },
-  quiet: { chip: 'bg-elevated text-subtle', fill: 'bg-subtle' },
 } as const;
 
 function StatCard({
@@ -44,6 +55,7 @@ function StatCard({
   icon: Icon,
   accent,
   alarming = false,
+  href,
   children,
 }: {
   id: string;
@@ -52,17 +64,18 @@ function StatCard({
   icon: LucideIcon;
   accent: keyof typeof ACCENTS;
   alarming?: boolean;
+  /** The whole card opens this page. A card holding a link of its own must not take one. */
+  href?: string;
   children?: ReactNode;
 }) {
-  return (
-    <div
-      data-testid={`stat-${id}`}
-      data-tone={alarming ? 'error' : 'default'}
-      className={cn(
-        'flex min-w-0 flex-col rounded-xl border bg-surface p-4 md:p-5',
-        alarming ? 'border-accent-rose/50' : 'border-border',
-      )}
-    >
+  const className = cn(
+    'flex min-w-0 flex-col rounded-xl border bg-surface p-4 md:p-5',
+    alarming ? 'border-accent-rose/50' : 'border-border',
+    href &&
+      'transition-colors hover:border-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-from)]',
+  );
+  const body = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-muted">{label}</p>
         <span
@@ -76,23 +89,56 @@ function StatCard({
         {figure(value)}
       </p>
       <div className="mt-3 min-h-5 text-xs text-muted">{value === undefined ? null : children}</div>
+    </>
+  );
+  const tone = alarming ? 'error' : 'default';
+
+  return href ? (
+    <Link href={href} data-testid={`stat-${id}`} data-tone={tone} className={className}>
+      {body}
+    </Link>
+  ) : (
+    <div data-testid={`stat-${id}`} data-tone={tone} className={className}>
+      {body}
     </div>
   );
 }
 
 /**
- * The library at a glance, above the uploads chart. Each card carries one
- * accent as its identity; the Failed card stays quiet until something fails,
- * then gains the rose accent and a link to the failed assets.
+ * The app at a glance, above the uploads chart: the library, what of it is
+ * live, the users, and the credits spent. Each card carries one accent as its
+ * identity. Users and Credits spent open their pages. Total assets stays calm
+ * until an upload fails, then takes the rose border and links to the failed
+ * assets: the Failed card that used to say so sat at 0 nearly always.
  */
-export function StatCards({ stats }: { stats: OverviewStats | undefined }) {
+export function StatCards({
+  stats,
+  users,
+  credits,
+}: {
+  stats: OverviewStats | undefined;
+  users?: OverviewUsers;
+  credits?: OverviewCredits;
+}) {
   const share = stats && stats.total > 0 ? Math.round((stats.published / stats.total) * 100) : 0;
   const failed = stats?.failed ?? 0;
 
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-      <StatCard id="total" label="Total assets" value={stats?.total} icon={Library} accent="violet">
-        {stats && stats.totalBytes > 0 ? `${formatBytes(stats.totalBytes)} stored` : 'No files stored yet'}
+      <StatCard id="total" label="Total assets" value={stats?.total} icon={Library} accent="violet" alarming={failed > 0}>
+        <span>{stats && stats.totalBytes > 0 ? `${formatBytes(stats.totalBytes)} stored` : 'No files stored yet'}</span>
+        {failed > 0 ? (
+          <>
+            {' · '}
+            <Link
+              href="/audio?status=failed"
+              aria-label={`Review ${figure(failed)} failed ${failed === 1 ? 'asset' : 'assets'}`}
+              className="-my-3 inline-flex h-11 items-center font-medium text-text underline underline-offset-4 md:my-0 md:h-auto"
+            >
+              {figure(failed)} failed
+            </Link>
+          </>
+        ) : null}
       </StatCard>
 
       <StatCard id="published" label="Live in the app" value={stats?.published} icon={Radio} accent="emerald">
@@ -115,28 +161,23 @@ export function StatCards({ stats }: { stats: OverviewStats | undefined }) {
         )}
       </StatCard>
 
-      <StatCard id="processing" label="Processing" value={stats?.processing} icon={Hourglass} accent="amber">
-        {stats && stats.processing > 0 ? 'In progress now' : 'Nothing in progress'}
+      <StatCard id="users" label="Users" value={users?.total} icon={Users} accent="sky" href="/users">
+        {users && users.thisWeek > 0 ? `+${figure(users.thisWeek)} this week` : 'No sign-ups this week'}
       </StatCard>
 
       <StatCard
-        id="failed"
-        label="Failed"
-        value={stats?.failed}
-        icon={CircleAlert}
-        accent={failed > 0 ? 'rose' : 'quiet'}
-        alarming={failed > 0}
+        id="credits"
+        label="Credits spent"
+        value={credits?.spent}
+        icon={Coins}
+        accent="amber"
+        href="/credits/pricing"
       >
-        {failed > 0 ? (
-          <Link
-            href="/audio?status=failed"
-            className="-my-3 inline-flex h-11 items-center font-medium text-text underline underline-offset-4 md:my-0 md:h-auto"
-          >
-            Review failed assets
-          </Link>
-        ) : (
-          'Nothing failed'
-        )}
+        {credits
+          ? credits.given > 0
+            ? `Last ${credits.days} days · ${figure(credits.given)} given`
+            : `Last ${credits.days} days`
+          : null}
       </StatCard>
     </div>
   );

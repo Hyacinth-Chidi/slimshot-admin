@@ -8,12 +8,14 @@ import { HealthStrip } from '@/components/overview/health-strip';
 import { StatCards } from '@/components/overview/stat-cards';
 import { UploadWaveform } from '@/components/overview/upload-waveform';
 import { fetchAuditLogs } from '@/lib/api/audit';
-import { creditDays, fetchCreditStats } from '@/lib/api/credits';
-import { fetchJobsHealth, fetchSummary, fetchUploads, tileCounts, zeroFill } from '@/lib/api/stats';
+import { creditDays, creditTotals, fetchCreditStats } from '@/lib/api/credits';
+import { fetchJobsHealth, fetchSummary, fetchUploads, fetchUserStats, tileCounts, zeroFill } from '@/lib/api/stats';
 
 const UPLOADS_WINDOW_DAYS = 30;
 const RECENT_ACTIVITY_LIMIT = 6;
 const CREDITS_WINDOW_DAYS = 30;
+/** "This week" on the Users card. */
+const USERS_WINDOW_DAYS = 7;
 
 export default function OverviewPage() {
   const summaryQuery = useQuery({ queryKey: ['stats', 'summary'], queryFn: fetchSummary });
@@ -30,8 +32,13 @@ export default function OverviewPage() {
     queryKey: ['audit', 'recent'],
     queryFn: () => fetchAuditLogs({ limit: RECENT_ACTIVITY_LIMIT }),
   });
+  const usersQuery = useQuery({
+    queryKey: ['stats', 'users', USERS_WINDOW_DAYS],
+    queryFn: () => fetchUserStats(USERS_WINDOW_DAYS),
+  });
 
   const summary = summaryQuery.data;
+  const users = usersQuery.data;
 
   return (
     <div className="flex flex-col gap-6 md:gap-8">
@@ -41,7 +48,14 @@ export default function OverviewPage() {
         <HealthStrip failed={healthQuery.data.failed} delayed={healthQuery.data.delayed} />
       ) : null}
 
-      <StatCards stats={summary ? { ...tileCounts(summary), totalBytes: summary.totalBytes } : undefined} />
+      <StatCards
+        stats={summary ? { ...tileCounts(summary), totalBytes: summary.totalBytes } : undefined}
+        users={users ? { total: users.total, thisWeek: users.newInPeriod } : undefined}
+        // The same 30 days the credits chart below draws, from the same request.
+        credits={
+          creditsQuery.data ? { ...creditTotals(creditsQuery.data), days: CREDITS_WINDOW_DAYS } : undefined
+        }
+      />
 
       <div className="grid gap-6 md:gap-8 lg:grid-cols-3">
         {/* Stretch the chart panel to match the activity panel beside it. */}

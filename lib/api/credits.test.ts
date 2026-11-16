@@ -5,6 +5,7 @@ import {
   checkBalances,
   createPricingRule,
   creditDays,
+  creditTotals,
   fetchCreditSettings,
   fetchCreditStats,
   fetchPricingRules,
@@ -112,5 +113,54 @@ describe('creditDays', () => {
         byType: { rewarded_ad: { granted: 5, spent: 0 }, feature_charge: { granted: 0, spent: 4 } },
       },
     ]);
+  });
+});
+
+// The Overview's Credits spent card: what people used on paid features, and
+// the free credits handed out.
+describe('creditTotals', () => {
+  const row = (type: string, granted: number, spent: number, day = '2026-11-16') => ({ day, type, granted, spent });
+
+  it('counts paid features, refunds taken off, across every day', () => {
+    expect(
+      creditTotals([
+        row('feature_charge', 0, 60, '2026-11-14'),
+        row('feature_charge', 0, 40),
+        row('feature_refund', 10, 0),
+      ]).spent,
+    ).toBe(90);
+  });
+
+  it('counts the free credits as given, never a refund or a purchase', () => {
+    expect(
+      creditTotals([
+        row('signup_bonus', 100, 0),
+        row('referral_inviter', 20, 0),
+        row('referral_invitee', 20, 0),
+        row('rewarded_ad', 25, 0),
+        row('daily_reward', 5, 0),
+        row('admin_adjustment', 50, 0),
+        row('feature_refund', 10, 0),
+        row('purchase', 500, 0),
+      ]).given,
+    ).toBe(220);
+  });
+
+  it('spends nothing on credits taken away or forfeited', () => {
+    expect(creditTotals([row('admin_adjustment', 0, 30), row('account_deleted', 0, 80)]).spent).toBe(0);
+  });
+
+  it('is nothing for an empty window', () => {
+    expect(creditTotals([])).toEqual({ spent: 0, given: 0 });
+  });
+
+  // A charge from before the window refunded inside it.
+  it('never spends less than nothing', () => {
+    expect(creditTotals([row('feature_charge', 0, 5), row('feature_refund', 20, 0)]).spent).toBe(0);
+  });
+
+  // The server can add a type before the dashboard learns its name.
+  it('counts a type it does not know as given, never as spent', () => {
+    expect(creditTotals([row('promo_code', 15, 0), row('something_taken', 0, 9)])).toEqual({ spent: 0, given: 15 });
   });
 });

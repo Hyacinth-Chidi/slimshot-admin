@@ -217,3 +217,26 @@ export function creditDays(rows: CreditStatsRow[], days: number, today = new Dat
   }
   return out;
 }
+
+/** Granted, but not given away: spent credits coming back, and credits paid for. */
+const NOT_GIVEN: ReadonlySet<string> = new Set<CreditTxType>(['feature_refund', 'purchase']);
+
+/**
+ * What a window of credit stats comes to, for the Overview's Credits spent
+ * card. Spent is what people used on paid features, refunds taken off; credits
+ * an admin took away or an account forfeited were never spent on anything.
+ * Given is the free credits handed out, a type the dashboard does not know yet
+ * included: the server can add a way to earn before the dashboard learns it.
+ */
+export function creditTotals(rows: CreditStatsRow[]): { spent: number; given: number } {
+  let charged = 0;
+  let refunded = 0;
+  let given = 0;
+  for (const row of rows) {
+    if (row.type === 'feature_charge') charged += row.spent;
+    if (row.type === 'feature_refund') refunded += row.granted;
+    if (!NOT_GIVEN.has(row.type)) given += row.granted;
+  }
+  // A charge from before the window can be refunded inside it.
+  return { spent: Math.max(0, charged - refunded), given };
+}
